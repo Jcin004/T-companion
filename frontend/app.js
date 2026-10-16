@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {installMemoryShell,mountMemoryUI} from './memory-ui.js';
 import {createSseJsonParser} from './sse-json.js';
-import {createLocalService,buildContext} from './local-service.js';
+import {createLocalService} from './local-service.js';
 import {replyParts,normalizeChatStyle} from './chat-style.js';
 import {mountPreferences,applyAppearance} from './preferences-ui.js';
 import {mountAppUpdate} from './app-update.js';
@@ -348,15 +348,15 @@ mountAppUpdate(legal,native?window.Capacitor?.Plugins?.TUpdate:null,()=>busy,(la
 mountDiagnostics({store:diagnostics,exportFile:exportBlob,report:e=>{reportError(e,'日志导出失败');toast(e.message);},preview:async()=>{
   if(mode!=='local')throw Error('共同后端模式请查看发送后的实际请求记录，草稿预览仅支持本机模式。');
   if(!current)throw Error('请先打开一个聊天，再回到这里查看预览。');
-  const service=await localReady;return {note:'待发送预览：包含当前聊天草稿。固定概率模式的候选在发送时确定；实际内容请查看模型请求记录。',messages:buildContext(service.data,current.id,el('input').value)};
+  return api(`/contacts/${current.id}/context-preview`,'POST',{message:el('input').value});
 }});
 diagnosticsReady.then(()=>diagnostics.record('system','应用启动',{version:'0.6.1-trial',platform:native?'android':'browser'}));
 window.tGoBack=()=>{const dialog=last([...document.querySelectorAll('dialog[open]')]);if(dialog){dialog.close();return true;}const phone=document.querySelector('.phone');if(phone.classList.contains('in-chat')){chatOpen=false;app('chat');return true;}if(activeApp!=='home'){app('home');return true;}return false;};
 const preferences=mountPreferences({api,localReady,isLocal:()=>mode==='local',isBusy:()=>busy,getCurrent:()=>current,setCurrent:c=>{current=c;},updated:async()=>{prefs=await api('/settings');showPreferences();await preferences.refresh(prefs);await refreshContacts();if(current&&!busy){renderHeader();renderMessages();}},toast});
-memoryUI=mountMemoryUI({api,localReady,isLocal:()=>mode==='local',getCurrent:()=>current,toast,report:e=>reportError(e,'记忆操作失败'),openSource:async id=>{
- const service=await localReady,message=service.data.messages.find(m=>m.id===id);if(!message)throw Error('来源消息不存在');
+memoryUI=mountMemoryUI({api,localReady,isLocal:()=>mode==='local',getCurrent:()=>current,toast,report:e=>reportError(e,'记忆操作失败'),openSource:async (id,owner)=>{
+ const {contact}=await api(`/memory-sources/${id}/location?owner=${encodeURIComponent(owner)}`);
  for(const d of document.querySelectorAll('dialog[open]'))d.close();
- const contact=(await api('/contacts')).find(s=>s.id===message.session_id);if(!contact)throw Error('来源会话不存在');await openContact(contact);await jump(id);
+ await openContact(contact);await jump(id);
 }});
 if(device)device.voices().then(data=>{nativeVoices=data.voices;voiceOptions(el('voice'),prefs.voice);}).catch(()=>{});
 initialize().then(()=>{app('home');}).catch(e=>{reportError(e,'应用启动失败');app('settings');el('connection-result').textContent=e.message;});

@@ -1,31 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // UI calls this service port. Persistence and model transport are independent adapters.
 import {createSseJsonParser} from './sse-json.js';
-import {INVARIANTS} from './runtime-rules.js';
 import {ensureProfiles,validateConnection} from './model-profiles.js';
-import {normalizeChatStyle,styleInstructions,turnChatStyle} from './chat-style.js';
+import {normalizeChatStyle,turnChatStyle} from './chat-style.js';
 import {historyLimit,validateHistoryLimit} from './context-policy.js';
-import {validateMemory,recall,memoryContext} from './memory-core.js';
+import {validateMemory,recall} from './memory-core.js';
 import {MemoryModule} from './memory-service.js';
+import {buildContext,queryLocalData} from './local-queries.js';
+// Preserve the existing import path for callers while the implementation moves.
+export {buildContext} from './local-queries.js';
 const clone = value => JSON.parse(JSON.stringify(value));
 const uid = () => 't_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
 const defaults = {base_url:'https://api.openai.com/v1',model:'',protocol:'openai-chat',theme:'light',font_size:16,voice:'',timezone:'Asia/Shanghai',history_limit:30};
 export function emptyData(){return {version:2,characters:[],sessions:[],messages:[],turns:[],settings:{...defaults},drafts:{}};}
-export function buildContext(data,sid,message,chatStyle,recalled){
-  const session=data.sessions.find(s=>s.id===sid), c=data.characters.find(c=>c.id===session?.character_id);
-  if(!c)throw Error('角色不存在');
-  const canon=c.profile?.canon||{},persona=c.profile?.persona||{};
-  // Schema metadata is deliberately excluded. Roster fields are the sole editable authority.
-  const facts={Name:c.name,Nature:canon.nature||'UNSPECIFIED','Source world':canon.source_world||'UNSPECIFIED',Description:c.identity||'UNSPECIFIED','Immutable facts':canon.immutable_facts,'Background origin':canon.origin||'UNSPECIFIED','Important history':canon.important_history,'Fixed boundaries':canon.fixed_boundaries};
-  const traits={Traits:persona.traits,Values:persona.values,Likes:persona.likes,Dislikes:persona.dislikes,'Communication style':c.style?[c.style]:[],Boundaries:persona.boundaries,'Behavioral tendencies':persona.behavioral_tendencies};
-  const lines=(map)=>Object.entries(map).filter(([,v])=>v?.length).map(([k,v])=>'- '+k+': '+(Array.isArray(v)?v.join('; '):v)).join('\n');
-  const system=INVARIANTS+'\n\nAuthoritative Character Canon:\n'+lines(facts)+'\n\nStable Persona:\n'+lines(traits)+styleInstructions(chatStyle||session.chat_style)+memoryContext(recalled||recall(data,c.id,message));
-  const complete=new Set(data.turns.filter(t=>t.session_id===sid&&t.state==='complete').flatMap(t=>[t.user_id,t.assistant_id]));
-  const limit=historyLimit(data,sid);
-  const history=(limit?data.messages.filter(m=>m.session_id===sid&&complete.has(m.id)).slice(-limit):[]).map(({role,content})=>({role,content}));
-  return [{role:'system',content:system},...history,{role:'user',content:message}];
-}
 export function validateBackup(raw){
   if(!raw||![1,2].includes(raw.version))throw Error('不支持的备份版本');
   const d=clone(raw); for(const name of ['characters','sessions','messages','turns'])if(!Array.isArray(d[name]))throw Error('备份缺少 '+name);
@@ -99,7 +87,9 @@ export class LocalService {
   async publicSettings(){return {...this.connection(),active_profile_id:this.data.active_profile_id,has_api_key:await this.storage.hasKey(this.data.active_profile_id)};}
   message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
   async api(path,method='GET',body){
-    const pathname=new URL(path,'https://local').pathname,route=pathname.split('/').filter(Boolean)[0];
+    const url=new URL(path,'https://local'),pathname=url.pathname,route=pathname.split('/').filter(Boolean)[0];
+    const queried=queryLocalData(this.data,url,method,body);
+    if(queried!==undefined)return queried;
     if(['memories','summaries','self','memory-settings','memory-sources'].includes(route))return this.memoryModule.api(path,method,body);
     if(method==='GET'||pathname==='/settings/test')return this._dispatch(path,method,body);
     return this.transact(async data=>{
