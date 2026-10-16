@@ -81,22 +81,44 @@ export async function nativeModel(plugin,settings,messages,onDelta,signal){
 }
 export class LocalService {
   constructor(persistence,transport,diagnostics=null){this.storage=persistence;this.transport=transport;this.diagnostics=diagnostics;this.queue=Promise.resolve();this.active=null;this.memoryModule=new MemoryModule(this);this.auxTask=null;}
-  async init(){this.data=await this.storage.load();ensureProfiles(this.data);validateMemory(this.data);for(const t of this.data.turns)if(t.state==='generating')t.state='interrupted';await this.persist();return this;}
-  persist(){const snapshot=clone(this.data);const task=this.queue.catch(()=>{}).then(()=>this.storage.save(snapshot));this.queue=task;return task;}
+  async init(){this.data=await this.storage.load();ensureProfiles(this.data);validateMemory(this.data);for(const t of this.data.turns)if(t.state==='generating')t.state='interrupted';await this.transact(()=>{});return this;}
+  // A command sees the last durable state; uncommitted candidates stay private.
+  transact(change){
+    const task=this.queue.catch(()=>{}).then(async()=>{
+      const next=clone(this.data);
+      const result=await change(next);
+      await this.storage.save(next);
+      this.data=next;
+      return result===undefined?undefined:clone(result);
+    });
+    this.queue=task;
+    return task;
+  }
+
   connection(){const p=this.data.api_profiles.find(p=>p.id===this.data.active_profile_id);return {...this.data.settings,...(p||{base_url:'',model:''}),profile_id:p?.id||''};}
-  publicSettings=async()=>({...this.connection(),active_profile_id:this.data.active_profile_id,has_api_key:await this.storage.hasKey(this.data.active_profile_id)});
+  async publicSettings(){return {...this.connection(),active_profile_id:this.data.active_profile_id,has_api_key:await this.storage.hasKey(this.data.active_profile_id)};}
   message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
   async api(path,method='GET',body){
+    const pathname=new URL(path,'https://local').pathname,route=pathname.split('/').filter(Boolean)[0];
+    if(['memories','summaries','self','memory-settings','memory-sources'].includes(route))return this.memoryModule.api(path,method,body);
+    if(method==='GET'||pathname==='/settings/test')return this._dispatch(path,method,body);
+    return this.transact(async data=>{
+      // Reuse domain validation against a private document; never run model work here.
+      const command=Object.create(this);
+      command.data=data;
+      return command._dispatch(path,method,body);
+    });
+  }
+  async _dispatch(path,method='GET',body){
     this.diagnostics?.rememberSecret(body?.api_key);
     const url=new URL(path,'https://local'),q=url.searchParams,parts=url.pathname.split('/').filter(Boolean),d=this.data;
-    if(['memories','summaries','self','memory-settings','memory-sources'].includes(parts[0]))return this.memoryModule.api(path,method,body);
     if(parts[0]==='health')return {ok:true};
     if(parts[0]==='model-groups'){
       if(method==='GET')return clone(d.api_groups);
       if(this.active)throw Error('请等待当前回复完成再修改连接');
       if(method==='DELETE'){d.api_groups=d.api_groups.filter(g=>g.id!==parts[1]);for(const p of d.api_profiles)if(p.group_id===parts[1])p.group_id='';}
       else {if(!body.name?.trim()||body.name.length>80)throw Error('请填写分组名称（最多80字）');const g=d.api_groups.find(g=>g.id===parts[1]);if(g)g.name=body.name.trim();else {if(d.api_groups.length>=100)throw Error('分组已达上限');d.api_groups.push({id:uid(),name:body.name.trim()});}}
-      await this.persist();return clone(d.api_groups);
+      return clone(d.api_groups);
     }
     if(parts[0]==='model-profiles'){
       if(method==='GET')return Promise.all(d.api_profiles.map(async p=>({...p,active:p.id===d.active_profile_id,has_api_key:await this.storage.hasKey(p.id)})));
@@ -105,27 +127,31 @@ export class LocalService {
       if(parts[2]==='activate'){if(!p)throw Error('连接不存在');d.active_profile_id=p.id;}
       else if(method==='DELETE'){if(!p)throw Error('连接不存在');await this.storage.setKey(null,p.id);d.api_profiles=d.api_profiles.filter(x=>x.id!==p.id);if(d.active_profile_id===p.id)d.active_profile_id=d.api_profiles[0]?.id||'';}
       else {const value=validateConnection(body);if(value.group_id&&!d.api_groups.some(g=>g.id===value.group_id))throw Error('分组不存在');if(parts[1]&&!p)throw Error('连接不存在');if(!p&&d.api_profiles.length>=200)throw Error('连接已达上限');const id=p?.id||uid();if(p&&new URL(p.base_url).origin!==new URL(value.base_url).origin&&!body.api_key&&!body.clear_key&&await this.storage.hasKey(id))throw Error('服务域名已变更，请重新填写密钥或选择清除旧密钥');if(body.clear_key)await this.storage.setKey(null,id);else if(body.api_key)await this.storage.setKey(body.api_key,id);if(p)Object.assign(p,value);else d.api_profiles.push({id,...value});if(!d.active_profile_id)d.active_profile_id=id;}
-      await this.persist();return this.publicSettings();
+      return this.publicSettings();
     }
     if(parts[0]==='settings'){
       if(body?.history_limit!==undefined)validateHistoryLimit(body.history_limit);
       if(parts[1]==='test'){const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),25000);try{await this.callModel([{role:'user',content:'Reply OK'}],()=>{},ctrl.signal);return {ok:true};}finally{clearTimeout(timer);}}
-      if(method==='PATCH'){const values={...body};delete values.api_key;delete values.has_api_key;if(values.protocol&&values.protocol!=='openai-chat')throw Error('当前仅支持 Chat Completions 协议');if(values.base_url){const u=new URL(values.base_url);if(u.username||u.password||u.search||u.hash||!(u.protocol==='https:'||(u.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(u.hostname))))throw Error('模型服务地址必须为 HTTPS（本机测试除外）');}if(values.timezone)new Intl.DateTimeFormat('en',{timeZone:values.timezone});if(body.api_key)await this.storage.setKey(body.api_key,d.active_profile_id);const profile=d.api_profiles.find(p=>p.id===d.active_profile_id);if(profile)for(const k of ['base_url','model','protocol'])if(values[k]!==undefined)profile[k]=values[k];d.settings={...d.settings,...values};await this.persist();}return this.publicSettings();
+      if(method==='PATCH'){const values={...body};delete values.api_key;delete values.has_api_key;if(values.protocol&&values.protocol!=='openai-chat')throw Error('当前仅支持 Chat Completions 协议');if(values.base_url){const u=new URL(values.base_url);if(u.username||u.password||u.search||u.hash||!(u.protocol==='https:'||(u.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(u.hostname))))throw Error('模型服务地址必须为 HTTPS（本机测试除外）');}if(values.timezone)new Intl.DateTimeFormat('en',{timeZone:values.timezone});if(body.api_key)await this.storage.setKey(body.api_key,d.active_profile_id);const profile=d.api_profiles.find(p=>p.id===d.active_profile_id);if(profile)for(const k of ['base_url','model','protocol'])if(values[k]!==undefined)profile[k]=values[k];d.settings={...d.settings,...values};}return this.publicSettings();
     }
     if(parts[0]==='characters'){
       if(method==='GET')return clone(d.characters);
       if(!body.name?.trim()||body.name.length>100||body.identity?.length>20000||body.style?.length>10000||body.avatar?.length>550000||(body.avatar&&!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(body.avatar)))throw Error('角色资料格式或长度不正确');
       const old=d.characters.find(c=>c.id===parts[1]),c={...old,...body,id:old?.id||uid()};
       if(c.profile){c.profile.canon.name=c.name;c.profile.canon.description=c.identity||'UNSPECIFIED';c.profile.persona.communication_style=c.style?[c.style]:[];}
-      if(old)Object.assign(old,c);else d.characters.push(c);await this.persist();return clone(c);
+      if(old)Object.assign(old,c);else d.characters.push(c);return clone(c);
     }
     if(parts[0]==='contacts'){
       if(parts.length===1){
-        if(method==='POST'){if(!d.characters.some(c=>c.id===body.character_id))throw Error('角色不存在');let c=d.sessions.find(s=>s.character_id===body.character_id);if(!c){c={id:uid(),character_id:body.character_id,title:d.characters.find(c=>c.id===body.character_id).name,note:'',background:'#eef2f3',voice:'',created_at:now()};d.sessions.push(c);await this.persist();}return clone(c);}
+        if(method==='POST'){if(!d.characters.some(c=>c.id===body.character_id))throw Error('角色不存在');let c=d.sessions.find(s=>s.character_id===body.character_id);if(!c){c={id:uid(),character_id:body.character_id,title:d.characters.find(c=>c.id===body.character_id).name,note:'',background:'#eef2f3',voice:'',created_at:now()};d.sessions.push(c);}return clone(c);}
         return d.sessions.map(s=>{const ms=d.messages.filter(m=>m.session_id===s.id),last=ms[ms.length-1];return {...s,last_message:last?.content||'',last_time:last?.created_at,last_assistant_id:ms.filter(m=>m.role==='assistant'&&this.message(m).state==='complete').pop()?.id||0};}).reverse();
       }
       const s=d.sessions.find(s=>s.id===parts[1]);if(!s)throw Error('会话不存在');
-      if(method==='PATCH'){if(body.history_limit!==undefined&&body.history_limit!==null)validateHistoryLimit(body.history_limit);for(const k of ['note','background','voice'])if(body[k]!==undefined)s[k]=String(body[k]);if('history_limit' in body)s.history_limit=body.history_limit;if(body.chat_style)s.chat_style=normalizeChatStyle(body.chat_style);await this.persist();return clone(s);}
+      if(method==='PATCH'&&parts.length===2){if(body.history_limit!==undefined&&body.history_limit!==null)validateHistoryLimit(body.history_limit);for(const k of ['note','background','voice'])if(body[k]!==undefined)s[k]=String(body[k]);if('history_limit' in body)s.history_limit=body.history_limit;if(body.chat_style)s.chat_style=normalizeChatStyle(body.chat_style);return clone(s);}
+      if(parts[2]==='draft'){
+        if(method==='PATCH'){if(typeof body?.text!=='string'||body.text.length>100000)throw Error('草稿格式或长度不正确');d.drafts[s.id]=body.text;}
+        return {text:d.drafts[s.id]||''};
+      }
       const ms=d.messages.filter(m=>m.session_id===s.id).sort((a,b)=>a.id-b.id);
       if(parts[2]==='messages'){
         let result;if(q.has('before'))result=ms.filter(m=>m.id<Number(q.get('before'))).slice(-40);else if(q.has('after'))result=ms.filter(m=>m.id>Number(q.get('after'))).slice(0,40);else if(q.has('anchor')){const i=ms.findIndex(m=>m.id===Number(q.get('anchor')));if(i<0)throw Error('消息不存在');result=ms.slice(Math.max(0,i-20),i+21);}else result=ms.slice(-40);
@@ -136,7 +162,7 @@ export class LocalService {
     }
     if(parts[0]==='backup'){
       if(this.active)throw Error('请先停止生成再备份或恢复');
-      if(parts[1]==='restore'){if(this.active)throw Error('请等待当前模型操作结束再恢复');const next=validateBackup(body);await this.queue;for(const p of next.api_profiles){const old=d.api_profiles.find(x=>x.id===p.id);if(!old||new URL(old.base_url).origin!==new URL(p.base_url).origin)await this.storage.setKey(null,p.id);}await this.storage.save(next);this.data=next;return {ok:true};}
+      if(parts[1]==='restore'){if(this.active)throw Error('请等待当前模型操作结束再恢复');const next=validateBackup(body);for(const p of next.api_profiles){const old=d.api_profiles.find(x=>x.id===p.id);if(!old||new URL(old.base_url).origin!==new URL(p.base_url).origin)await this.storage.setKey(null,p.id);}for(const key of Object.keys(d))delete d[key];Object.assign(d,next);return {ok:true};}
       return clone(d);
     }
     throw Error('不支持的本地操作');
@@ -155,24 +181,67 @@ export class LocalService {
   }
   async stream(sid,text,rid,onEvent){
     if(this.auxTask){this.cancel();await this.auxTask.catch(()=>{});}
-    if(this.active)throw Error('已有回复正在生成');if(this.memoryModule.saving)throw Error('记忆正在保存，请稍后发送');
-    const ctrl=new AbortController();this.active=ctrl;const d=this.data;let turn=d.turns.find(t=>t.request_id===rid),partial='',dirty=0,started=false;
+    if(this.active)throw Error('已有回复正在生成');
+    if(this.memoryModule.saving)throw Error('记忆正在保存，请稍后发送');
+    const ctrl=new AbortController();this.active=ctrl;
+    let partial='',dirty=0,started=false,writeFailure;
     try{
-      if(!d.sessions.some(s=>s.id===sid))throw Error('会话不存在');
-      if(turn&&(turn.session_id!==sid||d.messages.find(m=>m.id===turn.user_id)?.content!==text))throw Error('请求标识与原消息不匹配');
-      if(turn?.state==='complete'){onEvent('complete',{});return;}
-      const nextId=()=>d.messages.reduce((n,m)=>Math.max(n,m.id),0)+1;
-      if(!turn){const u={id:nextId(),session_id:sid,role:'user',content:text,created_at:now()};d.messages.push(u);turn={request_id:rid,session_id:sid,user_id:u.id,assistant_id:null,state:'generating'};d.turns.push(turn);}
-      started=true;turn.state='generating';turn.error='';
-      if(!turn.chat_style)turn.chat_style=turnChatStyle(d.sessions.find(s=>s.id===sid).chat_style,rid);
-      let reply=d.messages.find(m=>m.id===turn.assistant_id);if(!reply){reply={id:nextId(),session_id:sid,role:'assistant',content:'',created_at:now()};d.messages.push(reply);turn.assistant_id=reply.id;}else reply.content='';
-      await this.persist();onEvent('accepted',{chat_style:turn.chat_style});
+      const accepted=await this.transact(d=>{
+        if(!d.sessions.some(s=>s.id===sid))throw Error('会话不存在');
+        let turn=d.turns.find(t=>t.request_id===rid);
+        if(turn&&(turn.session_id!==sid||d.messages.find(m=>m.id===turn.user_id)?.content!==text))throw Error('请求标识与原消息不匹配');
+        if(turn?.state==='complete')return {complete:true};
+        const nextId=()=>d.messages.reduce((n,m)=>Math.max(n,m.id),0)+1;
+        if(!turn){
+          const u={id:nextId(),session_id:sid,role:'user',content:text,created_at:now()};
+          d.messages.push(u);
+          turn={request_id:rid,session_id:sid,user_id:u.id,assistant_id:null};d.turns.push(turn);
+        }
+        turn.state='generating';turn.error='';
+        if(!turn.chat_style)turn.chat_style=turnChatStyle(d.sessions.find(s=>s.id===sid).chat_style,rid);
+        let reply=d.messages.find(m=>m.id===turn.assistant_id);
+        if(!reply){reply={id:nextId(),session_id:sid,role:'assistant',content:'',created_at:now()};d.messages.push(reply);turn.assistant_id=reply.id;}
+        else reply.content='';
+        return {chat_style:turn.chat_style};
+      });
+      if(accepted.complete){onEvent('complete',{});return;}
+      started=true;onEvent('accepted',accepted);
+      const checkpoint=(content,state,error='')=>this.transact(d=>{
+        const turn=d.turns.find(t=>t.request_id===rid);
+        const reply=d.messages.find(m=>m.id===turn.assistant_id);
+        reply.content=content;if(state)turn.state=state;turn.error=error;
+      });
+      const d=this.data,recalled=recall(d,d.sessions.find(s=>s.id===sid).character_id,text);
       const timer=setTimeout(()=>ctrl.abort(),180000);
-      const recalled=recall(d,d.sessions.find(s=>s.id===sid).character_id,text);
-      try{await this.callModel(buildContext(d,sid,text,turn.chat_style,recalled),chunk=>{if(ctrl.signal.aborted)return;partial+=chunk;if(partial.length>100000){ctrl.abort();return;}reply.content=partial;onEvent('delta',{text:chunk});if(Date.now()-dirty>400){dirty=Date.now();this.persist().catch(()=>ctrl.abort());}},ctrl.signal,{session_id:sid,request_id:rid,recall_method:'bm25',recalled_memory_ids:recalled.map(m=>m.id),recall_matches:recalled.map(({id,score,matched_terms})=>({id,score,matched_terms}))});}finally{clearTimeout(timer);}
-      if(ctrl.signal.aborted)throw Error('已停止生成');if(!partial.trim())throw Error('模型返回了空内容');
-      turn.state='complete';await this.persist();onEvent('complete',{});
-    }catch(error){if(turn&&started){turn.state=ctrl.signal.aborted?'cancelled':'failed';turn.error=ctrl.signal.aborted?'已停止，部分回复未完成':'请求失败，可重试';await this.persist();}throw Error(ctrl.signal.aborted?'已停止生成；可重试原消息':error.message||'网络连接失败');}finally{this.active=null;if(turn?.state==='complete')this.memoryModule.schedule(sid);}
+      try{
+        await this.callModel(buildContext(d,sid,text,accepted.chat_style,recalled),chunk=>{
+          if(ctrl.signal.aborted)return;
+          partial+=chunk;if(partial.length>100000){ctrl.abort();return;}
+          onEvent('delta',{text:chunk});
+          if(Date.now()-dirty>400){
+            dirty=Date.now();
+            checkpoint(partial).catch(error=>{writeFailure=error;ctrl.abort();});
+          }
+        },ctrl.signal,{session_id:sid,request_id:rid,recall_method:'bm25',recalled_memory_ids:recalled.map(m=>m.id),recall_matches:recalled.map(({id,score,matched_terms})=>({id,score,matched_terms}))});
+      }finally{clearTimeout(timer);}
+      // Drain checkpoints before committing completion, including a failed last save.
+      await this.queue.catch(error=>{writeFailure=error;});
+      if(writeFailure)throw writeFailure;
+      if(ctrl.signal.aborted)throw Error('已停止生成');
+      if(!partial.trim())throw Error('模型返回了空内容');
+      await checkpoint(partial,'complete');onEvent('complete',{});
+    }catch(error){
+      if(started)await this.transact(d=>{
+        const turn=d.turns.find(t=>t.request_id===rid);
+        d.messages.find(m=>m.id===turn.assistant_id).content=partial;
+        turn.state=writeFailure?'failed':ctrl.signal.aborted?'cancelled':'failed';
+        turn.error=writeFailure?'保存失败，请检查设备空间':ctrl.signal.aborted?'已停止，部分回复未完成':'请求失败，可重试';
+      });
+      throw Error(writeFailure?.message||(ctrl.signal.aborted?'已停止生成；可重试原消息':error.message||'网络连接失败'));
+    }finally{
+      this.active=null;
+      if(this.data.turns.find(t=>t.request_id===rid)?.state==='complete')this.memoryModule.schedule(sid);
+    }
   }
 }
 export async function createLocalService(plugin,diagnostics){const persistence=plugin?new NativePersistence(plugin):new BrowserPersistence();const transport=plugin?((s,k,m,delta,signal)=>nativeModel(plugin,s,m,delta,signal)):browserModel;return new LocalService(persistence,transport,diagnostics).init();}

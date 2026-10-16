@@ -12,7 +12,7 @@ test('persist before transport; retry is idempotent and excludes failed partial 
   await assert.rejects(service.stream(s.id,'变更消息','request1',()=>{}),/不匹配/);
 });
 test('interrupted recovery, character isolation, canonical identity projection and secret-free backups',async()=>{
-  const {service,persistence,s,c}=await setup(async()=>{});service.data.turns.push({request_id:'interrupted',session_id:s.id,user_id:1,assistant_id:2,state:'generating'});service.data.messages.push({id:1,session_id:s.id,role:'user',content:'旧问题',created_at:'2026-01-01T00:00:00Z'},{id:2,session_id:s.id,role:'assistant',content:'未完成',created_at:'2026-01-01T00:00:00Z'});await service.persist();
+  const {service,persistence,s,c}=await setup(async()=>{});await service.transact(d=>{d.turns.push({request_id:'interrupted',session_id:s.id,user_id:1,assistant_id:2,state:'generating'});d.messages.push({id:1,session_id:s.id,role:'user',content:'旧问题',created_at:'2026-01-01T00:00:00Z'},{id:2,session_id:s.id,role:'assistant',content:'未完成',created_at:'2026-01-01T00:00:00Z'});});
   const recovered=await new LocalService(persistence,async()=>{}).init();assert.equal(recovered.data.turns[0].state,'interrupted');
   c.profile={schema_version:1,character_id:'secret_metadata',canon:{immutable_facts:['固定事实']},persona:{values:['诚实']}};Object.assign(recovered.data.characters[0],c);
   const context=buildContext(recovered.data,s.id,'当前问题');assert.equal(context.length,2);assert.ok(context[0].content.includes('固定事实'));assert.ok(!context[0].content.includes('secret_metadata'));assert.ok(!context[0].content.includes('未完成'));

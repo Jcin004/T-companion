@@ -14,7 +14,7 @@ test('legacy connection migrates without moving secrets; grouped profiles route 
   await service.callModel([],()=>{},new AbortController().signal);assert.deepEqual(calls.pop(),{model:'other',key:'second-test-key'});
   await service.api('/model-profiles/legacy/activate','POST');await service.callModel([],()=>{},new AbortController().signal);assert.deepEqual(calls.pop(),{model:'old-model',key:'old-test-key'});
   assert.ok(!JSON.stringify(await service.api('/backup')).includes('test-key'));
-  await service.api('/model-groups/'+group.id,'DELETE');assert.equal(second.group_id,'');
+  await service.api('/model-groups/'+group.id,'DELETE');assert.equal(service.data.api_profiles.find(p=>p.id===second.id).group_id,'');
   await service.api('/model-profiles/'+second.id,'DELETE');assert.equal(store.keys.has(second.id),false);assert.equal(store.keys.get('legacy'),'old-test-key');
   const reopened=await new LocalService(store,async()=>{}).init();assert.equal(reopened.data.active_profile_id,'legacy');
 });
