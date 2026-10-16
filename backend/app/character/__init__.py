@@ -1,0 +1,1 @@
+"""Authoritative character configuration providers."""

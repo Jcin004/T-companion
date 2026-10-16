@@ -1,0 +1,8 @@
+{
+  "appId": "io.jcin.tcompanion",
+  "appName": "T- 陪伴",
+  "webDir": "dist",
+  "loggingBehavior": "none",
+  "server": {"androidScheme": "https", "cleartext": false},
+  "android": {"allowMixedContent": false, "webContentsDebuggingEnabled": false}
+}

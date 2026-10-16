@@ -1,0 +1,17 @@
+schema_version: 1
+
+character_id: "t-minus"
+
+identity:
+  name: "T-"
+  nature: "UNSPECIFIED"
+  source_world: "UNSPECIFIED"
+  description: "UNSPECIFIED"
+
+immutable_facts: []
+
+background:
+  origin: "UNSPECIFIED"
+  important_history: []
+
+fixed_boundaries: []

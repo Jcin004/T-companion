@@ -1,0 +1,84 @@
+import {chromium} from '@playwright/test';
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+
+const browser = process.env.T_BROWSER_CDP ? await chromium.connectOverCDP(process.env.T_BROWSER_CDP) : await chromium.launch({channel:process.env.T_BROWSER_CHANNEL || 'msedge',headless:true});
+const context = await browser.newContext({viewport:{width:1280,height:860}, acceptDownloads:true});
+await context.addInitScript(()=>{delete Element.prototype.replaceChildren;delete Array.prototype.at;delete AbortSignal.timeout;});
+const page = await context.newPage();
+const errors=[];page.on('pageerror', e=>errors.push(e.message));
+const root='http://127.0.0.1:8011';
+const runId=Date.now();
+const sentText='浏览器验收 '+runId, retryText='失败重试验收 '+runId;
+await mkdir('artifacts', {recursive:true});
+try {
+  await page.request.post(root+'/test/reset');
+  await page.goto(root);
+  await page.locator('.contact').filter({hasText:'林间'}).click();
+  await page.waitForFunction(()=>document.querySelectorAll('.message').length===40);
+  const initialFirst=await page.locator('.message').first().getAttribute('data-id');
+  const anchor=await page.evaluate(()=>{const box=document.getElementById('messages');box.scrollTop=60;const row=[...box.querySelectorAll('.message')].find(n=>n.getBoundingClientRect().bottom>box.getBoundingClientRect().top);return {id:row.dataset.id,y:row.getBoundingClientRect().top};});
+  await page.waitForFunction(()=>document.querySelectorAll('.message').length>40);
+  assert(Number(await page.locator('.message').first().getAttribute('data-id'))<Number(initialFirst));
+  // An anchor that was at the viewport edge remains at the same position after prepending.
+  const position=await page.locator(`[data-id="${anchor.id}"]`).boundingBox();
+  assert(Math.abs(position.y-anchor.y)<=2, JSON.stringify({position,anchor}));
+  await page.locator('#latest').click();
+  await page.locator('#input').fill(sentText);await page.locator('#composer').evaluate(f=>f.requestSubmit());
+  await page.waitForFunction(()=>document.querySelector('#messages')?.textContent.includes('你好，这是流式回复。'));
+  await page.waitForFunction(()=>!document.getElementById('send').disabled);
+  await page.locator('#input').fill('保留我的草稿');
+  await page.reload();await page.locator('.contact').filter({hasText:'林间'}).click();
+  assert.equal(await page.locator('#input').inputValue(),'保留我的草稿');
+  await page.waitForFunction(()=>document.querySelector('#messages')?.textContent.includes('浏览器验收'));
+  await page.request.post(root+'/test/fail/1');
+  await page.locator('#input').fill(retryText);await page.locator('#composer').evaluate(f=>f.requestSubmit());
+  await page.locator('.retry').waitFor();
+  await page.request.post(root+'/test/fail/0');await page.locator('.retry').click();
+  await page.waitForFunction(()=>!document.getElementById('send').disabled);
+  assert.equal(await page.locator('.bubble').filter({hasText:retryText}).count(),1);
+  await context.setOffline(true);
+  for(const n of [1,2]){
+    await page.locator('#input').fill('离线消息 '+runId+' '+n);await page.locator('#composer').evaluate(f=>f.requestSubmit());
+    await page.waitForFunction(()=>!document.getElementById('send').disabled);
+  }
+  assert.equal(await page.locator('.retry').count(),2);
+  await context.setOffline(false);await page.reload();await page.locator('.contact').filter({hasText:'林间'}).click();
+  await page.locator('.retry').first().waitFor();assert.equal(await page.locator('.retry').count(),2);
+  for(const n of [1,2]){await page.locator('.retry').first().click();await page.waitForFunction(()=>!document.getElementById('send').disabled);}
+  assert.equal(await page.locator('.retry').count(),0);
+  await page.locator('#details').click();await page.locator('#history-open').click();
+  await page.locator('#search-query').fill('历史消息 0100');await page.locator('#search-form').evaluate(f=>f.requestSubmit());
+  await page.locator('.search-result').click();
+  await page.waitForFunction(()=>document.querySelector('#messages')?.textContent.includes('历史消息 0100'));
+  assert(await page.locator('.message').count()<=160);
+  await page.locator('#details').click();await page.locator('#history-open').click();
+  assert.equal(await page.locator('#calendar button:not([disabled])').count(),1);
+  await page.locator('#calendar button:not([disabled])').click();
+  await page.waitForFunction(()=>document.querySelector('#messages')?.textContent.includes('历史消息 0000'));
+  await page.locator('#latest').click();
+  await page.screenshot({path:'artifacts/chat-desktop.png'});
+  await page.locator('[data-app="roster"]').click();await page.locator('#add-character').click();
+  await page.locator('#character-name').fill('新角色');await page.locator('#character-identity').fill('浏览器创建的身份');await page.locator('#character-form').evaluate(f=>f.requestSubmit());
+  await page.waitForFunction(()=>!document.getElementById('character-dialog').open);
+  assert(await page.locator('.card').filter({hasText:'新角色'}).count());
+  await page.screenshot({path:'artifacts/roster-desktop.png'});
+  await page.locator('[data-app="settings"]').click();
+  await page.locator('#theme').selectOption('dark');await page.locator('#display-form').evaluate(f=>f.requestSubmit());
+  await page.waitForFunction(()=>document.body.classList.contains('dark'));
+  const saved=await (await page.request.get(root+'/api/v1/settings')).json();assert(saved.model==='mock'&&saved.has_api_key);
+  await page.locator('#theme').selectOption('light');await page.locator('#display-form').evaluate(f=>f.requestSubmit());
+  await page.waitForFunction(()=>!document.body.classList.contains('dark'));
+  await page.screenshot({path:'artifacts/settings-desktop.png'});
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('[data-app="chat"]').click();await page.locator('#back').click();
+  await page.screenshot({path:'artifacts/contacts-mobile.png'});
+  await page.locator('.contact').filter({hasText:'林间'}).click();
+  await page.screenshot({path:'artifacts/chat-mobile.png'});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await page.locator('#back').click();await page.locator('[data-app="settings"]').click();
+  await page.locator('#backend').fill('http://127.0.0.1:1');await page.locator('#connection-form').evaluate(f=>f.requestSubmit());
+  await page.waitForFunction(()=>{const text=document.getElementById('connection-result').textContent;return text.length>0&&!text.includes('正在连接')&&!text.includes('连接成功');});
+  assert.deepEqual(errors,[]);
+  console.log('PASS: desktop/mobile, chat, retry, drafts, bounded history, search/calendar context, roster. Screenshots in artifacts/.');
+} finally {await context.close();await browser.close();}

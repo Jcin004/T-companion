@@ -1,0 +1,21 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+
+# Local conversation data
+*.db
+*.db-shm
+*.db-wal
+data/
+node_modules/
+android/.gradle/
+android/local.properties
+android/**/build/
+dist/
+artifacts/

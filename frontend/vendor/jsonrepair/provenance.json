@@ -1,0 +1,12 @@
+{
+  "name": "jsonrepair",
+  "version": "3.15.0",
+  "license": "ISC",
+  "repository": "https://github.com/josdejong/jsonrepair.git",
+  "modifications": "none",
+  "sha256": {
+    "regular/jsonrepair.js": "19370f52c7eaccc013d5b5225d47dab4c7aea123b9dfc30a61db78370ede7900",
+    "utils/stringUtils.js": "e05e8b6b57759290acaf9268f84ff248bdf51e3d71816178be7f49ef0774f736",
+    "utils/JSONRepairError.js": "760bbdf77243afe6da53aad48520423c2b3da2e15838ca89cb118e87067ef130"
+  }
+}

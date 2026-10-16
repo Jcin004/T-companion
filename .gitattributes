@@ -1,0 +1,16 @@
+* text=auto eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.jar binary
+*.png binary
+
+# Preserve verbatim upstream package bytes and integrity digests.
+frontend/vendor/jsonrepair/** -text

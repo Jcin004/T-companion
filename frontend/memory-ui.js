@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+import {rosterSource} from './memory-core.js';
+const el=id=>document.getElementById(id);
+const node=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;};
+const kinds={statement:'陈述',promise:'约定',interpretation:'理解',experience:'经历'};
+export function installMemoryShell(){
+ for(const [id,title,icon] of [['memory','记忆','⌘'],['self','自我','◎']]){
+  const b=node('button');b.dataset.app=id;b.append(node('span','app-icon '+id+'-icon',icon),document.createTextNode(title));document.querySelector('.app-grid').append(b);
+  const section=node('section','screen page');section.id=id;section.hidden=true;
+  section.innerHTML=`<header><button class="icon" data-home aria-label="返回桌面">‹</button><h1>${title}</h1></header><div class="memory-body"><p id="${id}-notice" class="subtle"></p><label>当前人物<select id="${id}-owner"></select></label><div id="${id}-tools" class="actions"></div><div id="${id}-list"></div></div>`;
+  document.querySelector('.phone').insertBefore(section,el('home-button'));
+ }
+ const tools=el('memory-tools');tools.innerHTML='<button id="memory-add">＋ 手动记忆</button><button id="memory-extract">整理新消息（最多80条）</button><button id="memory-config">召回与整理设置</button><label>按日期整理<input id="memory-day" type="date"></label><button id="memory-day-extract">整理这一天</button><button id="memory-daily">查看每日总结</button><input id="memory-search" placeholder="搜索记忆标题或正文" aria-label="搜索记忆">';
+ el('self-tools').innerHTML='<button id="self-add">＋ 手动标签</button><button id="self-analyze">从名册分析</button>';
+ for(const id of ['memory-editor','memory-settings-dialog','daily-dialog','self-editor','memory-versions']){
+  const d=node('dialog','memory-dialog');d.id=id;d.innerHTML='<header><h2></h2><button type="button" class="icon" aria-label="关闭">×</button></header><div class="memory-dialog-body"></div><p class="memory-status" role="status"></p>';
+  d.querySelector('header button').onclick=()=>d.close();document.body.append(d);
+ }
+}
+export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toast,report}){
+ let busy=false;
+ const body=id=>el(id).querySelector('.memory-dialog-body');
+ const run=fn=>async e=>{e?.preventDefault();if(busy){toast('请等待当前记忆操作结束');return;}busy=true;document.querySelectorAll('.memory-status').forEach(n=>n.textContent='处理中…');try{await fn(e);}catch(error){report(error);toast(error.message);document.querySelectorAll('.memory-status').forEach(n=>n.textContent=error.message);}finally{busy=false;document.querySelectorAll('.memory-status').forEach(n=>{if(n.textContent==='处理中…')n.textContent='';});}};
+ const button=(text,fn)=>{const b=node('button','compact',text);b.type='button';b.onclick=run(fn);return b;};
+ const field=(label,tag='input',value='',type)=>{const l=node('label','',label),n=node(tag);if(type)n.type=type;n.value=value;if(tag==='textarea')n.rows=4;l.append(n);return {label:l,input:n};};
+ function dialog(id,title){el(id).querySelector('h2').textContent=title;body(id).replaceChildren();el(id).querySelector('.memory-status').textContent='';if(!el(id).open)el(id).showModal();return body(id);}
+ async function owner(which){const s=el(which+'-owner');return s.value||getCurrent()?.character_id||(await api('/characters'))[0]?.id;}
+ async function available(which){
+  const local=isLocal();el(which+'-notice').textContent=local?(which==='memory'?'原话作为来源保存；关联人物不会自动获知这条记忆。':'从名册理解核心特质，人工编辑后不会被重新分析覆盖。这些标签用于校对解读，当前聊天仍使用名册设定。'):'当前使用共同后端；这轮记忆与自我仅用于本机独立模式。';
+  el(which+'-tools').hidden=!local;el(which+'-owner').disabled=!local;if(!local){el(which+'-list').replaceChildren();return false;}
+  const chars=await api('/characters'),s=el(which+'-owner'),selected=s.value||getCurrent()?.character_id;s.replaceChildren(...chars.map(c=>{const o=node('option','',c.name);o.value=c.id;return o;}));if(chars.some(c=>c.id===selected))s.value=selected;
+  if(!chars.length){el(which+'-list').textContent='先到人设名册创建一个角色。';return false;}return true;
+ }
+ function evidenceLinks(container,evidence){for(const source of evidence){const b=button('原话 #'+source.message_id+' · '+source.quote,()=>openSource(source.message_id));b.classList.add('memory-source');container.append(b);}}
+ function versions(item){const box=dialog('memory-versions','修改记录 · 最近十版');if(!item.versions?.length)box.append(node('p','','尚无旧版本'));for(const v of [...(item.versions||[])].reverse()){const card=node('article','card');card.append(node('small','',v.updated_at||v.created_at||''),node('p','memory-text',v.content||v.interpretation||''));if(v.evidence)evidenceLinks(card,v.evidence);if(v.quote)card.append(node('blockquote','memory-text',v.quote));box.append(card);}}
+ async function refresh(which){if(!await available(which))return;const id=await owner(which);if(which==='memory')await renderMemories(id);else await renderSelf(id);}
+ async function renderMemories(id){
+  const rows=await api('/memories?owner='+encodeURIComponent(id)+'&q='+encodeURIComponent(el('memory-search').value));const list=el('memory-list');list.replaceChildren();
+  if(!rows.length)list.append(node('p','subtle','还没有记忆。可以从已完成的聊天选择原话，或让模型整理。'));
+  const chars=await api('/characters');
+  for(const item of rows){const card=node('article','card memory-card'+(!item.active?' memory-paused':''));card.dataset.memoryId=item.id;card.append(node('small','',kinds[item.kind]+' · '+(item.origin==='manual'?'人工编辑':'模型整理')+(!item.active?' · 已暂停召回':'')),node('h2','',item.title),node('p','memory-text',item.content));evidenceLinks(card,item.evidence);
+   if(item.participants.length>1)card.append(node('small','','关联：'+item.participants.map(id=>chars.find(c=>c.id===id)?.name||id).join('、')+'（仅当前人物可召回）'));
+   const actions=node('div','actions');actions.append(button('编辑',()=>editMemory(id,item)),button(item.active?'暂停召回':'启用召回',async()=>{await api('/memories/'+item.id,'PATCH',{active:!item.active});await renderMemories(id);}),button('修改记录',()=>versions(item)),button('删除',async()=>{if(!confirm('删除这条记忆？来源聊天会保留。'))return;await api('/memories/'+item.id,'DELETE');await renderMemories(id);}));card.append(actions);list.append(card);
+  }
+ }
+ async function editMemory(id,item){
+  const sources=await api('/memory-sources?owner='+encodeURIComponent(id)),chars=await api('/characters'),box=dialog('memory-editor',item?'编辑记忆':'手动保存记忆');if(!sources.length){box.textContent='还没有可引用的已完成聊天。先聊完一轮，再回来。';return;}
+  const title=field('标题','input',item?.title||''),content=field('记忆正文（保留说话者与不确定性）','textarea',item?.content||''),kind=field('性质','select');for(const [value,label] of Object.entries(kinds)){const o=node('option','',label);o.value=value;kind.input.append(o);}kind.input.value=item?.kind||'statement';box.append(title.label,kind.label,content.label);
+  const related=node('fieldset');related.append(node('legend','','关联人物（不会自动共享记忆）'));const checks=chars.map(c=>{const l=node('label','',c.name),n=node('input');n.type='checkbox';n.value=c.id;n.checked=c.id===id||item?.participants.includes(c.id);n.disabled=c.id===id;l.prepend(n);related.append(l);return n;});box.append(related);
+  const refs=node('div'),entries=[];box.append(node('p','subtle','选择来源并保留连续原话。最近 300 条可直接选择；已有来源始终保留。'),refs);
+  function addRef(e){const row=node('div','memory-reference'),select=node('select'),quote=field('引用原话','textarea',e?.quote||'');for(const s of sources){const o=node('option','',`#${s.id} ${s.role==='user'?'我':'角色'}：${s.content.slice(0,65)}`);o.value=s.id;select.append(o);}if(e&&!sources.some(s=>s.id===e.message_id)){const o=node('option','',`#${e.message_id} 已有来源`);o.value=e.message_id;select.append(o);}if(e)select.value=String(e.message_id);else quote.input.value=sources[0].content.slice(0,4000);select.onchange=()=>quote.input.value=(sources.find(s=>s.id===Number(select.value))?.content||'').slice(0,4000);const entry={select,quote:quote.input,removed:false};entries.push(entry);row.append(select,quote.label,button('移除此引用',()=>{entry.removed=true;row.remove();}));refs.append(row);}
+  (item?.evidence||[null]).forEach(addRef);box.append(button('＋ 添加来源',()=>addRef()),button('保存记忆',async()=>{await api('/memories'+(item?'/'+item.id:''),item?'PATCH':'POST',{owner_id:id,title:title.input.value,content:content.input.value,kind:kind.input.value,active:item?.active??true,participants:checks.filter(c=>c.checked).map(c=>c.value),evidence:entries.filter(e=>!e.removed).map(e=>({message_id:Number(e.select.value),quote:e.quote.value}))});el('memory-editor').close();await renderMemories(id);toast('记忆已保存');}));
+ }
+ async function renderSelf(id){const rows=await api('/self?owner='+encodeURIComponent(id)),list=el('self-list');list.replaceChildren();
+  const net=node('div','self-orbits');net.append(node('div','self-person',(await api('/characters')).find(c=>c.id===id)?.name||'TA'));for(const item of rows){const b=button(item.label,()=>el('anchor-'+item.id).scrollIntoView({block:'center',behavior:'smooth'}));b.classList.add('self-orbit');net.append(b);}list.append(net);
+  if(!rows.length)list.append(node('p','subtle','从名册分析，或手动写下一个有原文依据的核心标签。'));
+  for(const item of rows){const card=node('article','card');card.id='anchor-'+item.id;card.append(node('small','',(item.origin==='manual'?'人工编辑 · 分析时保留':'模型分析')+' · '+(item.basis==='explicit'?'名册明确描述':'对名册的解读')),node('h2','',item.label),node('p','memory-text',item.interpretation),node('blockquote','memory-text',item.quote));if(item.stale)card.append(node('p','subtle','名册已有变化，此标签仍依据旧版原文，请复核。'));const actions=node('div','actions');actions.append(button('编辑',()=>editSelf(id,item)),button('修改记录',()=>versions(item)),button('删除',async()=>{if(!confirm('删除此标签？名册内容会保留。'))return;await api('/self/'+item.id,'DELETE');await renderSelf(id);}));card.append(actions);list.append(card);}
+ }
+ async function editSelf(id,item){const c=(await api('/characters')).find(c=>c.id===id),box=dialog('self-editor','核心标签');const label=field('标签','input',item?.label||''),interpretation=field('性格解读','textarea',item?.interpretation||''),quote=field('依据：复制名册中的连续原文','textarea',item?.quote||'');const details=node('details');details.append(node('summary','','查看当前名册原文'),node('pre','memory-text',rosterSource(c)));box.append(label.label,interpretation.label,quote.label,details,button('保存标签',async()=>{await api('/self'+(item?'/'+item.id:''),item?'PATCH':'POST',{owner_id:id,label:label.input.value,interpretation:interpretation.input.value,quote:quote.input.value});el('self-editor').close();await renderSelf(id);toast('核心标签已保存');}));}
+ async function settings(){const s=await api('/memory-settings'),profiles=await api('/model-profiles'),box=dialog('memory-settings-dialog','召回与整理设置');const fields={};for(const [key,label,type,min,max] of [['recall','聊天时召回相关记忆','checkbox'],['recall_limit','每次最多召回条数','number',1,12],['budget','召回材料最多字符数','number',500,12000],['auto_extract','自动整理新聊天（会额外调用模型）','checkbox'],['extract_interval','累计多少条完成消息后整理','number',4,200]]){const f=field(label,'input',s[key],type);if(type==='checkbox')f.input.checked=s[key];else{f.input.min=min;f.input.max=max;}fields[key]=f.input;box.append(f.label);}const profile=field('整理记忆、每日总结、自我分析使用的连接','select');const def=node('option','','跟随当前聊天连接');def.value='';profile.input.append(def);for(const p of profiles.profiles||profiles){const o=node('option','',p.name||p.model);o.value=p.id;profile.input.append(o);}profile.input.value=s.profile_id;box.append(profile.label,node('p','subtle','整理与分析会调用所选模型。自动整理仅在应用运行、聊天完成后触发；没有后台保活或定时唤醒。召回使用 BM25 关键词评分，支持匹配来源原话；原文历史设为 0 时，此处开启的召回仍然生效。'),button('保存设置',async()=>{const values={profile_id:profile.input.value};for(const [k,n] of Object.entries(fields))values[k]=n.type==='checkbox'?n.checked:Number(n.value);await api('/memory-settings','PATCH',values);el('memory-settings-dialog').close();toast('记忆设置已保存');}));}
+ async function openDaily(id,day){if(!isLocal())return;const rows=await api('/summaries?owner='+encodeURIComponent(id)+'&day='+day),card=rows[0],sources=await api('/memory-sources?owner='+encodeURIComponent(id)+'&day='+day),box=dialog('daily-dialog',day+' · 每日总结');const content=field('当天总结','textarea',card?.content||'');content.input.id='daily-content';content.input.rows=9;box.append(node('p','subtle','用于回顾当天聊天；不会自动变成长期记忆。重写会重新读取当天原始消息，并保留旧版本。'),content.label);const actions=node('div','actions');
+  actions.append(button(card?'按原话重写':'生成总结',async()=>{await api('/summaries/generate','POST',{owner_id:id,day});await openDaily(id,day);toast('总结已生成');}));if(card)actions.append(button('保存编辑',async()=>{await api('/summaries','PATCH',{owner_id:id,day,content:content.input.value});await openDaily(id,day);toast('总结已保存');}),button('修改记录',()=>versions(card)),button('删除总结',async()=>{if(!confirm('删除总结及它的旧版本？当天聊天会保留。'))return;await api('/summaries','DELETE',{owner_id:id,day});await openDaily(id,day);}));box.append(actions,node('h3','','当天来源'));for(const m of sources)evidenceLinks(box,[{message_id:m.id,quote:m.content.slice(0,180)}]);
+ }
+ for(const which of ['memory','self'])el(which+'-owner').onchange=run(()=>refresh(which));el('memory-search').onchange=run(()=>refresh('memory'));
+ el('memory-add').onclick=run(async()=>editMemory(await owner('memory')));el('self-add').onclick=run(async()=>editSelf(await owner('self')));el('memory-config').onclick=run(settings);
+ async function extract(day){toast('正在整理记忆，会调用模型…');await api('/memories/extract','POST',{owner_id:await owner('memory'),...(day?{day}:{})});await refresh('memory');toast('整理完成，来源可点击查看');}
+ el('memory-extract').onclick=run(()=>extract());el('memory-day-extract').onclick=run(()=>{if(!el('memory-day').value)throw Error('请先选择日期');return extract(el('memory-day').value);});el('memory-daily').onclick=run(async()=>{if(!el('memory-day').value)throw Error('请先选择日期');await openDaily(await owner('memory'),el('memory-day').value);});
+ el('self-analyze').onclick=run(async()=>{toast('正在分析名册，会调用模型…');await api('/self/analyze','POST',{owner_id:await owner('self')});await refresh('self');toast('名册分析完成，人工标签已保留');});
+ for(const which of ['memory','self']){const stop=button('停止整理 / 分析',async()=>{const service=await localReady;if(service.auxTask)service.cancel();});stop.onclick=async()=>{const service=await localReady;if(service.auxTask){service.cancel();toast('已请求停止');}};el(which+'-tools').append(stop);}
+ return {refresh:which=>run(()=>refresh(which))(),openDaily};
+}
