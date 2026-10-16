@@ -125,8 +125,10 @@ test('queued roster edit invalidates an analysis before its commit starts',async
   const edit=service.api('/characters/'+owner.id,'PATCH',{...owner,identity:'喜欢音乐'});
   await gate.entered.promise;releaseModel.resolve();
   // Let generation finish and enqueue its commit behind the pending roster edit.
-  while(!service.memoryModule.saving)await new Promise(resolve=>setImmediate(resolve));
+  for(let i=0;i<10&&!service.memoryModule.saving;i++)await new Promise(resolve=>setImmediate(resolve));
+  const queued=service.memoryModule.saving;
   gate.release.resolve();await edit;await rejected;
+  assert.equal(queued,true,'analysis commit was queued behind the roster edit');
   assert.equal(service.data.memory.anchors.length,0);
   assert.equal(service.data.characters[0].identity,'喜欢音乐');
   assert.deepEqual(service.data,disk.value);
