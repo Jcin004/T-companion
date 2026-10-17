@@ -267,3 +267,9 @@
 | [docs/REFERENCE_PROJECTS.md](../docs/REFERENCE_PROJECTS.md) | 参考项目与调查记录。 |
 | [docs/ROADMAP.md](../docs/ROADMAP.md) | 整体路线与未来阶段。 |
 | [docs/python-dependencies.json](../docs/python-dependencies.json) | Python 依赖来源/许可资料，供许可生成器读取。 |
+
+## 聊天文字操作与动作模板
+
+- `frontend/text-editing.js`：消息及输入框的桌面右键菜单、剪贴板兼容处理；Android 长按仍交给系统。
+- `frontend/chat-style.js`：每聊天动作模板的校验、占位符替换及表达策略；`preferences-ui.js` 通过联系人接口保存。
+- `tests/chat-editing-browser.mjs`：模拟模型下验证菜单、模板保存及刷新后的实际请求。

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {LocalService,emptyData,validateBackup} from '../frontend/local-service.js';
-import {replyParts,turnChatStyle,styleInstructions} from '../frontend/chat-style.js';
+import {DEFAULT_ACTION_PROMPT,normalizeChatStyle,replyParts,turnChatStyle,styleInstructions} from '../frontend/chat-style.js';
 const copy=v=>JSON.parse(JSON.stringify(v));
 function persistence(){return {value:emptyData(),keys:new Map([['legacy','old-test-key']]),async load(){return copy(this.value);},async save(v){this.value=copy(v);},async hasKey(id='legacy'){return !!this.keys.get(id);},async getKey(id='legacy'){return this.keys.get(id)||'';},async setKey(v,id='legacy'){v?this.keys.set(id,v):this.keys.delete(id);}};}
 test('legacy connection migrates without moving secrets; grouped profiles route the correct credentials',async()=>{
@@ -52,4 +52,41 @@ test('style and appearance persist; request snapshot survives policy edits and r
   await service.api('/settings','PATCH',{model:'test',wallpaper:'sea',font_family:'serif'});await service.api('/contacts/'+s.id,'PATCH',{chat_style:{actions:true,emoji:0,voice:0}});
   await service.stream(s.id,'你好','style-test',()=>{});assert.equal(service.data.turns[0].chat_style.actions,true);
   const restored=await new LocalService(store,async()=>{}).init();assert.equal(restored.data.settings.wallpaper,'sea');assert.equal((await restored.api('/contacts/'+s.id+'/messages')).items[1].chat_style.actions,true);
+});
+
+
+test('action templates default to online chat and replace only known placeholders once',()=>{
+  assert.equal(normalizeChatStyle({actions:true}).action_prompt,DEFAULT_ACTION_PROMPT);
+  assert.match(styleInstructions({actions:true}),/线上私聊/);
+  const template='{{char}}向{{user}}发送表情，倾向{{action_weight}}，保留{{unknown}}';
+  const prompt=styleInstructions({actions:true,action_weight:65,action_prompt:template},{characterName:'林{{user}}'});
+  assert.match(prompt,/林\{\{user\}\}向用户发送表情，倾向65，保留\{\{unknown\}\}/);
+  assert.match(prompt,/不要声称已操作真实设备/);
+  assert.ok(!styleInstructions({actions:false,action_prompt:template}).includes(template));
+  assert.equal(normalizeChatStyle({action_prompt:'   '}).action_prompt,DEFAULT_ACTION_PROMPT);
+  assert.throws(()=>normalizeChatStyle({action_prompt:'x'.repeat(4001)}),/4000/);
+  assert.throws(()=>normalizeChatStyle({action_prompt:123}),/文字/);
+});
+
+test('per-chat action template survives backup and restart; retry retains original template',async()=>{
+  const store=persistence(),prompts=[];
+  const model=async(s,k,m,delta)=>{prompts.push(m[0].content);if(prompts.length===1)throw Error('fixture interrupted');delta('收到');};
+  let service=await new LocalService(store,model).init();
+  const character=await service.api('/characters','POST',{name:'林',identity:'',style:'',avatar:''});
+  const chat=await service.api('/contacts','POST',{character_id:character.id});
+  await service.api('/settings','PATCH',{model:'fixture'});
+  const style={actions:true,action_prompt:'旧模板：{{char}}远程发消息，{{action_weight}}'};
+  await service.api('/contacts/'+chat.id,'PATCH',{chat_style:style});
+  await assert.rejects(service.stream(chat.id,'你好','template-retry',()=>{}),/fixture interrupted/);
+  await service.api('/contacts/'+chat.id,'PATCH',{chat_style:{...style,action_prompt:'新模板：{{char}}正在打字'}});
+  const backup=validateBackup(await service.api('/backup'));
+  assert.equal(backup.sessions.find(s=>s.id===chat.id).chat_style.action_prompt,'新模板：{{char}}正在打字');
+  service=await new LocalService(store,model).init();
+  await service.stream(chat.id,'你好','template-retry',()=>{});
+  assert.match(prompts[1],/旧模板：林远程发消息，40/);
+  await service.stream(chat.id,'继续','template-new',()=>{});
+  assert.match(prompts[2],/新模板：林正在打字/);
+  const before=copy(store.value);
+  await assert.rejects(service.api('/contacts/'+chat.id,'PATCH',{chat_style:{...style,action_prompt:'x'.repeat(4001)}}),/4000/);
+  assert.deepEqual(store.value,before);
 });
