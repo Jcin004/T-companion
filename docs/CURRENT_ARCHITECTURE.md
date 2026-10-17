@@ -39,7 +39,7 @@ flowchart TD
 | 共同后端 | Python/FastAPI 常驻进程 | 服务器 SQLite；服务器请求模型，手机/网页通过后端接口访问 |
 | Netlify/Vercel 静态托管 | 可承载构建后的前端 | 不会自动变成共享数据库，也不会替你运行当前 Python 服务或保持后台自主生活 |
 
-外部依赖：用户选择的 OpenAI Chat Completions 兼容服务、Android 系统 TTS、GitHub 代码托管。更新下载渠道未发布；仓库公开和发布可更新 APK 是两个操作。当前没有摄像头、定位、屏幕采集、MCP、自主唤醒或通知推送的运行能力。
+外部依赖：用户选择的 OpenAI Chat Completions 兼容服务、Android 系统 TTS、GitHub 代码托管。0.7.0 通过独立公开试用 Release 提供更新；签名 APK、清单和源码需一起发布，仓库公开本身不代表安装包已更新。当前没有摄像头、定位、屏幕采集、MCP、自主唤醒或通知推送的运行能力。
 
 ## 与参考项目的区别
 

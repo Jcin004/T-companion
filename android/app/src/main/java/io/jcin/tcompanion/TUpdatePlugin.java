@@ -21,8 +21,8 @@ import java.util.concurrent.*;
 /** Updates use public release metadata only; model credentials never enter this adapter. */
 @CapacitorPlugin(name = "TUpdate")
 public class TUpdatePlugin extends Plugin {
-    // This private trial has no published download channel. Do not query an unprovisioned feed.
-    private static final boolean CHANNEL_PUBLISHED = false;
+    // Public signed trial releases are served independently of model credentials.
+    private static final boolean CHANNEL_PUBLISHED = true;
     private static final String MANUAL_UPDATE = "当前为私有手动更新，在线渠道尚未发布。请使用收到的新版 APK 覆盖安装，不要卸载旧版。";
     private static final String FEED = "https://api.github.com/repos/Jcin004/T-companion-updates/releases?per_page=100";
     private static final long MAX_APK = 200L * 1024 * 1024;

@@ -1,6 +1,6 @@
-# Android 应用更新（0.5.0 历史实现）
+# Android 应用更新（0.7.0）
 
-当前 0.6.1：私有手动更新，线上渠道未发布。原生 info 返回 channelPublished=false，check 不访问网络；界面显示“在线更新未启用”。以下发布流程仅作为未来部署参考，当前没有执行。详见 OPTIMIZATION-0.6.1.md。
+0.7.0 / versionCode 9 接入公开签名试用版渠道。0.6.1 及其他关闭在线更新的旧版本需要先手动覆盖安装一次。覆盖升级保留本机数据；安装前先在设置中导出备份。
 
 入口：设置 → 关于与更新 → 检查更新。参照 SullyOS 的产品流程独立实现，不复制其更新代码。
 
@@ -15,11 +15,11 @@ Android 8+ 首次安装更新时，打开“允许来自此来源的应用”页
 每版提升 versionCode，并保留 `data/signing` 内的原签名文件（不得上传）。构建并签名 APK 后执行：
 
 ```powershell
-node scripts/prepare-update.mjs artifacts/T-companion-0.5.0-trial.apk 5 0.5.0-trial android-v0.5.0
-git archive --format=zip --output=artifacts/T-companion-0.5.0-source.zip HEAD
+node scripts/prepare-update.mjs artifacts/T-companion-0.7.0-trial.apk 9 0.7.0-trial android-v0.7.0
+git archive --format=zip --output=artifacts/T-companion-0.7.0-source.zip HEAD
 ```
 
-审核后在公开的 `Jcin004/T-companion-updates` 发布 `android-v0.5.0` Release，上传签名 APK、`t-update.json`、对应完整源码、许可证、第三方署名及构建说明。更新源只读取发布内容；发布草稿不可作为手机下载源。源码不得包含 `.env`、签名私钥、本机数据和模型密钥。准备脚本不进行网络发布，也不更改代码仓库可见性。
+审核后在公开的 `Jcin004/T-companion-updates` 发布 `android-v0.7.0` Release，上传签名 APK、`t-update.json`、对应完整源码、许可证、第三方署名及构建说明。更新源只读取发布内容；发布草稿不可作为手机下载源。源码不得包含 `.env`、签名私钥、本机数据和模型密钥。准备脚本不进行网络发布，也不更改代码仓库可见性。
 
 ## 验证
 
@@ -27,6 +27,6 @@ git archive --format=zip --output=artifacts/T-companion-0.5.0-source.zip HEAD
 - `UpdateInstrumentation`：隔离模拟器，使用真实签名 APK、PackageManager 与文件写入，模拟 HTTPS 响应流；测试错误哈希、大小、HTTP、版本回退、错误签名拦截，以及正确下载、进度、恢复清单和校验。
 - 构建测试用旧版本：`-PtrialVersionCode=4 -PtrialVersionName=0.4.0-trial`；测试 APK 使用 `-PupdateTestRunner=io.jcin.tcompanion.UpdateInstrumentation`，与主 APK 以同一测试签名签名。把 0.5.0 正确签名和错误签名测试包放进隔离应用 files 下的 `update-good.apk`、`update-bad.apk` 后执行 `adb shell am instrument -w io.jcin.tcompanion.test/io.jcin.tcompanion.UpdateInstrumentation`。测试包不随正式分发包发布。
 - Android 系统权限、系统安装器覆盖升级及数据保留另行执行 UI 验证。真实互联网渠道需在发布后以匿名访问再次验收；模拟传输不代表公网下载成功。
-- 本次模拟器实际完成：首次授权安装来源 → 返回继续安装 → 系统安装器取消 → 再次打开 → 覆盖升级 0.4 至 0.5。完整聊天 JSON 和加密凭据文件哈希保持一致。公网渠道尚未发布，需要用户批准公开下载仓库与分发文件后验收。
+- 本次模拟器实际完成：首次授权安装来源 → 返回继续安装 → 系统安装器取消 → 再次打开 → 覆盖升级 0.4 至 0.5。完整聊天 JSON 和加密凭据文件哈希保持一致。这些是历史隔离验收记录，不代表本轮真实互联网下载已验证；本轮结果随交付记录说明。
 
 参考：[SullyOS 更新流程](https://github.com/Jcin004/SullyOS/blob/master/utils/androidAppUpdate.ts)、[Android 安装来源权限](https://developer.android.com/reference/android/content/pm/PackageManager#canRequestPackageInstalls())。
