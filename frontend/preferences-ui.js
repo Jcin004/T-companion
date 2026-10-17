@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import {mountApiFloatingSwitcher} from './api-floating-switcher.js';
 import {DEFAULT_ACTION_PROMPT,normalizeChatStyle} from './chat-style.js';
 const el=id=>document.getElementById(id);
 const button=(text,click)=>{const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=click;return b;};
@@ -29,13 +30,25 @@ export function mountPreferences({api,localReady,isLocal,isBusy,getCurrent,setCu
     if(!switcher){row.append(button('编辑',()=>{editor(p);el('model-form').scrollIntoView({behavior:'smooth',block:'start'});}),button('删除',guard(async()=>{localOnly();if(!confirm('删除连接「'+p.name+'」及其密钥？聊天记录会保留。'))return;await api('/model-profiles/'+p.id,'DELETE');await updated();})));}
     return row;
   }
+  const floating=mountApiFloatingSwitcher({open:guard(openModelSwitcher),toast});
+  async function openModelSwitcher(){
+    localOnly();await updated();
+    const list=el('model-switch-list');list.replaceChildren();
+    for(const group of [{id:'',name:'未分组'},...groups]){
+      const entries=profiles.filter(p=>(p.group_id||'')===group.id);if(!entries.length)continue;
+      const title=document.createElement('h3');title.textContent=group.name;list.append(title,...entries.map(p=>row(p,true)));
+    }
+    const help=document.createElement('p');help.className='subtle';help.textContent='切换当前聊天连接。记忆若已指定专用连接，会继续使用该连接；选择跟随时，才随聊天连接切换。';list.append(help);
+    el('model-switch-dialog').showModal();
+  }
   async function refresh(prefs){
     const local=await localReady,p=await local.api('/appearance');wallpaperImage=p.wallpaper_image||'';
     for(const [id,key,fallback] of [['theme','theme','light'],['font-size','font_size',16],['wallpaper','wallpaper','forest'],['icon-style','icon_style','soft'],['font-family','font_family','system'],['bubble-user','bubble_user','#e0eee8'],['bubble-assistant','bubble_assistant','#ffffff'],['bubble-radius','bubble_radius',16]])el(id).value=p[key]??fallback;
     el('motion').checked=p.motion!==false;applyAppearance(p);
     el('profiles-card').hidden=!isLocal();el('profile-metadata').hidden=!isLocal();el('clear-key-label').hidden=!isLocal();el('profile-name').required=isLocal();
-    if(!isLocal())return;
+    if(!isLocal()){floating.refresh({visible:false});return;}
     [profiles,groups]=await Promise.all([api('/model-profiles'),api('/model-groups')]);active=prefs.active_profile_id;
+    floating.refresh({visible:true,label:profiles.find(p=>p.id===active)?.name});
     el('profile-group').replaceChildren(new Option('未分组',''),...groups.map(g=>new Option(g.name,g.id)));
     el('active-model-label').textContent='当前使用：'+(profiles.find(p=>p.id===active)?.name||'未选择连接');
     const groupBox=el('profile-groups');groupBox.replaceChildren();
@@ -48,7 +61,7 @@ export function mountPreferences({api,localReady,isLocal,isBusy,getCurrent,setCu
   el('new-profile').onclick=guard(()=>{localOnly();editor();el('model-form').scrollIntoView({block:'start'});el('profile-name').focus();});
   el('new-group').onclick=guard(async()=>{localOnly();const name=prompt('新分组名称');if(name?.trim()){await api('/model-groups','POST',{name});await updated();}});
   el('model-form').onsubmit=guard(async e=>{e.preventDefault();if(!isLocal()){await api('/settings','PATCH',{base_url:el('base-url').value,model:el('model').value,...(el('api-key').value?{api_key:el('api-key').value}:{})});}else{localOnly();const id=el('profile-id').value;await api('/model-profiles'+(id?'/'+id:''),id?'PATCH':'POST',{name:el('profile-name').value,group_id:el('profile-group').value,base_url:el('base-url').value,model:el('model').value,protocol:el('protocol').value,api_key:el('api-key').value,clear_key:el('clear-key').checked});}await updated();toast('连接已保存；可点击切换使用');});
-  el('switch-model').onclick=guard(async()=>{localOnly();await updated();el('model-switch-list').replaceChildren(...profiles.map(p=>row(p,true)));el('model-switch-dialog').showModal();});
+  el('switch-model').onclick=guard(openModelSwitcher);
   el('wallpaper-file').onchange=guard(async()=>{const file=el('wallpaper-file').files[0];if(!file)return;if(file.size>2000000||!['image/png','image/jpeg','image/webp'].includes(file.type))throw Error('请选择不超过 2 MB 的 PNG、JPEG 或 WebP 图片');wallpaperImage=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('读取壁纸失败'));r.readAsDataURL(file);});el('wallpaper').value='custom';});
   el('appearance-form').onsubmit=guard(async e=>{e.preventDefault();const local=await localReady;const p={theme:el('theme').value,font_size:Number(el('font-size').value),wallpaper:el('wallpaper').value,wallpaper_image:wallpaperImage,icon_style:el('icon-style').value,font_family:el('font-family').value,bubble_user:el('bubble-user').value,bubble_assistant:el('bubble-assistant').value,bubble_radius:Number(el('bubble-radius').value),motion:el('motion').checked};if(p.wallpaper==='custom'&&!p.wallpaper_image)throw Error('请先上传壁纸');await local.api('/settings','PATCH',p);await updated();applyAppearance(p);toast('外观已保存');});
   el('chat-style-open').onclick=guard(()=>{localOnly();const c=getCurrent();if(!c)return;const s=normalizeChatStyle(c.chat_style);el('split-replies').checked=s.split;el('allow-actions').checked=s.actions;el('action-prompt').value=s.action_prompt;el('style-mode').value=s.mode;for(const [id,key,out]of [['action-weight','action_weight','action-value'],['emoji-weight','emoji','emoji-value'],['voice-weight','voice','voice-value']]){el(id).value=s[key];el(out).value=s[key];}el('details-dialog').close();el('chat-style-dialog').showModal();});

@@ -143,3 +143,14 @@ flowchart TD
 | 多端连续性 | 同步协议或明确的共同后端 | 数据所有者、全局标识、版本、冲突与离线规则；不能把切换地址说成同步 |
 
 React 可在界面状态复杂到需要组件体系时评估；现在首先修清数据所有权和写入方式。换框架不能自动修复这些问题。
+
+
+## 模型连接分工与悬浮切换
+
+本机模式（网页、Android）已有多连接与文件夹分组，每个预设包含服务地址、模型名和独立凭据。`active_profile_id` 是当前聊天使用的连接；不是每个人物各自绑定的连接。App 内 API 悬浮球和聊天页切换按钮共用选择弹窗及 `/model-profiles/:id/activate`，不新增一份配置。悬浮球只保存 UI 位置到本机 localStorage，不提供 Android 系统悬浮窗，也不在其他软件上显示。共同后端模式隐藏该入口。
+
+`memory.settings.profile_id` 是记忆整理、每日总结、自我标签分析共用的专用连接，可在「记忆 → 召回与整理设置」选择；空值表示跟随当前聊天连接。更换聊天连接不修改此字段。专用连接被删除时，整理会明确失败，要求重新选择，不会悄悄向另一家服务发送原文。已有请求进行时禁止切换连接；日志沿用实际连接、模型和用途。BM25 召回在本地完成，不调用模型或 embedding 服务。记忆分析与聊天共用单个活动请求协调器，不是并行后台多 Agent。
+
+参考对比（只参考结构，本次未导入代码）：float 的固定提交 `c1b0ea74d7690beae31bc7c9e2a8c382fa4b151b` 中，`lib/settings-storage.ts` 的 `resolveAuxiliaryApiConfig()` 分别支持总结、embedding、桌宠、推理翻译、问答等用途，并回退至全局默认连接；`lib/memory-summarizer.ts` 使用总结绑定。我们目前将整理/总结/自我分析合用一个记忆连接，尚未为每个用途逐项绑定。SullyOS 上游的 `types.ts` 和 README 还区分 embedding、视觉与语音等配置，不能把这些接口都当成第二个聊天模型。
+
+来源：[float 连接解析](https://github.com/Jcin004/float/blob/c1b0ea74d7690beae31bc7c9e2a8c382fa4b151b/lib/settings-storage.ts)、[float 总结管线](https://github.com/Jcin004/float/blob/c1b0ea74d7690beae31bc7c9e2a8c382fa4b151b/lib/memory-summarizer.ts)、[SullyOS 类型](https://github.com/qegj567-cloud/SullyOS/blob/master/types.ts)、[SullyOS 说明](https://github.com/qegj567-cloud/SullyOS)。

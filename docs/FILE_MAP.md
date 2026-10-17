@@ -273,3 +273,8 @@
 - `frontend/text-editing.js`：消息及输入框的桌面右键菜单、剪贴板兼容处理；Android 长按仍交给系统。
 - `frontend/chat-style.js`：每聊天动作模板的校验、占位符替换及表达策略；`preferences-ui.js` 通过联系人接口保存。
 - `tests/chat-editing-browser.mjs`：模拟模型下验证菜单、模板保存及刷新后的实际请求。
+
+## API 悬浮切换
+
+- `frontend/api-floating-switcher.js`：App 内悬浮按钮、拖动和位置恢复，不拥有连接或密钥；选择操作复用 `preferences-ui.js` 的模型选择弹窗。
+- `tests/api-floating-browser.mjs`：分组切换、实际请求连接、记忆连接隔离、拖动/刷新/尺寸变化和键盘操作。

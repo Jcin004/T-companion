@@ -14,3 +14,6 @@ body{background:#d3dcd6}.phone{position:relative;display:flex;flex-direction:col
 .bubble,#input,#action-prompt{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .text-menu{position:fixed;z-index:1000;min-width:150px;padding:5px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 5px 24px #0003}
 .text-menu[hidden]{display:none}.text-menu button{display:block;width:100%;text-align:left;border:0;border-radius:7px;font-size:14px}
+
+.api-floating-switcher{position:fixed;z-index:25;width:58px;height:58px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;padding:5px;border-radius:50%;background:var(--accent);color:var(--paper);border:2px solid var(--paper);box-shadow:0 3px 14px #0003;touch-action:none;-webkit-user-select:none;user-select:none;cursor:grab}
+.api-floating-switcher[hidden]{display:none}.api-floating-switcher:active{cursor:grabbing}.api-floating-switcher strong{font-size:14px}.api-floating-switcher span{font-size:9px;max-width:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#model-switch-list h3{font-size:13px;color:var(--muted);margin:18px 0 4px}#model-switch-list>p{font-size:12px;margin-top:15px}
