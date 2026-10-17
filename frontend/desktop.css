@@ -9,3 +9,8 @@ body{background:#d3dcd6}.phone{position:relative;display:flex;flex-direction:col
 
 .bubble{color:var(--bubble-assistant-ink,var(--ink))}.user .bubble{color:var(--bubble-user-ink,var(--ink))}.reply-action{color:var(--muted)}
 .logs-icon{background:#e6e3f4;color:#746699}.log-tools,#log-list{margin:12px}.log-entry{margin:12px 0;overflow:hidden}.log-entry summary{cursor:pointer;font-size:12px;overflow-wrap:anywhere}.log-entry pre,#context-preview pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-size:12px;line-height:1.6;max-height:480px;overflow:auto}.log-entry h3{font-size:14px}.log-entry h4{font-size:12px;color:var(--accent)}.log-tools .actions{flex-wrap:wrap}#context-preview:empty{display:none}#log-storage-warning{color:#a44}
+
+/* Native long-press selection and desktop embedded-browser text menu. */
+.bubble,#input,#action-prompt{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+.text-menu{position:fixed;z-index:1000;min-width:150px;padding:5px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 5px 24px #0003}
+.text-menu[hidden]{display:none}.text-menu button{display:block;width:100%;text-align:left;border:0;border-radius:7px;font-size:14px}

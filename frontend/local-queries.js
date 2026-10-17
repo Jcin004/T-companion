@@ -23,7 +23,7 @@ export function buildContext(data,sid,message,chatStyle,recalled){
   const facts={Name:c.name,Nature:canon.nature||'UNSPECIFIED','Source world':canon.source_world||'UNSPECIFIED',Description:c.identity||'UNSPECIFIED','Immutable facts':canon.immutable_facts,'Background origin':canon.origin||'UNSPECIFIED','Important history':canon.important_history,'Fixed boundaries':canon.fixed_boundaries};
   const traits={Traits:persona.traits,Values:persona.values,Likes:persona.likes,Dislikes:persona.dislikes,'Communication style':c.style?[c.style]:[],Boundaries:persona.boundaries,'Behavioral tendencies':persona.behavioral_tendencies};
   const lines=(map)=>Object.entries(map).filter(([,v])=>v?.length).map(([k,v])=>'- '+k+': '+(Array.isArray(v)?v.join('; '):v)).join('\n');
-  const system=INVARIANTS+'\n\nAuthoritative Character Canon:\n'+lines(facts)+'\n\nStable Persona:\n'+lines(traits)+styleInstructions(chatStyle||session.chat_style)+memoryContext(recalled||recall(data,c.id,message));
+  const system=INVARIANTS+'\n\nAuthoritative Character Canon:\n'+lines(facts)+'\n\nStable Persona:\n'+lines(traits)+styleInstructions(chatStyle||session.chat_style,{characterName:c.name})+memoryContext(recalled||recall(data,c.id,message));
   const complete=new Set(data.turns.filter(t=>t.session_id===sid&&t.state==='complete').flatMap(t=>[t.user_id,t.assistant_id]));
   const limit=historyLimit(data,sid);
   const history=(limit?data.messages.filter(m=>m.session_id===sid&&complete.has(m.id)).slice(-limit):[]).map(({role,content})=>({role,content}));

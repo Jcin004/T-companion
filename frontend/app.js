@@ -2,6 +2,7 @@
 import {installMemoryShell,mountMemoryUI} from './memory-ui.js';
 import {createSseJsonParser} from './sse-json.js';
 import {createLocalService} from './local-service.js';
+import {copyText,mountTextEditing} from './text-editing.js';
 import {replyParts,normalizeChatStyle} from './chat-style.js';
 import {mountPreferences,applyAppearance} from './preferences-ui.js';
 import {mountAppUpdate} from './app-update.js';
@@ -33,6 +34,7 @@ function keepPending(message){const entries=outbox().filter(m=>m.request_id!==me
 function removePending(rid){localStorage.setItem(key('outbox'),JSON.stringify(outbox().filter(m=>m.request_id!==rid)));}
 const guard = fn => (...args) => {try {return Promise.resolve(fn(...args)).catch(e => {reportError(e);toast(e.message);});} catch(e) {reportError(e);toast(e.message);}};
 function toast(text) { el('toast').textContent = text; el('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el('toast').hidden = true, 4500); }
+mountTextEditing({messages:el('messages'),input:el('input'),toast});
 function reportError(error,source='界面'){diagnostics.record('error',source,{error:error?.message||String(error)});}
 window.addEventListener('error',event=>{if(event.error||event.message)reportError(event.error||event.message,'页面报错');});
 window.addEventListener('unhandledrejection',event=>reportError(event.reason,'未处理异常'));
@@ -122,7 +124,7 @@ function makeMessage(m) {
   const body = node('div','message-body'), bubble = node('div',m.role==='assistant'?'reply-bubbles':'bubble',m.role==='assistant'?null:m.content), tools = node('div','message-tools');
   if(m.role==='assistant')renderReply(bubble,m.content,m.chat_style||current?.chat_style,m.state==='generating');
   const visibleText=m.role==='assistant'?replyParts(m.content,m.chat_style||current?.chat_style).map(p=>p.text).join('\n\n'):m.content;
-  const copy = node('button','','复制'); copy.type = 'button'; copy.onclick = guard(async () => { await navigator.clipboard.writeText(visibleText); toast('已复制'); });
+  const copy = node('button','','复制'); copy.type = 'button'; copy.onclick = guard(async () => { await copyText(visibleText); toast('已复制'); });
   tools.append(node('span','state',m.role==='user' ? ({generating:'正在生成',failed:'生成失败',cancelled:'已停止',interrupted:'上次生成中断',sending:'发送中',complete:'已发送'}[m.state] || '已发送') : (m.state&&m.state!=='complete'?({generating:'正在生成',failed:'部分回复 · 未完成',cancelled:'已停止 · 未完成',interrupted:'中断 · 未完成'}[m.state]||m.state):time(m.created_at))),copy);
   if (m.role==='assistant' && (device || 'speechSynthesis' in window)) { const read = node('button','','朗读'); read.onclick = () => speak(replyParts(m.content,m.chat_style||current?.chat_style).filter(p=>p.type==='text'||p.type==='voice').map(p=>p.text).join('\n'),current.voice || prefs.voice); tools.append(read); }
   if (m.role==='user' && (['failed','sending','cancelled','interrupted'].includes(m.state))) { const retry = node('button','retry','重试'); retry.onclick = guard(()=>sendMessage(m.content,m.request_id)); tools.append(retry); }

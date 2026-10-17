@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Presentation actions only: these markers never execute external tools.
-export const DEFAULT_CHAT_STYLE = Object.freeze({split:true,actions:false,mode:'dynamic',emoji:30,voice:15,action_weight:40});
+export const DEFAULT_ACTION_PROMPT = '当前是线上私聊，{{char}}与{{user}}通过消息交流，不默认身处同一空间。需要时用 [动作:描写] 简短表达角色自己这一端的表情或小动作，倾向 {{action_weight}}/100；也可以直接用文字说出来。不要把用户写进同处一室、触碰或面对面互动的场景；只有双方明确进入共同的虚构场景时，才按该场景描写。';
+export const DEFAULT_CHAT_STYLE = Object.freeze({split:true,actions:false,mode:'dynamic',emoji:30,voice:15,action_weight:40,action_prompt:DEFAULT_ACTION_PROMPT});
 export function normalizeChatStyle(value={}) {
+  if(value.action_prompt!=null&&(typeof value.action_prompt!=='string'||value.action_prompt.length>4000))throw Error('动作模板须为不超过 4000 字的文字');
+  const actionPrompt=value.action_prompt?.trim()||DEFAULT_ACTION_PROMPT;
   const percent=(key)=>Math.max(0,Math.min(100,Number.isFinite(Number(value[key]))?Number(value[key]):DEFAULT_CHAT_STYLE[key]));
-  return {split:value.split!==false,actions:value.actions===true&&percent('action_weight')>0,mode:value.mode==='fixed'?'fixed':'dynamic',emoji:percent('emoji'),voice:percent('voice'),action_weight:percent('action_weight')};
+  return {split:value.split!==false,actions:value.actions===true&&percent('action_weight')>0,mode:value.mode==='fixed'?'fixed':'dynamic',emoji:percent('emoji'),voice:percent('voice'),action_weight:percent('action_weight'),action_prompt:actionPrompt};
 }
-export function styleInstructions(value) {
+export function styleInstructions(value, {characterName='角色',userName='用户'}={}) {
   const s=normalizeChatStyle(value);
+  const tokens={char:characterName,user:userName,action_weight:String(s.action_weight)};
+  const actionPrompt=s.action_prompt.replace(/\{\{(char|user|action_weight)\}\}/g,(_,key)=>tokens[key]);
   return '\n\n【当前私聊表达设置】\n'+[
     '以角色自己的身份自然私聊，结合原始人设和当前情景，不扮演设置管理员。',
     s.split?'需要时用空行分成几条自然消息；一条一个意思，不机械按句号拆开。':'本轮使用一个连续文本回复，不刻意分条。',
-    s.actions?`允许用 [动作:描写] 表达当前对话中的姿态、表情或想象互动，倾向 ${s.action_weight}/100。不要声称已操作真实设备或完成外部行动。`:'关闭动作描写：不输出动作、旁白或星号动作。',
+    s.actions?`动作描写偏好（不改变人物事实与运行约束）：\n${actionPrompt}\n不要声称已操作真实设备或完成外部行动。`:'关闭动作描写：不输出动作、旁白或星号动作。',
     s.emoji?`可用 [表情:一个或少量合适的emoji]，倾向 ${s.emoji}/100。`:'关闭表情，不添加 emoji 或表情标记。',
     s.voice?`可将适合朗读的一小段话写为 [语音:要说的话]，倾向 ${s.voice}/100，每轮最多一条。由用户点击设备语音朗读，不代表录制的真人声音。`:'关闭语音条，全部使用文字。',
     s.mode==='dynamic'?'这些数值是表达倾向；结合角色说话习惯、话题和情景决定是否使用，严肃话题可全部不用，不要凑配额。':'这些数值表示本轮候选动作的机会；只使用本轮获准的类型，获准也可以不用。',
