@@ -43,6 +43,21 @@ export function diagnosticPersistence(plugin){
   const open=async()=>database||(database=await new Promise((resolve,reject)=>{const request=indexedDB.open('t-companion-diagnostics',1);request.onupgradeneeded=()=>request.result.createObjectStore('state');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);}));
   return {async load(){const db=await open();return new Promise((resolve,reject)=>{const r=db.transaction('state').objectStore('state').get('logs');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});},async save(value){const db=await open();return new Promise((resolve,reject)=>{const tx=db.transaction('state','readwrite');tx.objectStore('state').put(value,'logs');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}};
 }
+function recallDetails(receipt){
+ const box=document.createElement('section');box.className='recall-receipt';
+ const add=(tag,value)=>{const n=document.createElement(tag);n.textContent=value;box.append(n);};
+ add('h3','本轮记忆召回');
+ if(receipt.disabled){add('p','已关闭记忆召回');return box;}
+ add('p',`查询依据：${receipt.query_mode==='recent_context'?'当前输入＋近期用户消息':'当前输入'}；材料 ${receipt.used_chars}/${receipt.budget} 字符。`);
+ if(receipt.context_message_ids?.length)add('p','近期来源消息：'+receipt.context_message_ids.join('、'));
+ const reasons={lexical:'关键词命中',recent_context:'近期对话线索',link:'已复核关联（一跳）',anchor_lexical:'核心标签匹配',self_question:'人物自我提问'};
+ const statuses={selected:'已携带',budget:'超出材料预算',item_limit:'超出条数上限',seed_not_selected:'关联起点未携带'};
+ for(const item of receipt.candidates||[])add('p',`${item.kind==='anchor'?'标签':'记忆'} ${item.id}：${reasons[item.reason]||item.reason} → ${statuses[item.status]||item.status}`);
+ const exclusions={paused_memory:'已停用记忆',invalid_evidence:'来源无效',unconfirmed_anchor:'未人工保存的标签',stale_anchor:'名册依据过期',stale_link:'待复核关联',unavailable_link_endpoint:'关联端点不可用',neighbor_limit:'扩展数量上限'};
+ for(const [reason,count]of Object.entries(receipt.excluded||{}))add('p',`未使用：${exclusions[reason]||reason} ${count} 项`);
+ if(!receipt.candidates?.length)add('p','本轮没有匹配到可携带的记忆或标签。');
+ return box;
+}
 export function mountDiagnostics({store,preview,exportFile,report}){
   const $=id=>document.getElementById(id), list=$('log-list');
   const text=(tag,value)=>{const el=document.createElement(tag);el.textContent=value;return el;};
@@ -54,7 +69,7 @@ export function mountDiagnostics({store,preview,exportFile,report}){
     for(const entry of entries){
       const row=document.createElement('details');row.className='card log-entry';
       row.append(text('summary',`${new Date(entry.time).toLocaleString()} · ${entry.label} · ${entry.state||entry.category}${entry.history_count!=null?' · 历史 '+entry.history_count+' 条':''}${entry.recalled_memory_ids?' · 记忆 '+entry.recalled_memory_ids.length+' 条':''}${entry.purpose?' · '+entry.purpose:''}`));
-      row.addEventListener('toggle',()=>{if(!row.open||row.childElementCount>1)return;const {messages,...meta}=entry;row.append(text('pre',JSON.stringify(meta,null,2)));if(messages){row.append(text('h3','实际发送的上下文（脱敏）'));for(const m of messages)row.append(text('h4',m.role),text('pre',m.content));}});
+      row.addEventListener('toggle',()=>{if(!row.open||row.childElementCount>1)return;const {messages,...meta}=entry;if(entry.recall_trace)row.append(recallDetails(entry.recall_trace));row.append(text('pre',JSON.stringify(meta,null,2)));if(messages){row.append(text('h3','实际发送的上下文（脱敏）'));for(const m of messages)row.append(text('h4',m.role),text('pre',m.content));}});
       list.append(row);
     }
     if(!entries.length)list.append(text('p','暂无记录。发送一条消息后可在这里查看请求和报错。'));
@@ -63,6 +78,6 @@ export function mountDiagnostics({store,preview,exportFile,report}){
   $('capture-context').onchange=()=>store.capture($('capture-context').checked);
   $('log-clear').onclick=()=>{store.clear();$('context-preview').replaceChildren();};
   $('log-export').onclick=()=>exportFile(new Blob([JSON.stringify(store.export(),null,2)],{type:'application/json'}),'t-diagnostics.json').catch(report);
-  $('context-refresh').onclick=async()=>{try{const result=await preview();$('context-preview').replaceChildren(text('p',result.note),text('pre',JSON.stringify(store.clean(result.messages),null,2)));}catch(error){$('context-preview').replaceChildren(text('p',error.message));}};
+  $('context-refresh').onclick=async()=>{try{const result=await preview();$('context-preview').replaceChildren(text('p',result.note),...(result.recall?[recallDetails(result.recall)]:[]),text('pre',JSON.stringify(store.clean(result.messages),null,2)));}catch(error){$('context-preview').replaceChildren(text('p',error.message));}};
   draw();
 }

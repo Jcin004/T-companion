@@ -4,7 +4,7 @@ import {createSseJsonParser} from './sse-json.js';
 import {ensureProfiles,validateConnection} from './model-profiles.js';
 import {normalizeChatStyle,turnChatStyle} from './chat-style.js';
 import {historyLimit,validateHistoryLimit} from './context-policy.js';
-import {validateMemory,recall} from './memory-core.js';
+import {validateMemory,recallPlan} from './memory-core.js';
 import {MemoryModule} from './memory-service.js';
 import {buildContext,queryLocalData} from './local-queries.js';
 // Preserve the existing import path for callers while the implementation moves.
@@ -192,7 +192,7 @@ export class LocalService {
         let reply=d.messages.find(m=>m.id===turn.assistant_id);
         if(!reply){reply={id:nextId(),session_id:sid,role:'assistant',content:'',created_at:now()};d.messages.push(reply);turn.assistant_id=reply.id;}
         else reply.content='';
-        return {chat_style:turn.chat_style};
+        return {chat_style:turn.chat_style,user_id:turn.user_id};
       });
       if(accepted.complete){onEvent('complete',{});return;}
       started=true;onEvent('accepted',accepted);
@@ -201,7 +201,7 @@ export class LocalService {
         const reply=d.messages.find(m=>m.id===turn.assistant_id);
         reply.content=content;if(state)turn.state=state;turn.error=error;
       });
-      const d=this.data,recalled=recall(d,d.sessions.find(s=>s.id===sid).character_id,text);
+      const d=this.data,recalled=recallPlan(d,d.sessions.find(s=>s.id===sid).character_id,text,{sessionId:sid,beforeMessageId:accepted.user_id});
       const timer=setTimeout(()=>ctrl.abort(),180000);
       try{
         await this.callModel(buildContext(d,sid,text,accepted.chat_style,recalled),chunk=>{
@@ -212,7 +212,7 @@ export class LocalService {
             dirty=Date.now();
             checkpoint(partial).catch(error=>{writeFailure=error;ctrl.abort();});
           }
-        },ctrl.signal,{session_id:sid,request_id:rid,recall_method:'bm25',recalled_memory_ids:recalled.map(m=>m.id),recall_matches:recalled.map(({id,score,matched_terms})=>({id,score,matched_terms}))});
+        },ctrl.signal,{session_id:sid,request_id:rid,recall_method:recalled.trace.method,recalled_memory_ids:recalled.records.map(m=>m.id),recalled_anchor_ids:recalled.anchors.map(a=>a.id),recalled_link_ids:recalled.links.map(l=>l.id),recall_trace:recalled.trace,recall_matches:recalled.records.map(({id,score,matched_terms})=>({id,score,matched_terms}))});
       }finally{clearTimeout(timer);}
       // Drain checkpoints before committing completion, including a failed last save.
       await this.queue.catch(error=>{writeFailure=error;});

@@ -19,3 +19,5 @@ body{background:#d3dcd6}.phone{position:relative;display:flex;flex-direction:col
 .api-floating-switcher[hidden]{display:none}.api-floating-switcher:active{cursor:grabbing}.api-floating-switcher strong{font-size:14px}.api-floating-switcher span{font-size:9px;max-width:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#model-switch-list h3{font-size:13px;color:var(--muted);margin:18px 0 4px}#model-switch-list>p{font-size:12px;margin-top:15px}
 
 #update-manifest-sources{font-size:13px;overflow-wrap:anywhere}#save-update-sources{margin-top:12px}.update-channels small{display:block;line-height:1.7}
+
+.recall-receipt{padding:12px 0;border-bottom:1px solid var(--line);font-size:12px;overflow-wrap:anywhere}.recall-receipt h3{font-size:14px;margin:6px 0}.recall-receipt p{margin:5px 0}

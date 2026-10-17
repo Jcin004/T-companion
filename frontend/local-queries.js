@@ -3,7 +3,7 @@
 import {INVARIANTS} from './runtime-rules.js';
 import {styleInstructions} from './chat-style.js';
 import {historyLimit} from './context-policy.js';
-import {recall,memoryContext,sourceMessages,rosterSource,copy} from './memory-core.js';
+import {recallPlan,memoryContext,sourceMessages,rosterSource,copy} from './memory-core.js';
 
 function characterById(data,id){
   const character=data.characters.find(c=>c.id===id);
@@ -23,7 +23,7 @@ export function buildContext(data,sid,message,chatStyle,recalled){
   const facts={Name:c.name,Nature:canon.nature||'UNSPECIFIED','Source world':canon.source_world||'UNSPECIFIED',Description:c.identity||'UNSPECIFIED','Immutable facts':canon.immutable_facts,'Background origin':canon.origin||'UNSPECIFIED','Important history':canon.important_history,'Fixed boundaries':canon.fixed_boundaries};
   const traits={Traits:persona.traits,Values:persona.values,Likes:persona.likes,Dislikes:persona.dislikes,'Communication style':c.style?[c.style]:[],Boundaries:persona.boundaries,'Behavioral tendencies':persona.behavioral_tendencies};
   const lines=(map)=>Object.entries(map).filter(([,v])=>v?.length).map(([k,v])=>'- '+k+': '+(Array.isArray(v)?v.join('; '):v)).join('\n');
-  const system=INVARIANTS+'\n\nAuthoritative Character Canon:\n'+lines(facts)+'\n\nStable Persona:\n'+lines(traits)+styleInstructions(chatStyle||session.chat_style,{characterName:c.name})+memoryContext(recalled||recall(data,c.id,message));
+  const system=INVARIANTS+'\n\nAuthoritative Character Canon:\n'+lines(facts)+'\n\nStable Persona:\n'+lines(traits)+styleInstructions(chatStyle||session.chat_style,{characterName:c.name})+memoryContext(recalled||recallPlan(data,c.id,message,{sessionId:sid}));
   const complete=new Set(data.turns.filter(t=>t.session_id===sid&&t.state==='complete').flatMap(t=>[t.user_id,t.assistant_id]));
   const limit=historyLimit(data,sid);
   const history=(limit?data.messages.filter(m=>m.session_id===sid&&complete.has(m.id)).slice(-limit):[]).map(({role,content})=>({role,content}));
@@ -47,8 +47,10 @@ export function queryLocalData(data,url,method,body){
   if(parts[0]==='contacts'&&parts.length===3&&parts[2]==='context-preview'){
     if(method!=='POST')throw Error('上下文预览需要 POST');
     if(typeof body?.message!=='string'||body.message.length>20000)throw Error('预览消息格式或长度不正确');
-    const messages=buildContext(data,parts[1],body.message);
-    return {note:'待发送预览：包含当前聊天草稿。固定概率模式的候选在发送时确定；实际内容请查看模型请求记录。',messages};
+    const session=contactById(data,parts[1]);
+    const recalled=recallPlan(data,session.character_id,body.message,{sessionId:session.id});
+    const messages=buildContext(data,parts[1],body.message,undefined,recalled);
+    return {recall:copy(recalled.trace),note:'待发送预览：包含当前聊天草稿。固定概率模式的候选在发送时确定；实际内容请查看模型请求记录。',messages};
   }
   if(parts[0]==='memory-sources'&&parts.length===3&&parts[2]==='location'){
     if(method!=='GET')throw Error('来源定位需要 GET');

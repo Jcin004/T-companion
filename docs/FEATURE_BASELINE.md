@@ -14,6 +14,7 @@
 | 草稿与备份 | 草稿与回复交错不丢失；恢复先校验，失败保留原文档；普通备份不含密钥和日志 | `tests/local-transactions.test.mjs`、`tests/local-transactions-browser.mjs` |
 | 上下文条数 | 全局与单聊天可设 0–2000；继承设置；已完成消息才进入历史 | `tests/context-policy.test.mjs`、`tests/context-browser.mjs`、`backend/tests/test_context_limits.py` |
 | 来源记忆 | 逐字证据；人物隔离；参与关联不自动共享；停用/删除影响召回；保存失败不推进水位 | `tests/memory.test.mjs`、`tests/local-transactions.test.mjs` |
+| 记忆网召回 | 同人物近期线索与单跳关联；人工标签及来源；过期节点排除；条数/完整材料预算；预览和日志一致 | `tests/memory-recall.test.mjs`、`tests/memory-recall-browser.mjs` |
 | 记忆关联、标签依据 | 有向关系与人物隔离；端点变更提示复核；失败不泄漏；重分析保留已关联标签 | `tests/memory-links.test.mjs`、`tests/memory-links-browser.mjs` |
 | 每日总结、自我标签 | 按时区定位原文；总结编辑/重写保留十版；人工核心标签不被分析覆盖；不改写名册 | `tests/memory.test.mjs`、`tests/memory-browser.mjs` |
 | 来源定位、查询 | 旧消息仍能定位；校验来源人物及完成状态；预览不调用模型、不保存草稿、不读取密钥 | `tests/local-queries.test.mjs`、`tests/memory-browser.mjs` |

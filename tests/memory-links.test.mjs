@@ -82,7 +82,7 @@ test('a rejected relation never leaks through a queued draft save',async()=>{
   assert.equal(store.value.memory.links.length,0);assert.equal(store.value.drafts[chat.id],'关联保存失败时的草稿');
 });
 
-test('linked AI anchors survive re-analysis; relations do not rewrite identity, history, context or knowledge',async()=>{
+test('linked AI anchors survive re-analysis; unconfirmed anchors do not alter context, identity or knowledge',async()=>{
   const {service,a,b,chat,one,anchor,input,list,set}=await fixture();
   set({anchors:[{label:'简洁',interpretation:'偏好简短表达',quote:'简短',basis:'explicit'}]});
   await service.api('/self/analyze','POST',{owner_id:a.id});const ai=service.data.memory.anchors.find(n=>n.origin==='ai');
