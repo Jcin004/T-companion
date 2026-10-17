@@ -10,7 +10,7 @@ export function mountAppUpdate(container, plugin, isBusy=()=>false, record=()=>{
   const button=document.createElement('button'), message=document.createElement('p'), notes=document.createElement('p'), progress=document.createElement('progress');
   button.id='check-update'; button.textContent='检查更新'; message.setAttribute('role','status'); progress.max=1; progress.hidden=true;
   container.append(button,progress,message,notes);
-  if(!plugin){button.disabled=true;button.textContent='在线更新未启用';message.textContent='当前为私有手动更新。收到新版 APK 后直接覆盖安装，保留聊天记录；不要卸载旧版。';return;}
+  if(!plugin){button.disabled=true;button.textContent='在线更新未启用';message.textContent='浏览器不能安装 APK 更新。请在 Android 应用内检查更新，或从公开下载渠道获取安装包。';return;}
   let phase='check', manifest=null, locked=true, channelPublished=true;
   const manualMessage='当前为私有手动更新，在线渠道尚未发布。收到新版 APK 后直接覆盖安装；不要卸载旧版。';
   const labels={check:'检查更新',available:'下载并安装新版',ready:'继续安装',installer:'再次打开安装器'};
