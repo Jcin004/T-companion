@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import {linkValue,linkNode,describeLink,removeNodeLinks} from './memory-links.js';
 import {parseModelObject} from './model-json.js';
 import {copy,newId,ensureMemory,sourceMessages,eventValue,validateMemory,rosterSource,dayKey} from './memory-core.js';
 const stamp=()=>new Date().toISOString();
@@ -53,9 +54,10 @@ export class MemoryModule {
   if(rosterSource(this.owner(owner))!==snapshot)throw Error('名册已变化，请重新分析');
   if(!Array.isArray(result.anchors)||result.anchors.length>6)throw Error('认同结果格式错误');
   const candidates=result.anchors.map(a=>{if(typeof a.label!=='string'||!a.label.trim()||a.label.length>40||typeof a.interpretation!=='string'||a.interpretation.length>2000||typeof a.quote!=='string'||!a.quote||a.quote.length>2000||!snapshot.includes(a.quote)||!['explicit','interpretation'].includes(a.basis))throw Error('认同标签缺少有效名册原文');return {id:newId(),owner_id:owner,label:a.label.trim(),interpretation:a.interpretation,quote:a.quote,basis:a.basis,roster_snapshot:snapshot,origin:'ai',created_at:stamp(),updated_at:stamp(),versions:[]};});
-  return this.write(draft=>{const retained=draft.memory.anchors.filter(a=>a.owner_id!==owner||a.origin==='manual');
-  for(const a of candidates){const old=draft.memory.anchors.find(x=>x.owner_id===owner&&x.origin==='ai'&&x.label===a.label);if(old){a.id=old.id;a.created_at=old.created_at;a.versions=copy(old.versions);saveVersion(old);a.versions=copy(old.versions);}}
-  draft.memory.anchors=[...retained,...candidates.filter(a=>!retained.some(x=>x.owner_id===owner&&x.label===a.label))];if(draft.memory.anchors.length>2000)throw Error('认同条目数量达到上限');return draft.memory.anchors.filter(a=>a.owner_id===owner);},data=>{if(rosterSource(data.characters.find(c=>c.id===owner))!==snapshot)throw Error('名册已变化，请重新分析');});
+  return this.write(draft=>{const retained=draft.memory.anchors.filter(a=>a.owner_id!==owner||a.origin==='manual'||draft.memory.links.some(l=>l.to.kind==='anchor'&&l.to.id===a.id));
+  for(const a of candidates){const old=draft.memory.anchors.find(x=>x.owner_id===owner&&x.origin==='ai'&&x.label===a.label);if(old&&!retained.some(x=>x.id===old.id)){a.id=old.id;a.created_at=old.created_at;a.revision=old.revision+1;a.versions=copy(old.versions);saveVersion(old);a.versions=copy(old.versions);}}
+  const previous=draft.memory.anchors;
+  draft.memory.anchors=[...retained,...candidates.filter(a=>!retained.some(x=>x.owner_id===owner&&x.label===a.label))];for(const a of previous)if(!draft.memory.anchors.some(n=>n.id===a.id))removeNodeLinks(draft.data,'anchor',a.id);if(draft.memory.anchors.length>2000)throw Error('认同条目数量达到上限');return draft.memory.anchors.filter(a=>a.owner_id===owner);},data=>{if(rosterSource(data.characters.find(c=>c.id===owner))!==snapshot)throw Error('名册已变化，请重新分析');});
  }
  schedule(sid){clearTimeout(this.timer);if(!this.memory.settings.auto_extract)return;const owner=this.data.sessions.find(s=>s.id===sid)?.character_id;if(!owner)return;this.timer=setTimeout(async()=>{if(this.host.active||!this.memory.settings.auto_extract)return;const rows=this.pending(owner,Infinity);if(rows.length<this.memory.settings.extract_interval)return;try{await this.extract(owner);}catch(e){this.host.diagnostics?.record('error','自动记忆整理失败',{error:e.message});}},1500);}
  async api(path,method,body={}){
@@ -66,6 +68,25 @@ export class MemoryModule {
  }
  edit(path,method,body={}){
   const url=new URL(path,'https://local'),parts=url.pathname.split('/').filter(Boolean),q=url.searchParams,m=this.memory;
+  if(parts[0]==='memory-links'){
+   if(parts.length>2||(method==='GET'&&parts.length!==1))throw Error('不支持的关联路径');
+   const owner=method==='GET'||method==='DELETE'?q.get('owner'):body.owner_id;this.owner(owner);
+   if(method==='GET'){
+    const kind=q.get('kind'),node=q.get('node');
+    if(kind||node)linkNode(this.data,owner,{kind,id:node});
+    return copy(m.links.filter(l=>l.owner_id===owner&&(!node||[l.from,l.to].some(ref=>ref.kind===kind&&ref.id===node))).map(l=>describeLink(this.data,l)));
+   }
+   const existing=m.links.find(l=>l.id===parts[1]&&l.owner_id===owner);
+   if(parts[1]&&!existing)throw Error('关联不存在或不属于此人物');
+   if(method==='DELETE'){
+    if(!existing)throw Error('请选择要删除的关联');m.links=m.links.filter(l=>l.id!==existing.id);return {ok:true};
+   }
+   if((method==='POST'&&parts.length!==1)||(method==='PATCH'&&!existing)||!['POST','PATCH'].includes(method))throw Error('不支持的关联操作');
+   const value=linkValue(this.data,owner,body);
+   if(existing)Object.assign(existing,value,{updated_at:stamp()});
+   else {if(m.links.length>=5000)throw Error('关联数量达到上限');m.links.push({id:newId(),...value,origin:'manual',created_at:stamp(),updated_at:stamp()});}
+   return {ok:true};
+  }
   if(parts[0]==='memory-settings'){
    if(method==='PATCH'){m.settings={...m.settings,...body};}return {...copy(m.settings),job:this.job};
   }
@@ -75,9 +96,9 @@ export class MemoryModule {
    if(method==='GET'){this.owner(q.get('owner'));return copy(m.events.filter(e=>e.owner_id===q.get('owner')&&(!q.get('q')||(e.title+' '+e.content).includes(q.get('q')))).slice().reverse());}
 
    const existing=m.events.find(e=>e.id===parts[1]);if(parts[1]&&!existing)throw Error('记忆不存在');
-   if(method==='DELETE'){m.events=m.events.filter(e=>e.id!==existing.id);}
-   else if(method==='PATCH'&&Object.keys(body).length===1&&typeof body.active==='boolean'){saveVersion(existing);existing.active=body.active;existing.updated_at=stamp();}
-   else{const owner=existing?.owner_id||body.owner_id;this.owner(owner);const value=eventValue(this.data,owner,body);if(existing){saveVersion(existing);Object.assign(existing,value,{origin:'manual',updated_at:stamp()});}else{if(m.events.length>=5000)throw Error('记忆达到上限');m.events.push({id:newId(),...value,origin:'manual',created_at:stamp(),updated_at:stamp(),versions:[]});}}
+   if(method==='DELETE'){m.events=m.events.filter(e=>e.id!==existing.id);removeNodeLinks(this.data,'memory',existing.id);}
+   else if(method==='PATCH'&&Object.keys(body).length===1&&typeof body.active==='boolean'){saveVersion(existing);existing.revision++;existing.active=body.active;existing.updated_at=stamp();}
+   else{const owner=existing?.owner_id||body.owner_id;this.owner(owner);const value=eventValue(this.data,owner,body);if(existing){saveVersion(existing);existing.revision++;Object.assign(existing,value,{origin:'manual',updated_at:stamp()});}else{if(m.events.length>=5000)throw Error('记忆达到上限');m.events.push({id:newId(),...value,origin:'manual',created_at:stamp(),updated_at:stamp(),versions:[]});}}
    return {ok:true};
   }
   if(parts[0]==='summaries'){
@@ -91,8 +112,8 @@ const card=m.summaries.find(s=>s.owner_id===owner&&s.day===body.day);if(!card)th
    if(parts[1]==='analyze')return this.analyze(body.owner_id);
    if(method==='GET'){const owner=q.get('owner'),snapshot=rosterSource(this.owner(owner));return copy(m.anchors.filter(a=>a.owner_id===owner).map(a=>({...a,stale:a.roster_snapshot!==snapshot})));}
 let a=m.anchors.find(a=>a.id===parts[1]);
-   if(method==='DELETE'){if(!a)throw Error('认同不存在');m.anchors=m.anchors.filter(x=>x!==a);}
-   else{const owner=a?.owner_id||body.owner_id,snapshot=rosterSource(this.owner(owner));if(typeof body.label!=='string'||!body.label.trim()||body.label.length>40||typeof body.interpretation!=='string'||body.interpretation.length>2000||typeof body.quote!=='string'||!body.quote||!snapshot.includes(body.quote)||body.quote.length>2000)throw Error('标签需要有效的当前名册原文');if(a)saveVersion(a);else{if(m.anchors.length>=2000)throw Error('认同数量达到上限');a={id:newId(),owner_id:owner,versions:[],created_at:stamp()};m.anchors.push(a);}Object.assign(a,{label:body.label.trim(),interpretation:body.interpretation,quote:body.quote,basis:'interpretation',roster_snapshot:snapshot,origin:'manual',updated_at:stamp()});}return {ok:true};
+   if(method==='DELETE'){if(!a)throw Error('认同不存在');m.anchors=m.anchors.filter(x=>x!==a);removeNodeLinks(this.data,'anchor',a.id);}
+   else{const owner=a?.owner_id||body.owner_id,snapshot=rosterSource(this.owner(owner));if(typeof body.label!=='string'||!body.label.trim()||body.label.length>40||typeof body.interpretation!=='string'||body.interpretation.length>2000||typeof body.quote!=='string'||!body.quote||!snapshot.includes(body.quote)||body.quote.length>2000)throw Error('标签需要有效的当前名册原文');if(a){saveVersion(a);a.revision++;}else{if(m.anchors.length>=2000)throw Error('认同数量达到上限');a={id:newId(),owner_id:owner,versions:[],created_at:stamp()};m.anchors.push(a);}Object.assign(a,{label:body.label.trim(),interpretation:body.interpretation,quote:body.quote,basis:'interpretation',roster_snapshot:snapshot,origin:'manual',updated_at:stamp()});}return {ok:true};
   }
  }
 }

@@ -90,7 +90,7 @@ export class LocalService {
     const url=new URL(path,'https://local'),pathname=url.pathname,route=pathname.split('/').filter(Boolean)[0];
     const queried=queryLocalData(this.data,url,method,body);
     if(queried!==undefined)return queried;
-    if(['memories','summaries','self','memory-settings','memory-sources'].includes(route))return this.memoryModule.api(path,method,body);
+    if(['memories','summaries','self','memory-settings','memory-sources','memory-links'].includes(route))return this.memoryModule.api(path,method,body);
     if(method==='GET'||pathname==='/settings/test')return this._dispatch(path,method,body);
     return this.transact(async data=>{
       // Reuse domain validation against a private document; never run model work here.
