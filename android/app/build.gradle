@@ -7,8 +7,8 @@ android {
         applicationId "io.jcin.tcompanion"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode = Integer.parseInt(project.findProperty('trialVersionCode') ?: '9')
-        versionName = project.findProperty('trialVersionName') ?: "0.7.0-trial"
+        versionCode = Integer.parseInt(project.findProperty('trialVersionCode') ?: '10')
+        versionName = project.findProperty('trialVersionName') ?: "0.7.1-trial"
         testInstrumentationRunner = project.findProperty('updateTestRunner') ?: "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
