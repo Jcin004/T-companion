@@ -130,3 +130,7 @@ substitutes for the selected file's license.
 # 0.3.0 本地客户端补充
 
 本次桌面壁纸、图标排版、客户端业务与 Android 桥接代码由 T- 项目自行实现。未复制 float / SullyOS 的美术、字体、桌面实现或私人配置。原 float SSE 衍生文件及授权冲突记录继续适用。系统 SQLite、Keystore、HttpURLConnection 和 IndexedDB 通过平台 API 调用，无新增第三方源码搬入。具体版本、接口与迁移说明见 `docs/LOCAL-ANDROID.md`。
+
+## 0.7.1 update-channel reference and authorization record
+
+The user confirmed on 2026-10-17 that the official SullyOS community announcement and author consent permit their personal noncommercial modification. This is recorded as user-provided authorization evidence, not as a replacement MIT/AGPL grant. Community evidence remains local. This milestone references the configurable HTTPS manifest approach in `utils/androidAppUpdate.ts` at `da33732253fbf3174bf068a237375155a8d1a846`; no SullyOS source, art, character material, private settings or hosted services are imported. Existing TUpdate download/verification/install code is retained rather than adding another implementation or native plugin. See `docs/UPDATE_CHANNEL.md`. Earlier reference-only assessments describe their original milestones.

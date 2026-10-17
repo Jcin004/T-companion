@@ -25,6 +25,11 @@ public class TUpdatePlugin extends Plugin {
     private static final boolean CHANNEL_PUBLISHED = true;
     private static final String MANUAL_UPDATE = "当前为私有手动更新，在线渠道尚未发布。请使用收到的新版 APK 覆盖安装，不要卸载旧版。";
     private static final String FEED = "https://api.github.com/repos/Jcin004/T-companion-updates/releases?per_page=100";
+    private static final String STATIC_MANIFEST = "https://raw.githubusercontent.com/Jcin004/T-companion-updates/main/t-update.json";
+    private static final String CHANNEL_PREFS = "t_update_channel";
+    private String stage = "检查";
+    private String requestHost = "";
+    private JSONArray attempts = new JSONArray();
     private static final long MAX_APK = 200L * 1024 * 1024;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final java.util.concurrent.atomic.AtomicBoolean working = new java.util.concurrent.atomic.AtomicBoolean();
@@ -47,20 +52,26 @@ public class TUpdatePlugin extends Plugin {
             try { call.resolve(operation.call()); }
             catch (Exception e) {
                 String message = e.getMessage() == null ? "更新失败，请重试" : e.getMessage();
-                if (e instanceof UnknownHostException) message = "无法解析更新服务器地址，请检查手机网络或 DNS；本次未完成更新检查。";
+                if (e instanceof UnknownHostException) message = "无法解析更新服务器地址；可检查 VPN 是否包含本应用，或设置可达的 HTTPS 更新清单。";
                 else if (e instanceof SocketTimeoutException) message = "连接更新服务器超时，请稍后重试；本次未完成更新检查。";
                 else if (e instanceof javax.net.ssl.SSLException) message = "更新服务器的安全连接验证失败，请检查网络和系统时间。";
-                call.reject(message);
+                JSObject detail = new JSObject(); detail.put("stage", stage); detail.put("host", requestHost); detail.put("attempts", attempts);
+                call.reject(stage + "失败：" + message, "UPDATE_FAILED", detail);
             }
             finally { working.set(false); }
         });
     }
     @PluginMethod public void info(PluginCall call) {
         run(call, () -> {
+            stage = "读取更新状态"; requestHost = ""; attempts = new JSONArray();
             PackageInfo p = installed();
             JSObject result = new JSObject(); result.put("versionName", p.versionName); result.put("versionCode", code(p));
             result.put("canInstall", allowed());
             result.put("channelPublished", CHANNEL_PUBLISHED);
+            result.put("configurableChannel", true);
+            result.put("manifestSources", customSources());
+            result.put("defaultSource", FEED);
+            result.put("staticFallback", STATIC_MANIFEST);
             if (receipt().isFile() && apk().isFile()) {
                 try { JSONObject m = new JSONObject(readFile(receipt())); verify(m); result.put("ready", m); }
                 catch (Exception ignored) { receipt().delete(); apk().delete(); }
@@ -76,6 +87,7 @@ public class TUpdatePlugin extends Plugin {
     }
     protected HttpURLConnection open(String value) throws Exception {
         URL url = https(value);
+        requestHost = url.getHost();
         for (int i = 0; i < 6; i++) {
             HttpURLConnection c = (HttpURLConnection) url.openConnection();
             c.setConnectTimeout(15000); c.setReadTimeout(30000); c.setInstanceFollowRedirects(false);
@@ -83,14 +95,14 @@ public class TUpdatePlugin extends Plugin {
             int status = c.getResponseCode();
             if (status == 301 || status == 302 || status == 303 || status == 307 || status == 308) {
                 String next = c.getHeaderField("Location"); c.disconnect();
-                url = https(new URL(url, next).toString()); continue;
+                url = https(new URL(url, next).toString()); requestHost = url.getHost(); continue;
             }
             if (status != 200) { c.disconnect(); throw new IOException(status == 403 || status == 429 ? "更新服务限流，请稍后再试" : status == 404 && value.equals(FEED) ? "更新渠道尚未公开发布，请使用提供的安装包覆盖更新" : "更新服务返回 HTTP " + status); }
             return c;
         }
         throw new IOException("更新下载重定向次数过多");
     }
-    private String getJson(String address) throws Exception {
+    protected String getJson(String address) throws Exception {
         HttpURLConnection c = open(address);
         try (InputStream in = c.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[8192]; int n;
@@ -113,27 +125,78 @@ public class TUpdatePlugin extends Plugin {
             throw new IOException("更新清单无效");
         https(m.getString("apkUrl"));
     }
+    static JSONArray validateSources(JSONArray input) throws Exception {
+        if (input == null || input.length() > 3) throw new IOException("最多填写 3 个 HTTPS 更新清单地址");
+        JSONArray clean = new JSONArray(); Set<String> seen = new HashSet<>();
+        for (int i = 0; i < input.length(); i++) {
+            if (!(input.get(i) instanceof String)) throw new IOException("更新清单地址必须是文字");
+            String value = input.getString(i).trim();
+            if (value.length() > 2048) throw new IOException("更新清单地址过长");
+            URL url = https(value);
+            if (url.getHost().isEmpty() || url.getQuery() != null) throw new IOException("清单地址不能包含访问密钥或查询参数");
+            if (seen.add(value)) clean.put(value);
+        }
+        return clean;
+    }
+    private JSONArray customSources() throws Exception {
+        return validateSources(new JSONArray(getContext().getSharedPreferences(CHANNEL_PREFS, 0).getString("sources", "[]")));
+    }
+    @PluginMethod public void setSources(PluginCall call) {
+        run(call, () -> {
+            stage = "保存更新渠道";
+            JSONArray input = call.getArray("sources");
+            JSONArray clean = validateSources(input);
+            if (!getContext().getSharedPreferences(CHANNEL_PREFS, 0).edit().putString("sources", clean.toString()).commit())
+                throw new IOException("更新渠道保存失败");
+            JSObject result = new JSObject(); result.put("manifestSources", clean); return result;
+        });
+    }
+    private void attempt(String source, Exception failure) throws Exception {
+        JSONObject row = new JSONObject().put("host", https(source).getHost());
+        row.put("status", failure == null ? "ok" : "failed");
+        if (failure != null) row.put("reason", failure instanceof UnknownHostException ? "DNS" : failure instanceof SocketTimeoutException ? "timeout" : failure instanceof javax.net.ssl.SSLException ? "TLS" : failure instanceof JSONException ? "invalid_json" : "request_or_manifest");
+        attempts.put(row);
+    }
+    private JSONObject releaseManifest() throws Exception {
+        JSONArray releases = new JSONArray(getJson(FEED)); JSONObject best = null;
+        // Includes prereleases; drafts are never eligible.
+        for (int i = 0; i < releases.length(); i++) {
+            JSONObject release = releases.getJSONObject(i);
+            if (release.optBoolean("draft")) continue;
+            JSONArray assets = release.optJSONArray("assets"); if (assets == null) continue;
+            for (int j = 0; j < assets.length(); j++) {
+                JSONObject asset = assets.getJSONObject(j);
+                if (!"t-update.json".equals(asset.optString("name"))) continue;
+                JSONObject manifest = new JSONObject(getJson(asset.getString("browser_download_url"))); validate(manifest);
+                if (best == null || manifest.getLong("versionCode") > best.getLong("versionCode")) best = manifest;
+            }
+        }
+        return best;
+    }
+    // Explicit channels are tried in order; a valid first response is authoritative.
+    JSONObject discover(JSONArray custom) throws Exception {
+        attempts = new JSONArray(); stage = "检查更新清单";
+        JSONArray sources = validateSources(custom);
+        if (sources.length() == 0) sources = new JSONArray().put(FEED).put(STATIC_MANIFEST);
+        Exception last = null;
+        for (int i = 0; i < sources.length(); i++) {
+            String source = sources.getString(i); requestHost = https(source).getHost();
+            try {
+                JSONObject manifest = source.equals(FEED) ? releaseManifest() : new JSONObject(getJson(source));
+                if (manifest != null) validate(manifest);
+                attempt(source, null); return manifest;
+            } catch (Exception e) { last = e; attempt(source, e); }
+        }
+        throw last == null ? new IOException("没有可用的更新渠道") : last;
+    }
     @PluginMethod public void check(PluginCall call) {
         run(call, () -> {
             if (!CHANNEL_PUBLISHED) { JSObject result = new JSObject(); result.put("message", MANUAL_UPDATE); return result; }
-            JSONArray releases = new JSONArray(getJson(FEED));
-            JSONObject best = null;
-            // The trial channel includes prereleases, but never draft releases.
-            for (int i = 0; i < releases.length(); i++) {
-                JSONObject release = releases.getJSONObject(i);
-                if (release.optBoolean("draft")) continue;
-                JSONArray assets = release.optJSONArray("assets"); if (assets == null) continue;
-                for (int j = 0; j < assets.length(); j++) {
-                    JSONObject asset = assets.getJSONObject(j);
-                    if (!"t-update.json".equals(asset.optString("name"))) continue;
-                    JSONObject manifest = new JSONObject(getJson(asset.getString("browser_download_url"))); validate(manifest);
-                    if (best == null || manifest.getLong("versionCode") > best.getLong("versionCode")) best = manifest;
-                }
-            }
+            JSONObject best = discover(customSources());
             JSObject result = new JSObject();
             if (best != null && best.getLong("versionCode") > code(installed())) result.put("available", best);
             result.put("message", best == null ? "更新渠道已连接，尚无已发布的安装包" : "当前已是最新版本");
-            return result;
+            result.put("attempts", attempts); result.put("host", requestHost); return result;
         });
     }
     private String digest(File file) throws Exception {
@@ -157,6 +220,7 @@ public class TUpdatePlugin extends Plugin {
         run(call, () -> downloadManifest(call.getObject("manifest")));
     }
     JSObject downloadManifest(JSONObject m) throws Exception {
+            stage = "下载并校验安装包"; attempts = new JSONArray();
             if (m == null) throw new IOException("缺少更新清单"); validate(m);
             if (m.getLong("versionCode") <= code(installed())) throw new IOException("无需安装此版本");
             if (!directory().isDirectory() && !directory().mkdirs()) throw new IOException("无法创建下载目录");
@@ -180,6 +244,7 @@ public class TUpdatePlugin extends Plugin {
     }
     @PluginMethod public void install(PluginCall call) {
         run(call, () -> {
+            stage = "校验并打开安装器"; attempts = new JSONArray(); requestHost = "";
             JSONObject m = new JSONObject(readFile(receipt())); verify(m);
             boolean permission = allowed();
             Intent intent;

@@ -278,3 +278,9 @@
 
 - `frontend/api-floating-switcher.js`：App 内悬浮按钮、拖动和位置恢复，不拥有连接或密钥；选择操作复用 `preferences-ui.js` 的模型选择弹窗。
 - `tests/api-floating-browser.mjs`：分组切换、实际请求连接、记忆连接隔离、拖动/刷新/尺寸变化和键盘操作。
+
+## 可配置更新渠道
+
+- `docs/UPDATE_CHANNEL.md`：更新器职责、设备配置、部署边界和复用记录。
+- `tests/update-channel.test.mjs`：清单地址、敏感参数和数量上限校验。
+- `android/app/src/androidTest/java/io/jcin/tcompanion/UpdateChannelInstrumentation.java`：隔离原生渠道发现及持久化验收。

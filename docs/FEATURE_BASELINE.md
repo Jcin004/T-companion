@@ -20,7 +20,7 @@
 | 日志 | 请求上下文与实际发送一致；密钥脱敏；关闭上下文记录、导出/清理和刷新有效 | `tests/diagnostics.test.mjs`、`tests/diagnostics-browser.mjs` |
 | 既有复用模块 | SSE 保留空白；JSON 修复仍验证证据；BM25 保持来源匹配和人物隔离；供应商文件匹配固定版本 | `tests/sse.test.mjs`、`tests/reuse-optimization.test.mjs` |
 | Android | 本机 SQLite、独立凭据、原生模型请求、返回与文件操作保留；构建通过只说明可构建 | `.github/workflows/tests.yml`、`tests/memory-android.mjs` |
-| 源码与更新 | 源码按明确提交导出；未跟踪私密文件不进入包；未发布更新渠道时不宣称已有下载 | `backend/tests/test_source_export.py`、`tests/app-update-browser.mjs` |
+| 源码与更新 | 源码按明确提交导出；可配置 HTTPS 清单与静态备用；失败日志含阶段/域名；保留签名/包名/版本/哈希校验；未发布渠道不宣称已有下载 | `backend/tests/test_source_export.py`、`tests/app-update-browser.mjs` |
 
 完整功能开关和平台差异以 [当前架构](CURRENT_ARCHITECTURE.md) 为准。设备感知、完整记忆网、后台自主生活、跨设备同步仍未实现。
 

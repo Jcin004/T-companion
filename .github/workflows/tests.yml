@@ -54,7 +54,7 @@ jobs:
           java-version: "21"
       - run: npm ci
       - run: npm run android:sync
-      - run: chmod +x android/gradlew && android/gradlew -p android :app:assembleDebug --no-daemon
+      - run: chmod +x android/gradlew && android/gradlew -p android :app:assembleDebug :app:assembleDebugAndroidTest -PupdateTestRunner=io.jcin.tcompanion.UpdateChannelInstrumentation --no-daemon
       - run: mkdir -p artifacts && git archive HEAD -o artifacts/t-chat-source.zip
       - uses: actions/upload-artifact@v4
         with:
@@ -62,6 +62,7 @@ jobs:
           retention-days: 7
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             artifacts/t-chat-source.zip
             LICENSE
             THIRD_PARTY_NOTICES.md
