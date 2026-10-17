@@ -65,6 +65,8 @@
 | [frontend/local-service.js](../frontend/local-service.js) | 本机命令路由、事务队列、聊天编排及浏览器/Android 存储和传输适配；仍偏大。 |
 | [frontend/memory-core.js](../frontend/memory-core.js) | 来源验证、记忆校验、时间分日、名册原文投影和召回材料规则。 |
 | [frontend/memory-lexical.js](../frontend/memory-lexical.js) | 从 Serein 适配的 BM25 关键词召回与索引缓存。 |
+| [frontend/memory-links.js](../frontend/memory-links.js) | 有向关联、端点归属与版本校验、删除清理的纯规则。 |
+| [frontend/memory-links-ui.js](../frontend/memory-links-ui.js) | 记忆与核心标签关联的创建、查看、编辑和删除界面。 |
 | [frontend/memory-service.js](../frontend/memory-service.js) | 整理、总结、核心标签、版本及水位；模型调用在事务外，提交走统一写入口。 |
 | [frontend/memory-ui.js](../frontend/memory-ui.js) | 记忆/自我 App、编辑器、版本记录、日历总结的界面操作。 |
 | [frontend/memory.css](../frontend/memory.css) | 记忆、自我与每日总结界面样式。 |
@@ -223,6 +225,8 @@
 | [tests/local-transactions.test.mjs](../tests/local-transactions.test.mjs) | 事务、故障隔离和草稿的逻辑回归测试。 |
 | [tests/memory-android.mjs](../tests/memory-android.mjs) | 来源记忆、总结与认同核心的Android 模拟器验收。 |
 | [tests/memory-browser.mjs](../tests/memory-browser.mjs) | 来源记忆、总结与认同核心的浏览器验收。 |
+| [tests/memory-links.test.mjs](../tests/memory-links.test.mjs) | 关联方向、人物隔离、备份兼容、版本复核和保存回滚测试。 |
+| [tests/memory-links-browser.mjs](../tests/memory-links-browser.mjs) | 关联与标签依据的实际浏览器操作、来源跳转和刷新验收。 |
 | [tests/memory.test.mjs](../tests/memory.test.mjs) | 来源记忆、总结与认同核心的逻辑回归测试。 |
 | [tests/preferences-browser.mjs](../tests/preferences-browser.mjs) | 外观、连接分组与聊天风格的浏览器验收。 |
 | [tests/preferences.test.mjs](../tests/preferences.test.mjs) | 外观、连接分组与聊天风格的逻辑回归测试。 |
@@ -249,6 +253,7 @@
 | [docs/FILE_MAP.md](../docs/FILE_MAP.md) | 本文件：逐文件职责与布局评价。 |
 | [docs/INTERFACE_DESIGN.md](../docs/INTERFACE_DESIGN.md) | 早期接口设计。 |
 | [docs/LOCAL-ANDROID.md](../docs/LOCAL-ANDROID.md) | 本机模式和 Android 适配说明。 |
+| [docs/MEMORY-LINKS.md](../docs/MEMORY-LINKS.md) | 记忆关联第一版的操作、数据契约、兼容与验证说明。 |
 | [docs/MEMORY-0.6.md](../docs/MEMORY-0.6.md) | 来源记忆、总结与自我功能说明。 |
 | [docs/MEMORY-COMPARISON.md](../docs/MEMORY-COMPARISON.md) | 参考记忆系统的比较。 |
 | [docs/MODULE_DESIGN.md](../docs/MODULE_DESIGN.md) | 早期模块设计。 |
