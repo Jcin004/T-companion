@@ -4,6 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {writeFile,mkdir} from 'node:fs/promises';
 import {join} from 'node:path';
 import assert from 'node:assert/strict';
+import {validateBackup} from '../frontend/local-service.js';
 
 const serial=process.env.T_TEST_EMULATOR||'emulator-5560';
 if(!/^emulator-\d+$/.test(serial))throw Error('This acceptance test must not run against a physical device');
@@ -55,7 +56,7 @@ try {
   if(original){
     await evaluate(`(async()=>{const {createLocalService}=await import('/assets/local-service.js');const s=await createLocalService(Capacitor.Plugins.TLocal);await s.api('/backup/restore','POST',${JSON.stringify(original)});})()`);
     const restored=await evaluate("(async()=>{const {createLocalService}=await import('/assets/local-service.js');return (await createLocalService(Capacitor.Plugins.TLocal)).api('/backup');})()");
-    assert.deepEqual(restored,original);console.log('PASS: isolated emulator original document restored exactly');
+    assert.deepEqual(restored,validateBackup(original));console.log('PASS: isolated emulator original document restored with existing backup normalization');
     await cdp('Page.reload');
   }
  } finally {ws.close();}
