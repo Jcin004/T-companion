@@ -345,7 +345,7 @@ el('backend').value=backend;el('token').value=token;
 const legal=node('section','card');legal.append(node('h2','','关于与更新'),node('p','','T- 0.7.1 试用版 · versionCode 10 · io.jcin.tcompanion · AGPL-3.0-only。软件按现状提供，不附带任何保证。可按许可证修改与再分发应用代码；导入的个人数据保留原有权利。'));
 const legalLink=node('a','','许可、署名与复用记录 →');legalLink.href=new URL('legal.html',import.meta.url).href;
 const sourceButton=node('button','','对应源码');sourceButton.onclick=guard(async()=>{if(mode==='local'){toast('对应源码在试用分发包的 T-companion-0.7.1-source.zip 中，包含构建说明与许可证。');return;}const response=await fetch(backend+'/api/v1/source',{headers:headers()});if(!response.ok)throw Error('源码导出失败，请检查后端连接和访问口令');await exportBlob(await response.blob(),'t-chat-source.zip');});
-legal.append(legalLink,node('p','','更新来源：公开 GitHub 试用版渠道。覆盖安装保留角色、聊天和设置。'),sourceButton);document.querySelector('.settings-grid').append(legal);
+legal.append(legalLink,node('p','','默认渠道：公开 GitHub 试用版；可在下方设置自建更新清单。覆盖安装保留角色、聊天和设置。'),sourceButton);document.querySelector('.settings-grid').append(legal);
 mountAppUpdate(legal,native?window.Capacitor?.Plugins?.TUpdate:null,()=>busy,(label,data)=>diagnostics.record('update',label,data));
 mountDiagnostics({store:diagnostics,exportFile:exportBlob,report:e=>{reportError(e,'日志导出失败');toast(e.message);},preview:async()=>{
   if(mode!=='local')throw Error('共同后端模式请查看发送后的实际请求记录，草稿预览仅支持本机模式。');
