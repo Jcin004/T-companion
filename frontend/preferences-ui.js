@@ -30,7 +30,7 @@ export function mountPreferences({api,localReady,isLocal,isBusy,getCurrent,setCu
     return row;
   }
   async function refresh(prefs){
-    const local=await localReady,p=local.data.settings;wallpaperImage=p.wallpaper_image||'';
+    const local=await localReady,p=await local.api('/appearance');wallpaperImage=p.wallpaper_image||'';
     for(const [id,key,fallback] of [['theme','theme','light'],['font-size','font_size',16],['wallpaper','wallpaper','forest'],['icon-style','icon_style','soft'],['font-family','font_family','system'],['bubble-user','bubble_user','#e0eee8'],['bubble-assistant','bubble_assistant','#ffffff'],['bubble-radius','bubble_radius',16]])el(id).value=p[key]??fallback;
     el('motion').checked=p.motion!==false;applyAppearance(p);
     el('profiles-card').hidden=!isLocal();el('profile-metadata').hidden=!isLocal();el('clear-key-label').hidden=!isLocal();el('profile-name').required=isLocal();
