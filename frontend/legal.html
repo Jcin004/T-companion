@@ -136,6 +136,15 @@ substitutes for the selected file's license.
 The user confirmed on 2026-10-17 that the official SullyOS community announcement and author consent permit their personal noncommercial modification. This is recorded as user-provided authorization evidence, not as a replacement MIT/AGPL grant. Community evidence remains local. This milestone references the configurable HTTPS manifest approach in `utils/androidAppUpdate.ts` at `da33732253fbf3174bf068a237375155a8d1a846`; no SullyOS source, art, character material, private settings or hosted services are imported. Existing TUpdate download/verification/install code is retained rather than adding another implementation or native plugin. See `docs/UPDATE_CHANNEL.md`. Earlier reference-only assessments describe their original milestones.
 
 
+## 0.8.0: Serein recall-cue adaptation (MIT)
+
+- Repository: https://github.com/Yinglianchun/Serein, revision `180c94a54feb28283aa8af15a4f49a129aa8b397`.
+- File: `src/serein/recall/germany/memory_recall/retrieval_budget.py`, blob `72838be2e3c8ae3f994bacb6c5b6afc066f67046`; last file contributor `Yinglianchun`, file commit `5816c6e`.
+- Copyright 2026 ChiYouyu; root MIT text is retained in `frontend/licenses/Serein-MIT.txt`. The source file has no additional license restriction. Germany PROVENANCE.md identifies an earlier Ombre-Brain lineage and the reviewed-neighbor design; no private defaults or deployment discovery are used.
+- Local derivative: `frontend/recall-cues.js`, ports the generic REFERENCE_MARKERS, CONTINUATION_MARKERS and `_contains_any` longest-marker filtering to JavaScript. Local changes add a short-followup bound, common greeting exclusion and follow-up openings. No identity terms, persona defaults, planner/LLM endpoint or Python service is copied.
+- Existing `frontend/memory-lexical.js` Serein BM25 port remains the lexical engine. T-companion owns the evidence checks, same-owner one-hop traversal, anchor confirmation, exact material budget, receipt projection and UI; this is not an import of Serein's whole recall pipeline or SullyOS source. No new runtime dependency or embedding/rerank network call.
+
+
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007
 

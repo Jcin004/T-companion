@@ -284,3 +284,11 @@
 - `docs/UPDATE_CHANNEL.md`：更新器职责、设备配置、部署边界和复用记录。
 - `tests/update-channel.test.mjs`：清单地址、敏感参数和数量上限校验。
 - `android/app/src/androidTest/java/io/jcin/tcompanion/UpdateChannelInstrumentation.java`：隔离原生渠道发现及持久化验收。
+
+## 本机记忆网召回
+
+- `frontend/memory-evidence.js`：来源、逐字证据、名册快照；旧 memory-core 导出保持。
+- `frontend/recall-cues.js`：Serein 衍生的指代/延续线索适配。
+- `frontend/memory-recall.js`：人物隔离的只读召回计划、单跳关联、人工标签、预算与材料格式。
+- `tests/memory-recall.test.mjs`、`tests/memory-recall-browser.mjs`、`tests/memory-recall-android.mjs`：领域、实际界面/请求和隔离模拟器原生 SQLite 验收。
+- `docs/MEMORY_RECALL.md`：数据流、控制项、平台差异和范围。

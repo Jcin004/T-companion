@@ -154,3 +154,7 @@ React 可在界面状态复杂到需要组件体系时评估；现在首先修�
 参考对比（只参考结构，本次未导入代码）：float 的固定提交 `c1b0ea74d7690beae31bc7c9e2a8c382fa4b151b` 中，`lib/settings-storage.ts` 的 `resolveAuxiliaryApiConfig()` 分别支持总结、embedding、桌宠、推理翻译、问答等用途，并回退至全局默认连接；`lib/memory-summarizer.ts` 使用总结绑定。我们目前将整理/总结/自我分析合用一个记忆连接，尚未为每个用途逐项绑定。SullyOS 上游的 `types.ts` 和 README 还区分 embedding、视觉与语音等配置，不能把这些接口都当成第二个聊天模型。
 
 来源：[float 连接解析](https://github.com/Jcin004/float/blob/c1b0ea74d7690beae31bc7c9e2a8c382fa4b151b/lib/settings-storage.ts)、[float 总结管线](https://github.com/Jcin004/float/blob/c1b0ea74d7690beae31bc7c9e2a8c382fa4b151b/lib/memory-summarizer.ts)、[SullyOS 类型](https://github.com/qegj567-cloud/SullyOS/blob/master/types.ts)、[SullyOS 说明](https://github.com/qegj567-cloud/SullyOS)。
+
+## 0.8.0 本机召回扩展
+
+已复核的记忆关联与人工核心标签参与本机聊天：Serein 词法检索加近期用户线索、同人物单跳关联、共用预算与召回回执。证据逻辑移到 memory-evidence，候选策略集中在 memory-recall；预览和实际发送使用同一计划，原 API 与数据保留。详见 [本机记忆网召回](MEMORY_RECALL.md)。仍未接入向量检索、自动人格成长或 Python 共同后端的新召回。
