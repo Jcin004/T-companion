@@ -66,3 +66,21 @@ test('repaired extraction still enforces source evidence; recall uses source ter
  const id=service.data.memory.events[0].id;await service.api('/memories/'+id,'PATCH',{...event,content:'很长的记忆'.repeat(500)});await service.api('/memory-settings','PATCH',{budget:500});assert.equal(recall(service.data,a.id,'山间散步').length,0);
  set('说明：{memories:['+JSON.stringify({...event,evidence:[{message_id:1,quote:'编造的引用'}]})+',]}');await assert.rejects(service.api('/memories/extract','POST',{owner_id:a.id,day:'2026-01-02'}),/来源/);assert.equal(service.data.memory.events.length,1);
 });
+
+
+test('chat preset switching preserves dedicated memory routing; missing dedicated profile never falls back silently',async()=>{
+ const {service,a,set,calls}=await fixture();
+ const connection=(name,model)=>({name,base_url:'https://routing.example/v1',model,protocol:'openai-chat',api_key:'fixture-'+model});
+ await service.api('/model-profiles','POST',connection('记忆专用','memory-only'));
+ await service.api('/model-profiles','POST',connection('备用聊天','chat-b'));
+ const profiles=await service.api('/model-profiles'),memory=profiles.find(p=>p.model==='memory-only'),chat=profiles.find(p=>p.model==='chat-b');
+ await service.api('/memory-settings','PATCH',{profile_id:memory.id});
+ await service.api('/model-profiles/'+chat.id+'/activate','POST');set({memories:[]});
+ const extract=()=>service.api('/memories/extract','POST',{owner_id:a.id,source_ids:[1]});
+ await extract();assert.equal(calls.at(-1).s.profile_id,memory.id);assert.equal(calls.at(-1).key,'fixture-memory-only');
+ assert.equal((await service.api('/settings')).active_profile_id,chat.id);
+ await service.api('/model-profiles/'+memory.id,'DELETE');const count=calls.length;
+ await assert.rejects(extract(),/连接已删除/);assert.equal(calls.length,count);
+ await service.api('/memory-settings','PATCH',{profile_id:''});await extract();
+ assert.equal(calls.at(-1).s.profile_id,chat.id);assert.equal(calls.at(-1).key,'fixture-chat-b');
+});

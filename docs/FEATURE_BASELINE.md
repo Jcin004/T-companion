@@ -6,7 +6,7 @@
 |---|---|---|
 | 人设名册、联系人 | 人物资料经名册编辑；同一人物重复发起聊天复用联系人；人物记录相互隔离 | `tests/local-service.test.mjs`、`backend/tests/test_companion.py` |
 | 身份与运行约束 | Canon/Persona 与程序约束分开；未知资料不补写；元数据不进入身份提示词 | `backend/tests/test_character_provider.py`、`backend/tests/test_runtime.py`、`backend/tests/test_client_rules.py` |
-| 模型配置 | 多连接、分组、独立密钥与切换；更换域名不能悄悄复用旧密钥 | `tests/preferences.test.mjs`、`tests/preferences-browser.mjs` |
+| 模型配置 | 多连接、分组、独立密钥与切换；App 内可拖动悬浮球复用选择弹窗；切换不改变已指定的记忆连接；更换域名不能悄悄复用旧密钥 | `tests/preferences.test.mjs`、`tests/preferences-browser.mjs`、`tests/api-floating-browser.mjs`、`tests/memory.test.mjs` |
 | 聊天 | 流式展示、失败保留、取消、同请求标识重试不重复创建；首次保存失败不调用模型 | `tests/local-service.test.mjs`、`tests/local-transactions.test.mjs` |
 | 聊天风格、外观 | 分条、动作/表情/语音表达开关；可编辑每聊天动作模板、占位符、线上私聊默认值；旧请求重试保持原策略；外观独立 App | `tests/preferences.test.mjs`、`tests/preferences-browser.mjs`、`tests/chat-editing-browser.mjs` |
 | 文字操作 | 桌面消息右键复制/选择；输入框剪切/粘贴/全选；剪贴板失败明确提示；Android 长按由系统处理 | `tests/chat-editing-browser.mjs` |
