@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import {mountMemoryLinks} from './memory-links-ui.js';
 const el=id=>document.getElementById(id);
 const node=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;};
 const kinds={statement:'陈述',promise:'约定',interpretation:'理解',experience:'经历'};
@@ -17,6 +18,7 @@ export function installMemoryShell(){
  }
 }
 export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toast,report}){
+ const links=mountMemoryLinks({api,openSource,toast,report});
  let busy=false;
  const body=id=>el(id).querySelector('.memory-dialog-body');
  const run=fn=>async e=>{e?.preventDefault();if(busy){toast('请等待当前记忆操作结束');return;}busy=true;document.querySelectorAll('.memory-status').forEach(n=>n.textContent='处理中…');try{await fn(e);}catch(error){report(error);toast(error.message);document.querySelectorAll('.memory-status').forEach(n=>n.textContent=error.message);}finally{busy=false;document.querySelectorAll('.memory-status').forEach(n=>{if(n.textContent==='处理中…')n.textContent='';});}};
@@ -25,7 +27,7 @@ export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toas
  function dialog(id,title){el(id).querySelector('h2').textContent=title;body(id).replaceChildren();el(id).querySelector('.memory-status').textContent='';if(!el(id).open)el(id).showModal();return body(id);}
  async function owner(which){const s=el(which+'-owner');return s.value||getCurrent()?.character_id||(await api('/characters'))[0]?.id;}
  async function available(which){
-  const local=isLocal();el(which+'-notice').textContent=local?(which==='memory'?'原话作为来源保存；关联人物不会自动获知这条记忆。':'从名册理解核心特质，人工编辑后不会被重新分析覆盖。这些标签用于校对解读，当前聊天仍使用名册设定。'):'当前使用共同后端；这轮记忆与自我仅用于本机独立模式。';
+  const local=isLocal();el(which+'-notice').textContent=local?(which==='memory'?'原话作为来源保存；关联人物不会自动获知这条记忆。':'从名册理解核心特质，人工编辑或已手动关联的标签不会被重新分析覆盖。这些标签用于校对解读，当前聊天仍使用名册设定。'):'当前使用共同后端；这轮记忆与自我仅用于本机独立模式。';
   el(which+'-tools').hidden=!local;el(which+'-owner').disabled=!local;if(!local){el(which+'-list').replaceChildren();return false;}
   const chars=await api('/characters'),s=el(which+'-owner'),selected=s.value||getCurrent()?.character_id;s.replaceChildren(...chars.map(c=>{const o=node('option','',c.name);o.value=c.id;return o;}));if(chars.some(c=>c.id===selected))s.value=selected;
   if(!chars.length){el(which+'-list').textContent='先到人设名册创建一个角色。';return false;}return true;
@@ -39,7 +41,7 @@ export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toas
   const chars=await api('/characters');
   for(const item of rows){const card=node('article','card memory-card'+(!item.active?' memory-paused':''));card.dataset.memoryId=item.id;card.append(node('small','',kinds[item.kind]+' · '+(item.origin==='manual'?'人工编辑':'模型整理')+(!item.active?' · 已暂停召回':'')),node('h2','',item.title),node('p','memory-text',item.content));evidenceLinks(card,item.evidence,item.owner_id);
    if(item.participants.length>1)card.append(node('small','','关联：'+item.participants.map(id=>chars.find(c=>c.id===id)?.name||id).join('、')+'（仅当前人物可召回）'));
-   const actions=node('div','actions');actions.append(button('编辑',()=>editMemory(id,item)),button(item.active?'暂停召回':'启用召回',async()=>{await api('/memories/'+item.id,'PATCH',{active:!item.active});await renderMemories(id);}),button('修改记录',()=>versions(item)),button('删除',async()=>{if(!confirm('删除这条记忆？来源聊天会保留。'))return;await api('/memories/'+item.id,'DELETE');await renderMemories(id);}));card.append(actions);list.append(card);
+   const actions=node('div','actions');actions.append(links.button({kind:'memory',id:item.id},id),button('编辑',()=>editMemory(id,item)),button(item.active?'暂停召回':'启用召回',async()=>{await api('/memories/'+item.id,'PATCH',{active:!item.active});await renderMemories(id);}),button('修改记录',()=>versions(item)),button('删除',async()=>{if(!confirm('删除这条记忆及它的关联？来源聊天会保留。'))return;await api('/memories/'+item.id,'DELETE');await renderMemories(id);}));card.append(actions);list.append(card);
   }
  }
  async function editMemory(id,item){
@@ -53,7 +55,7 @@ export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toas
  async function renderSelf(id){const rows=await api('/self?owner='+encodeURIComponent(id)),list=el('self-list');list.replaceChildren();
   const net=node('div','self-orbits');net.append(node('div','self-person',(await api('/characters')).find(c=>c.id===id)?.name||'TA'));for(const item of rows){const b=button(item.label,()=>el('anchor-'+item.id).scrollIntoView({block:'center',behavior:'smooth'}));b.classList.add('self-orbit');net.append(b);}list.append(net);
   if(!rows.length)list.append(node('p','subtle','从名册分析，或手动写下一个有原文依据的核心标签。'));
-  for(const item of rows){const card=node('article','card');card.id='anchor-'+item.id;card.append(node('small','',(item.origin==='manual'?'人工编辑 · 分析时保留':'模型分析')+' · '+(item.basis==='explicit'?'名册明确描述':'对名册的解读')),node('h2','',item.label),node('p','memory-text',item.interpretation),node('blockquote','memory-text',item.quote));if(item.stale)card.append(node('p','subtle','名册已有变化，此标签仍依据旧版原文，请复核。'));const actions=node('div','actions');actions.append(button('编辑',()=>editSelf(id,item)),button('修改记录',()=>versions(item)),button('删除',async()=>{if(!confirm('删除此标签？名册内容会保留。'))return;await api('/self/'+item.id,'DELETE');await renderSelf(id);}));card.append(actions);list.append(card);}
+  for(const item of rows){const card=node('article','card');card.id='anchor-'+item.id;card.append(node('small','',(item.origin==='manual'?'人工编辑 · 分析时保留':'模型分析')+' · '+(item.basis==='explicit'?'名册明确描述':'对名册的解读')),node('h2','',item.label),node('p','memory-text',item.interpretation),node('blockquote','memory-text',item.quote));if(item.stale)card.append(node('p','subtle','名册已有变化，此标签仍依据旧版原文，请复核。'));const actions=node('div','actions');actions.append(links.button({kind:'anchor',id:item.id},id),button('编辑',()=>editSelf(id,item)),button('修改记录',()=>versions(item)),button('删除',async()=>{if(!confirm('删除此标签及它的关联？名册内容会保留。'))return;await api('/self/'+item.id,'DELETE');await renderSelf(id);}));card.append(actions);list.append(card);}
  }
  async function editSelf(id,item){const source=await api('/characters/'+encodeURIComponent(id)+'/identity-source'),box=dialog('self-editor','核心标签');const label=field('标签','input',item?.label||''),interpretation=field('性格解读','textarea',item?.interpretation||''),quote=field('依据：复制名册中的连续原文','textarea',item?.quote||'');const details=node('details');details.append(node('summary','','查看当前名册原文'),node('pre','memory-text',source.text));box.append(label.label,interpretation.label,quote.label,details,button('保存标签',async()=>{await api('/self'+(item?'/'+item.id:''),item?'PATCH':'POST',{owner_id:id,label:label.input.value,interpretation:interpretation.input.value,quote:quote.input.value});el('self-editor').close();await renderSelf(id);toast('核心标签已保存');}));}
  async function settings(){const s=await api('/memory-settings'),profiles=await api('/model-profiles'),box=dialog('memory-settings-dialog','召回与整理设置');const fields={};for(const [key,label,type,min,max] of [['recall','聊天时召回相关记忆','checkbox'],['recall_limit','每次最多召回条数','number',1,12],['budget','召回材料最多字符数','number',500,12000],['auto_extract','自动整理新聊天（会额外调用模型）','checkbox'],['extract_interval','累计多少条完成消息后整理','number',4,200]]){const f=field(label,'input',s[key],type);if(type==='checkbox')f.input.checked=s[key];else{f.input.min=min;f.input.max=max;}fields[key]=f.input;box.append(f.label);}const profile=field('整理记忆、每日总结、自我分析使用的连接','select');const def=node('option','','跟随当前聊天连接');def.value='';profile.input.append(def);for(const p of profiles.profiles||profiles){const o=node('option','',p.name||p.model);o.value=p.id;profile.input.append(o);}profile.input.value=s.profile_id;box.append(profile.label,node('p','subtle','整理与分析会调用所选模型。自动整理仅在应用运行、聊天完成后触发；没有后台保活或定时唤醒。召回使用 BM25 关键词评分，支持匹配来源原话；原文历史设为 0 时，此处开启的召回仍然生效。'),button('保存设置',async()=>{const values={profile_id:profile.input.value};for(const [k,n] of Object.entries(fields))values[k]=n.type==='checkbox'?n.checked:Number(n.value);await api('/memory-settings','PATCH',values);el('memory-settings-dialog').close();toast('记忆设置已保存');}));}
