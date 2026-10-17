@@ -24,7 +24,7 @@ await page.locator('#messages').getByText('第一段。第二段。',{exact:true
 await page.locator('#home-button').click();await page.locator('.app-grid [data-app="settings"]').click();assert.equal(await page.locator('#model').inputValue(),'mock-local');assert.equal(await page.locator('#api-key').inputValue(),'');
 await page.screenshot({path:'artifacts/settings-local-0.3.png'});
 // Seed a large isolated local history; no application backend is running on this origin.
-await page.evaluate(async()=>{const {createLocalService}=await import('/assets/local-service.js');const s=await createLocalService();const sid=s.data.sessions[0].id;s.data.messages=Array.from({length:600},(_,i)=>({id:i+1,session_id:sid,role:i%2?'assistant':'user',content:'历史 '+(i+1),created_at:'2026-01-01 16:00:00'}));s.data.turns=[];await s.persist();});
+await page.evaluate(async()=>{const {createLocalService}=await import('/assets/local-service.js');const s=await createLocalService();const sid=s.data.sessions[0].id;await s.transact(d=>{d.messages=Array.from({length:600},(_,i)=>({id:i+1,session_id:sid,role:i%2?'assistant':'user',content:'历史 '+(i+1),created_at:'2026-01-01 16:00:00'}));d.turns=[];});});
 await page.reload();await page.locator('.app-grid [data-app="chat"]').click();await page.locator('#contacts .contact').click();
 assert.equal(await page.locator('.message').count(),40);
 const before=await page.locator('#messages').evaluate(n=>{n.scrollTop=0;const first=n.querySelector('.message');return {id:first.dataset.id,top:first.getBoundingClientRect().top-n.getBoundingClientRect().top};});await page.waitForTimeout(500);

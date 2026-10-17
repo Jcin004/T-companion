@@ -138,12 +138,12 @@ function renderMessages() {
   if (!items.length) frag.append(node('div','empty','从一句问候开始。'));
   el('messages').replaceChildren(frag); el('latest').hidden = !hasAfter; seen();
 }
-function saveDraft() { if(current){const sid=current.id,text=el('input').value;localStorage.setItem(key('draft'),text);if(mode==='local')localReady.then(service=>{service.data.drafts[sid]=text;return service.persist();}).catch(e=>toast(e.message));} }
+function saveDraft() { if(current){const sid=current.id,text=el('input').value;localStorage.setItem(key('draft'),text);if(mode==='local')localReady.then(service=>service.api(`/contacts/${sid}/draft`,'PATCH',{text})).catch(e=>toast(e.message));} }
 async function openContact(c) {
   if(current?.id===c.id){chatOpen=true;app('chat');return;}
   if (busy) { toast('请等待当前回复完成'); return; }
   saveDraft(); chatOpen=true;current = c; epoch++; loading = false; items = [];
-  el('input').value = localStorage.getItem(key('draft')) || (mode==='local'?(await localReady).data.drafts[c.id]:'') || '';
+  el('input').value = localStorage.getItem(key('draft')) || (mode==='local'?(await (await localReady).api(`/contacts/${c.id}/draft`)).text:'') || '';
   renderHeader(); app('chat'); renderContacts();
   await loadLatest();
 }

@@ -6,7 +6,7 @@ async function fixture(){
  const store={value:emptyData(),keys:{},fail:false,async load(){return copy(this.value);},async save(v){if(this.fail)throw Error('disk full');this.value=copy(v);},async hasKey(id){return !!this.keys[id];},async setKey(v,id){this.keys[id]=v;},async getKey(id){return this.keys[id]||'';}};
  let result='好的';const calls=[];const service=await new LocalService(store,async(s,key,messages,delta,signal)=>{calls.push({s,key,messages});if(signal.aborted)throw Error('abort');delta(typeof result==='string'?result:JSON.stringify(result));}).init();
  const a=await service.api('/characters','POST',{name:'林',identity:'来自山间，重视诚实',style:'简短',avatar:''}),b=await service.api('/characters','POST',{name:'雨',identity:'',style:'',avatar:''});const chat=await service.api('/contacts','POST',{character_id:a.id});await service.api('/settings','PATCH',{model:'mock',api_key:'fixture-only'});
- await service.stream(chat.id,'我喜欢山间散步','first',()=>{});for(const m of service.data.messages)m.created_at='2026-01-01T17:00:00Z';await service.persist();
+ await service.stream(chat.id,'我喜欢山间散步','first',()=>{});await service.transact(d=>{for(const m of d.messages)m.created_at='2026-01-01T17:00:00Z';});
  const event={owner_id:a.id,title:'山间散步',content:'用户说喜欢山间散步',kind:'statement',evidence:[{message_id:1,quote:'我喜欢山间散步'}],participants:[a.id,b.id]};
  return {service,store,a,b,chat,calls,event,set:v=>result=v};
 }
