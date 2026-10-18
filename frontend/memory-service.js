@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {linkValue,linkNode,describeLink,removeNodeLinks} from './memory-links.js';
 import {parseModelObject} from './model-json.js';
+import {MemoryLinkProposalService} from './memory-link-proposal-service.js';
 import {copy,newId,ensureMemory,sourceMessages,eventValue,validateMemory,rosterSource,dayKey} from './memory-core.js';
 const stamp=()=>new Date().toISOString();
 const saveVersion=(item)=>{const {versions,...snapshot}=item;item.versions=[...(versions||[]),copy(snapshot)].slice(-10);};
@@ -61,6 +62,7 @@ export class MemoryModule {
  }
  schedule(sid){clearTimeout(this.timer);if(!this.memory.settings.auto_extract)return;const owner=this.data.sessions.find(s=>s.id===sid)?.character_id;if(!owner)return;this.timer=setTimeout(async()=>{if(this.host.active||!this.memory.settings.auto_extract)return;const rows=this.pending(owner,Infinity);if(rows.length<this.memory.settings.extract_interval)return;try{await this.extract(owner);}catch(e){this.host.diagnostics?.record('error','自动记忆整理失败',{error:e.message});}},1500);}
  async api(path,method,body={}){
+  if(new URL(path,'https://local').pathname.split('/')[1]==='memory-link-proposals')return new MemoryLinkProposalService(this).api(path,method,body);
   const modelAction=/^\/(memories\/extract|summaries\/generate|self\/analyze)$/.test(new URL(path,'https://local').pathname);
   if(modelAction&&method!=='POST')throw Error('此操作需要 POST');
   if(method==='GET'||modelAction)return this.edit(path,method,body);

@@ -36,3 +36,5 @@
 Git 保存的是源码版本，可以查看或恢复旧代码。真实聊天、人物、记忆与密钥不提交 Git；升级前使用应用内备份保护个人数据。
 
 聊天详情子页（风格、历史、名册）返回时恢复上一级，保留详情表单草稿；跳转来源或返回桌面不重新弹出父页。回归入口：`tests/chat-settings-browser.mjs`。
+
+AI 关联候选不参与召回；显式选材、两端原话、确认/拒绝、版本失效和失败回滚必须保留。确认不覆盖已有人工关系，删除候选不删正式关联。回归入口：`tests/memory-link-proposals.test.mjs`、`tests/memory-link-proposals-browser.mjs`。

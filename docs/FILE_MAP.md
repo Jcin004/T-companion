@@ -303,3 +303,11 @@
 - `app.js`：聊天导航和编排入口，连接上述模块；移除重复模型表单保存处理。
 - `tests/chat-settings-browser.mjs`：两个角色的实际上下文范围、直接输入、保存/刷新、返回层级与未保存表单保留。
 - `docs/SETTINGS_FINISHING.md`：这轮优化范围和后续维护问题。
+
+## AI 关联候选
+
+- `frontend/memory-link-proposals.js`：选材上限、逐字依据、人物/版本校验与只读候选状态。
+- `frontend/memory-link-proposal-service.js`：模型候选编排、去重、确认/拒绝，复用原事务和记忆连接。
+- `frontend/memory-link-proposals-ui.js`：显式勾选、候选展示、调整确认和已处理记录；不直接读取业务文档。
+- `tests/memory-link-proposals.test.mjs`、`tests/memory-link-proposals-browser.mjs`、`tests/memory-link-proposals-android.mjs`：状态隔离、证据、失败原子性、实际界面/模拟请求和原生 SQLite 验收。
+- `docs/MEMORY_LINK_PROPOSALS.md`：当前契约、复用核对及范围。
