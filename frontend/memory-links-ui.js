@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {linkTypes} from './memory-links.js';
+import {mountMemoryLinkProposals} from './memory-link-proposals-ui.js';
 
-export function mountMemoryLinks({api,openSource,toast,report}){
+export function mountMemoryLinks({api,openSource,toast,report,cancel}){
+  const proposals=mountMemoryLinkProposals({api,openSource,toast,report,cancel,changed:async(ref,owner)=>{if(dialog.open)await open(ref,owner);}});
   const node=(tag,cls,text)=>{const n=document.createElement(tag);n.className=cls||'';if(text!==undefined)n.textContent=text;return n;};
   const dialog=node('dialog','memory-dialog');dialog.id='memory-links-dialog';
   const header=node('header'),heading=node('h2'),close=node('button','icon','×');
@@ -32,7 +34,7 @@ export function mountMemoryLinks({api,openSource,toast,report}){
     const [rows,all]=await Promise.all([api('/memory-links?owner='+encodeURIComponent(owner)+'&kind='+ref.kind+'&node='+encodeURIComponent(ref.id)),records(owner)]);
     const current=all.find(n=>refKey(n)===refKey(ref));if(!current)throw Error('记忆或标签已删除，请刷新');
     show(current.title+' · 关联');
-    content.append(node('p','subtle','箭头表示你确认的解读方向，不会自动生成反向关系，也不会让关联人物获得这份记忆。'),button('＋ 新建关联',()=>edit(ref,owner,all)));
+    content.append(node('p','subtle','箭头表示你确认的解读方向，不会自动生成反向关系，也不会让关联人物获得这份记忆。'),button('＋ 新建关联',()=>edit(ref,owner,all)),proposals.button(ref,owner));
     if(!rows.length)content.append(node('p','subtle','还没有关联。可连接另一条记忆，或将记忆作为核心标签的依据。'));
     for(const link of rows){
       const card=node('article','card memory-link');card.dataset.linkId=link.id;

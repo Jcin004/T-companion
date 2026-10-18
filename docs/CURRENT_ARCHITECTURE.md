@@ -166,3 +166,7 @@ React 可在界面状态复杂到需要组件体系时评估；现在首先修�
 模型连接、外观、聊天偏好分别由 model-profiles-ui、appearance-ui、chat-settings-ui 挂载；preferences-ui 保留兼容入口。对话框返回集中在 dialog-navigation，沿用系统 dialog 生命周期。旧 app.js 仍负责聊天导航与编排，不表示所有历史 UI 已独立。
 
 多人事件、群聊、社会关系和世界运行统一属于未来像素世界阶段，不在当前个人记忆阶段提前开发。个人身份、记忆和模型连接仍有各自的数据所有者；世界读取这些接口，不复制或接管它们。生活状态、欲望和自主唤醒仍在像素世界之后。
+
+## 0.9.0 记忆关联候选
+
+MemoryLinkProposalService 复用 MemoryModule 的模型生成/取消与事务接口，纯候选规则放在 memory-link-proposals，界面独立于已复核关系编辑。memory.link_proposals 不属于召回输入；人工确认事务才创建 memory.links，并保留候选原理由、引文和当时人工修改结果。旧备份补空数组，原文/身份/凭据不变；共同后端不提供本次功能。候选材料仅来自显式勾选的同人物记忆及人工标签，源消息与名册证据分别核对，不扩展知情范围。详见 MEMORY_LINK_PROPOSALS.md。

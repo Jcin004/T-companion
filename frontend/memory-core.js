@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {validateLinks} from './memory-links.js';
+import {validateProposals} from './memory-link-proposals.js';
 import {createRecallPlan} from './memory-recall.js';
 import {dayKey,sourceMessages,validateEvidence} from './memory-evidence.js';
 export {dayKey,sourceMessages,validateEvidence,rosterSource} from './memory-evidence.js';
@@ -11,6 +12,7 @@ export function ensureMemory(data){
  if(!data.memory)data.memory={version:1,events:[],summaries:[],anchors:[],settings:{...memoryDefaults},watermarks:{}};
  const m=data.memory;
  if(m.links===undefined)m.links=[];
+ if(m.link_proposals===undefined)m.link_proposals=[];
  const nodes=[...(Array.isArray(m.events)?m.events:[]),...(Array.isArray(m.anchors)?m.anchors:[])];
  for(const node of nodes)if(node&&typeof node==='object'&&node.revision===undefined)node.revision=0;
  return m;
@@ -43,6 +45,7 @@ export function validateMemory(data){
  for(const a of m.anchors){if(typeof a.id!=='string'||ids.has(a.id))throw Error('认同标识错误');ids.add(a.id);if(!owners.has(a.owner_id)||typeof a.id!=='string'||typeof a.label!=='string'||!a.label||a.label.length>40||typeof a.interpretation!=='string'||a.interpretation.length>2000||typeof a.quote!=='string'||!a.quote||a.quote.length>2000||typeof a.roster_snapshot!=='string'||!a.roster_snapshot.includes(a.quote)||!Array.isArray(a.versions)||a.versions.length>10)throw Error('自我认同来源格式错误');}
  for(const node of [...m.events,...m.anchors])if(!Number.isSafeInteger(node.revision)||node.revision<0)throw Error('记忆或核心标签版本错误');
  validateLinks(data);
+ validateProposals(data);
  const s={...memoryDefaults,...m.settings};for(const [key,min,max] of [['recall_limit',1,12],['budget',500,12000],['extract_interval',4,200],['context_messages',0,4]])if(!Number.isInteger(s[key])||s[key]<min||s[key]>max)throw Error('记忆设置范围错误');for(const key of ['recall','auto_extract','use_links','use_anchors'])if(typeof s[key]!=='boolean')throw Error('记忆开关格式错误');if(typeof s.profile_id!=='string')throw Error('记忆连接格式错误');m.settings=s;
  return m;
 }

@@ -45,4 +45,5 @@ export function describeLink(data,link){
 
 export function removeNodeLinks(data,kind,id){
   data.memory.links=data.memory.links.filter(l=>!((l.from.kind===kind&&l.from.id===id)||(l.to.kind===kind&&l.to.id===id)));
+  data.memory.link_proposals=(data.memory.link_proposals||[]).filter(p=>!((p.from.kind===kind&&p.from.id===id)||(p.to.kind===kind&&p.to.id===id)));
 }

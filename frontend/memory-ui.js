@@ -18,7 +18,7 @@ export function installMemoryShell(){
  }
 }
 export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toast,report}){
- const links=mountMemoryLinks({api,openSource,toast,report});
+ const links=mountMemoryLinks({api,openSource,toast,report,cancel:async()=>{const service=await localReady;if(service.auxTask)service.cancel();}});
  let busy=false;
  const body=id=>el(id).querySelector('.memory-dialog-body');
  const run=fn=>async e=>{e?.preventDefault();if(busy){toast('请等待当前记忆操作结束');return;}busy=true;document.querySelectorAll('.memory-status').forEach(n=>n.textContent='处理中…');try{await fn(e);}catch(error){report(error);toast(error.message);document.querySelectorAll('.memory-status').forEach(n=>n.textContent=error.message);}finally{busy=false;document.querySelectorAll('.memory-status').forEach(n=>{if(n.textContent==='处理中…')n.textContent='';});}};
