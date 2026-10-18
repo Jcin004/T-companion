@@ -52,10 +52,21 @@ try {
 } catch(error) {console.error('Android acceptance failed:',error.message);throw error;} finally {
  try {
   if(original){
+    // Reload first so the UI has no current conversation. Otherwise its pagehide
+    // draft save can write its stale document after a separate restore service.
+    await evaluate("window.__cleanupReload=true");await cdp('Page.reload');
+    for(let n=0;n<100;n++){
+      if(await evaluate("!window.__cleanupReload && document.getElementById('status')?.textContent==='记录保存在本机'"))break;
+      await new Promise(r=>setTimeout(r,50));
+    }
     await evaluate(`(async()=>{const {createLocalService}=await import('/assets/local-service.js');const s=await createLocalService(Capacitor.Plugins.TLocal);await s.api('/backup/restore','POST',${JSON.stringify(original)});})()`);
     const restored=await evaluate("(async()=>{const {createLocalService}=await import('/assets/local-service.js');return (await createLocalService(Capacitor.Plugins.TLocal)).api('/backup');})()");
     assert.deepEqual(restored,validateBackup(original));console.log('PASS: isolated emulator original document restored with existing backup normalization');
-    await cdp('Page.reload');
+    await evaluate("window.__verifyRestore=true");await cdp('Page.reload');
+    for(let n=0;n<100;n++){if(await evaluate("!window.__verifyRestore && document.getElementById('status')?.textContent==='记录保存在本机'"))break;await new Promise(r=>setTimeout(r,50));}
+    const afterReload=await evaluate("(async()=>{const {createLocalService}=await import('/assets/local-service.js');return (await createLocalService(Capacitor.Plugins.TLocal)).api('/backup');})()");
+    assert.deepEqual(afterReload,validateBackup(original));
+    console.log('PASS: restored baseline also survives pagehide/reload');
   }
  } finally {ws.close();}
 }
