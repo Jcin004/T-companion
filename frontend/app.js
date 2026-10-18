@@ -5,6 +5,8 @@ import {createLocalService} from './local-service.js';
 import {copyText,mountTextEditing} from './text-editing.js';
 import {replyParts,normalizeChatStyle} from './chat-style.js';
 import {mountPreferences,applyAppearance} from './preferences-ui.js';
+import {mountChatSettings} from './chat-settings-ui.js';
+import {mountDialogNavigation} from './dialog-navigation.js';
 import {mountAppUpdate} from './app-update.js';
 import {DiagnosticStore,diagnosticPersistence,mountDiagnostics} from './diagnostics.js';
 
@@ -70,7 +72,9 @@ function avatar(c, user = false) {
   if (c?.avatar && !user) { const img = node('img'); img.src = c.avatar; img.alt = c.name; a.replaceChildren(img); }
   return a;
 }
+const dialogs=mountDialogNavigation({canReturn:()=>activeApp==='chat'&&chatOpen});
 function app(name) {
+  dialogs.dismissAll();
   if(name==='memory'||name==='self')memoryUI?.refresh(name);
   saveDraft();activeApp=name;document.querySelector('.phone').classList.toggle('on-desktop',name==='home');
   for (const page of document.querySelectorAll('.screen')) page.hidden = page.id !== name;
@@ -191,7 +195,7 @@ async function jump(id) {
   const page = await api(`/contacts/${sid}/messages?anchor=${id}`);
   if (epoch!==version) return;
   items=page.items;hasBefore=page.has_before;hasAfter=page.has_after;renderMessages();
-  el('history-dialog').close(); el('details-dialog').close();
+  dialogs.dismissAll();
   el('messages').querySelector(`[data-id="${Number(id)}"]`)?.scrollIntoView({block:'center'});
 }
 function requestId() { return crypto.randomUUID?.() || 'turn_'+Date.now()+'_'+Math.random().toString(36).slice(2); }
@@ -247,7 +251,7 @@ async function sendMessage(content, rid = requestId()) {
 }
 function editCharacter(c) {
   avatarData=c?.avatar||'';el('character-id').value=c?.id||'';el('character-name').value=c?.name||'';el('character-identity').value=c?.identity||'';el('character-style').value=c?.style||'';el('character-avatar').value='';
-  el('character-dialog-title').textContent=c?'编辑角色':'新建角色';el('avatar-preview').replaceChildren(avatar(c));el('character-dialog').showModal();
+  el('character-dialog-title').textContent=c?'编辑角色':'新建角色';el('avatar-preview').replaceChildren(avatar(c));if(el('details-dialog').open)dialogs.openChild('character-dialog','details-dialog');else el('character-dialog').showModal();
 }
 function voiceOptions(select, value, inherit=false) {
   select.replaceChildren(new Option(inherit?'使用全局声音':'设备默认声音',''));
@@ -261,7 +265,7 @@ function speak(text, voice) {
   speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang='zh-CN';utterance.voice=speechSynthesis.getVoices().find(v=>v.voiceURI===voice)||null;speechSynthesis.speak(utterance);
 }
 function showPreferences() {
-  el('history-limit').value=prefs.history_limit??30;
+  chatSettings.refresh();
   el('backend').value=backend;el('token').value=token;el('base-url').value=prefs.base_url||'https://api.openai.com/v1';el('model').value=prefs.model||'';el('api-key').value='';el('data-mode').value=mode;el('protocol').value=prefs.protocol||'openai-chat';el('key-state').textContent=(prefs.has_api_key?'密钥已保存。':'尚未配置密钥。')+(mode==='remote'?'密钥由后端保存。':native?'Android 使用 Keystore 加密保存；不会回显完整密钥。':'浏览器密钥保存在当前站点 localStorage，同源脚本可读取，保护弱于 Android Keystore。');
   el('theme').value=prefs.theme||'light';el('font-size').value=prefs.font_size||16;el('timezone').value=prefs.timezone||'Asia/Shanghai';voiceOptions(el('voice'),prefs.voice);
   applyAppearance(prefs);
@@ -307,12 +311,8 @@ el('latest').onclick=guard(loadLatest);
 el('character-avatar').onchange=guard(async()=>{const file=el('character-avatar').files[0];if(!file)return;if(file.size>400000)throw Error('头像不能超过 400 KB');avatarData=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});el('avatar-preview').replaceChildren(avatar({name:el('character-name').value,avatar:avatarData}));});
 el('clear-avatar').onclick=()=>{avatarData='';el('character-avatar').value='';el('avatar-preview').replaceChildren();};
 el('character-form').onsubmit=guard(async e=>{e.preventDefault();const id=el('character-id').value;await api('/characters'+(id?'/'+id:''),id?'PUT':'POST',{name:el('character-name').value,avatar:avatarData,identity:el('character-identity').value,style:el('character-style').value});characters=await api('/characters');renderCharacters();renderContacts();if(current)renderHeader();el('character-dialog').close();toast('角色已保存');});
-el('details').onclick=()=>{if(!current)return;el('note').value=current.note;el('background').value=current.background;voiceOptions(el('contact-voice'),current.voice,true);el('chat-history-mode').value=current.history_limit==null?'inherit':'custom';el('chat-history-limit').value=current.history_limit??prefs.history_limit??30;el('chat-history-limit').disabled=current.history_limit==null;el('details-dialog').showModal();};
-el('edit-current').onclick=()=>{el('details-dialog').close();editCharacter(character());};
-el('chat-history-mode').onchange=()=>{el('chat-history-limit').disabled=el('chat-history-mode').value==='inherit';};
-el('context-form').onsubmit=guard(async e=>{e.preventDefault();prefs=await api('/settings','PATCH',{history_limit:Number(el('history-limit').value)});showPreferences();toast('默认历史条数已保存，下次发送生效');});
-el('details-form').onsubmit=guard(async e=>{e.preventDefault();current=await api('/contacts/'+current.id,'PATCH',{note:el('note').value,background:el('background').value,voice:el('contact-voice').value,history_limit:el('chat-history-mode').value==='inherit'?null:Number(el('chat-history-limit').value)});renderHeader();await refreshContacts();el('details-dialog').close();});
-el('history-open').onclick=guard(async()=>{el('details-dialog').close();el('search-results').replaceChildren();el('more-search').hidden=true;el('month').value=todayMonth();el('history-dialog').showModal();await calendar();});
+el('edit-current').onclick=()=>{editCharacter(character());};
+el('history-open').onclick=guard(async()=>{dialogs.openChild('history-dialog','details-dialog');el('search-results').replaceChildren();el('more-search').hidden=true;el('month').value=todayMonth();await calendar();});
 el('month').onchange=guard(calendar);el('search-form').onsubmit=guard(e=>{e.preventDefault();return search();});el('more-search').onclick=guard(()=>search(true));
 el('connection-form').onsubmit=guard(async e=>{
   e.preventDefault();if(busy)throw Error('请等待当前回复完成');const desired=el('data-mode').value;
@@ -325,7 +325,6 @@ el('connection-form').onsubmit=guard(async e=>{
   const previous=mode;saveDraft();mode=desired;current=null;chatOpen=false;epoch++;
   try{await api('/health');await initialize();localStorage.setItem('t.data-mode',mode);el('connection-result').textContent=mode==='local'?'已切换本机；记录未上传':'已连接后端；本机记录保持独立';}catch(e){mode=previous;await initialize();throw e;}
 });
-el('model-form').onsubmit=guard(async e=>{e.preventDefault();const body={base_url:el('base-url').value,model:el('model').value,...(mode==='local'?{protocol:el('protocol').value}:{})};if(el('api-key').value)body.api_key=el('api-key').value;prefs=await api('/settings','PATCH',body);showPreferences();el('model-result').textContent='已保存默认模型连接';});
 el('test-model').onclick=guard(async()=>{el('model-result').textContent='正在测试（会产生一次极短模型请求）…';try{await api('/settings/test','POST');el('model-result').textContent='连接成功，模型已响应';}catch(e){el('model-result').textContent=e.message;}});
 el('sound-form').onsubmit=guard(async e=>{e.preventDefault();const body={timezone:el('timezone').value,voice:el('voice').value};prefs=await api('/settings','PATCH',body);showPreferences();if(current){renderHeader();renderMessages();}toast('声音与时间已保存');});
 el('preview-voice').onclick=()=>speak('你好，今天想和我聊些什么？',el('voice').value);
@@ -342,9 +341,9 @@ window.addEventListener('pagehide',saveDraft);
 setInterval(async()=>{if(mode==='local'||!backend||busy||document.hidden)return;try{await refreshContacts();const remote=contacts.find(c=>c.id===current?.id);const lastId=last(items.filter(m=>m.role==='assistant'))?.id||0;if(current&&(items.some(m=>m.state==='generating')||(remote?.last_assistant_id||0)>lastId)){const box=el('messages');if(!hasAfter&&box.scrollHeight-box.scrollTop-box.clientHeight<180)await loadLatest();else el('latest').hidden=false;}}catch(e){status('连接中断，正在等待恢复');}},5000);
 window.addEventListener('focus',guard(async()=>{if(mode==='remote'&&backend&&!busy){await refreshContacts();const box=el('messages');if(current&&!hasAfter&&box.scrollHeight-box.scrollTop-box.clientHeight<180)await loadLatest();}}));
 el('backend').value=backend;el('token').value=token;
-const legal=node('section','card');legal.append(node('h2','','关于与更新'),node('p','','T- 0.8.0 试用版 · versionCode 11 · io.jcin.tcompanion · AGPL-3.0-only。软件按现状提供，不附带任何保证。可按许可证修改与再分发应用代码；导入的个人数据保留原有权利。'));
+const legal=node('section','card');legal.append(node('h2','','关于与更新'),node('p','','T- 0.8.1 试用版 · versionCode 12 · io.jcin.tcompanion · AGPL-3.0-only。软件按现状提供，不附带任何保证。可按许可证修改与再分发应用代码；导入的个人数据保留原有权利。'));
 const legalLink=node('a','','许可、署名与复用记录 →');legalLink.href=new URL('legal.html',import.meta.url).href;
-const sourceButton=node('button','','对应源码');sourceButton.onclick=guard(async()=>{if(mode==='local'){toast('对应源码在试用分发包的 T-companion-0.8.0-source.zip 中，包含构建说明与许可证。');return;}const response=await fetch(backend+'/api/v1/source',{headers:headers()});if(!response.ok)throw Error('源码导出失败，请检查后端连接和访问口令');await exportBlob(await response.blob(),'t-chat-source.zip');});
+const sourceButton=node('button','','对应源码');sourceButton.onclick=guard(async()=>{if(mode==='local'){toast('对应源码在试用分发包的 T-companion-0.8.1-source.zip 中，包含构建说明与许可证。');return;}const response=await fetch(backend+'/api/v1/source',{headers:headers()});if(!response.ok)throw Error('源码导出失败，请检查后端连接和访问口令');await exportBlob(await response.blob(),'t-chat-source.zip');});
 legal.append(legalLink,node('p','','默认渠道：公开 GitHub 试用版；可在下方设置自建更新清单。覆盖安装保留角色、聊天和设置。'),sourceButton);document.querySelector('.settings-grid').append(legal);
 mountAppUpdate(legal,native?window.Capacitor?.Plugins?.TUpdate:null,()=>busy,(label,data)=>diagnostics.record('update',label,data));
 mountDiagnostics({store:diagnostics,exportFile:exportBlob,report:e=>{reportError(e,'日志导出失败');toast(e.message);},preview:async()=>{
@@ -352,12 +351,19 @@ mountDiagnostics({store:diagnostics,exportFile:exportBlob,report:e=>{reportError
   if(!current)throw Error('请先打开一个聊天，再回到这里查看预览。');
   return api(`/contacts/${current.id}/context-preview`,'POST',{message:el('input').value});
 }});
-diagnosticsReady.then(()=>diagnostics.record('system','应用启动',{version:'0.8.0-trial',platform:native?'android':'browser'}));
+diagnosticsReady.then(()=>diagnostics.record('system','应用启动',{version:'0.8.1-trial',platform:native?'android':'browser'}));
 window.tGoBack=()=>{const dialog=last([...document.querySelectorAll('dialog[open]')]);if(dialog){dialog.close();return true;}const phone=document.querySelector('.phone');if(phone.classList.contains('in-chat')){chatOpen=false;app('chat');return true;}if(activeApp!=='home'){app('home');return true;}return false;};
-const preferences=mountPreferences({api,localReady,isLocal:()=>mode==='local',isBusy:()=>busy,getCurrent:()=>current,setCurrent:c=>{current=c;},updated:async()=>{prefs=await api('/settings');showPreferences();await preferences.refresh(prefs);await refreshContacts();if(current&&!busy){renderHeader();renderMessages();}},toast});
+async function refreshSettings(){
+ prefs=await api('/settings');showPreferences();await preferences.refresh(prefs);
+ await refreshContacts();if(current&&!busy){renderHeader();renderMessages();}
+}
+const chatSettings=mountChatSettings({api,isLocal:()=>mode==='local',isBusy:()=>busy,
+ getCurrent:()=>current,setCurrent:c=>{current=c;},getPrefs:()=>prefs,setPrefs:p=>{prefs=p;},
+ voiceOptions,updated:refreshSettings,toast,dialogs});
+const preferences=mountPreferences({api,localReady,isLocal:()=>mode==='local',isBusy:()=>busy,updated:refreshSettings,toast});
 memoryUI=mountMemoryUI({api,localReady,isLocal:()=>mode==='local',getCurrent:()=>current,toast,report:e=>reportError(e,'记忆操作失败'),openSource:async (id,owner)=>{
  const {contact}=await api(`/memory-sources/${id}/location?owner=${encodeURIComponent(owner)}`);
- for(const d of document.querySelectorAll('dialog[open]'))d.close();
+ dialogs.dismissAll();
  await openContact(contact);await jump(id);
 }});
 if(device)device.voices().then(data=>{nativeVoices=data.voices;voiceOptions(el('voice'),prefs.voice);}).catch(()=>{});

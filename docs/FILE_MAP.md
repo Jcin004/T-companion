@@ -271,12 +271,12 @@
 ## 聊天文字操作与动作模板
 
 - `frontend/text-editing.js`：消息及输入框的桌面右键菜单、剪贴板兼容处理；Android 长按仍交给系统。
-- `frontend/chat-style.js`：每聊天动作模板的校验、占位符替换及表达策略；`preferences-ui.js` 通过联系人接口保存。
+- `frontend/chat-style.js`：每聊天动作模板的校验、占位符替换及表达策略；`chat-settings-ui.js` 通过联系人接口保存。
 - `tests/chat-editing-browser.mjs`：模拟模型下验证菜单、模板保存及刷新后的实际请求。
 
 ## API 悬浮切换
 
-- `frontend/api-floating-switcher.js`：App 内悬浮按钮、拖动和位置恢复，不拥有连接或密钥；选择操作复用 `preferences-ui.js` 的模型选择弹窗。
+- `frontend/api-floating-switcher.js`：App 内悬浮按钮、拖动和位置恢复，不拥有连接或密钥；选择操作复用 `model-profiles-ui.js` 的模型选择弹窗。
 - `tests/api-floating-browser.mjs`：分组切换、实际请求连接、记忆连接隔离、拖动/刷新/尺寸变化和键盘操作。
 
 ## 可配置更新渠道
@@ -292,3 +292,14 @@
 - `frontend/memory-recall.js`：人物隔离的只读召回计划、单跳关联、人工标签、预算与材料格式。
 - `tests/memory-recall.test.mjs`、`tests/memory-recall-browser.mjs`、`tests/memory-recall-android.mjs`：领域、实际界面/请求和隔离模拟器原生 SQLite 验收。
 - `docs/MEMORY_RECALL.md`：数据流、控制项、平台差异和范围。
+
+## 0.8.1 设置职责
+
+- `preferences-ui.js`：兼容挂载入口，组合外观与模型设置，不实现各自业务。
+- `appearance-ui.js`：外观表单、图片选择和展示；通过现有本机设置接口保存。
+- `model-profiles-ui.js`：模型预设、分组、选择弹窗及悬浮球接线；密钥仍交原凭据适配。
+- `chat-settings-ui.js`：全局/单聊天上下文、聊天详情、表达开关和动作模板；复用 context-policy/chat-style 规则。
+- `dialog-navigation.js`：原生对话框子页返回、退出时清理父页关系；不保存人物数据。
+- `app.js`：聊天导航和编排入口，连接上述模块；移除重复模型表单保存处理。
+- `tests/chat-settings-browser.mjs`：两个角色的实际上下文范围、直接输入、保存/刷新、返回层级与未保存表单保留。
+- `docs/SETTINGS_FINISHING.md`：这轮优化范围和后续维护问题。
