@@ -12,7 +12,7 @@
 | 文字操作 | 桌面消息右键复制/选择；输入框剪切/粘贴/全选；剪贴板失败明确提示；Android 长按由系统处理 | `tests/chat-editing-browser.mjs` |
 | 历史记录 | 游标加载、搜索、日历跳转、滚动位置；同时间戳稳定排序 | `tests/local-service.test.mjs`、`tests/desktop.mjs` |
 | 草稿与备份 | 草稿与回复交错不丢失；恢复先校验，失败保留原文档；普通备份不含密钥和日志 | `tests/local-transactions.test.mjs`、`tests/local-transactions-browser.mjs` |
-| 上下文条数 | 全局与单聊天可设 0–2000；继承设置；已完成消息才进入历史 | `tests/context-policy.test.mjs`、`tests/context-browser.mjs`、`backend/tests/test_context_limits.py` |
+| 上下文条数 | 全局与单聊天可设 0–2000；继承设置；可直接输入，输入自动切为此聊天独立设置；已完成消息才进入历史 | `tests/context-policy.test.mjs`、`tests/context-browser.mjs`、`backend/tests/test_context_limits.py` |
 | 来源记忆 | 逐字证据；人物隔离；参与关联不自动共享；停用/删除影响召回；保存失败不推进水位 | `tests/memory.test.mjs`、`tests/local-transactions.test.mjs` |
 | 记忆网召回 | 同人物近期线索与单跳关联；人工标签及来源；过期节点排除；条数/完整材料预算；预览和日志一致 | `tests/memory-recall.test.mjs`、`tests/memory-recall-browser.mjs` |
 | 记忆关联、标签依据 | 有向关系与人物隔离；端点变更提示复核；失败不泄漏；重分析保留已关联标签 | `tests/memory-links.test.mjs`、`tests/memory-links-browser.mjs` |
@@ -34,3 +34,5 @@
 5. 用户决定合并；不默认重写已推送历史、不自动合并主分支。
 
 Git 保存的是源码版本，可以查看或恢复旧代码。真实聊天、人物、记忆与密钥不提交 Git；升级前使用应用内备份保护个人数据。
+
+聊天详情子页（风格、历史、名册）返回时恢复上一级，保留详情表单草稿；跳转来源或返回桌面不重新弹出父页。回归入口：`tests/chat-settings-browser.mjs`。

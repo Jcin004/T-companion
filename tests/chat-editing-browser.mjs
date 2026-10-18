@@ -27,7 +27,7 @@ try {
   await page.locator('#allow-actions').check();assert.match(await page.locator('#action-prompt').inputValue(),/线上私聊/);
   const template='{{char}}向{{user}}发消息，动作倾向{{action_weight}}；用[动作:描写]表达自己这端的表情。';
   await page.locator('#action-prompt').fill(template);
-  await page.locator('#chat-style-form button.primary').click();await page.getByText('当前聊天风格已保存',{exact:true}).waitFor();
+  await page.locator('#chat-style-form button.primary').click();await page.getByText('当前聊天风格已保存',{exact:true}).waitFor();await page.locator('#details-dialog[open]').waitFor();await page.locator('#details-dialog [data-close]').click();
   await page.locator('#input').fill('你好');await page.locator('#send').click();
   await page.waitForFunction(()=>!document.querySelector('#send').disabled&&document.querySelectorAll('.reply-action').length===1);
   assert.match(prompts[0],/林向用户发消息，动作倾向40/);

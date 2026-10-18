@@ -8,6 +8,6 @@ if(!apk||!/^\d+$/.test(versionCode)||!versionName||!tag)throw Error('Usage: node
 const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Number(versionCode),versionName,
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['记忆召回结合近期用户线索、已复核关联和人工核心标签','保留原话与关系方向，限制一跳、人物范围、条数及材料预算','日志和上下文预览显示召回依据与未携带原因','保留 0.7.1 更新渠道设置、API 悬浮球与动作模板，原签名覆盖安装保留数据']};
+ releaseNotes:['全局默认与此人物聊天历史条数可直接输入；输入自动切为独立设置','聊天风格、历史与名册子页返回聊天详情，保留未保存的详情内容','设置界面按模型连接、外观和聊天偏好分离，保留原接口和数据','保留记忆网召回、API 悬浮球与更新渠道；原签名覆盖安装']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');
