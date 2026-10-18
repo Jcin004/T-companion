@@ -25,8 +25,9 @@ try {
   original=await evaluate(backupExpression);
   await writeFile('data/chat-settings-android-before.json',JSON.stringify(original));
   const contact=await evaluate(`(async()=>{const {createLocalService}=await import('/assets/local-service.js');const s=await createLocalService(Capacitor.Plugins.TLocal);await s.api('/settings','PATCH',{history_limit:37});const c=await s.api('/characters','POST',{name:'上下文原生验收人物',identity:'测试人物',style:'',avatar:''});return s.api('/contacts','POST',{character_id:c.id});})()`);
-  await cdp('Page.reload');
   const wait=async expression=>{for(let n=0;n<100;n++){if(await evaluate(expression))return;await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+expression);};
+  const reload=async()=>{await evaluate("window.__settingsReloadMarker=true");await cdp('Page.reload');await wait("!window.__settingsReloadMarker && document.getElementById('status')?.textContent==='记录保存在本机'");};
+  await reload();
   await wait("document.getElementById('status').textContent==='记录保存在本机'");
   await evaluate("document.querySelector('.app-grid [data-app=chat]').click();[...document.querySelectorAll('#contacts .contact')].find(e=>e.textContent.includes('上下文原生验收人物')).click();");
   await wait("document.querySelector('.phone').classList.contains('in-chat')");
@@ -41,14 +42,14 @@ try {
   await evaluate("document.querySelector('#details-form button').click()");
   await wait("!document.getElementById('details-dialog').open");
   const saved=await evaluate(backupExpression);assert.equal(saved.settings.history_limit,37);assert.equal(saved.sessions.find(c=>c.id===contact.id).history_limit,7);
-  await cdp('Page.reload');await wait("document.getElementById('status').textContent==='记录保存在本机'");
-  await evaluate("document.querySelector('.app-grid [data-app=chat]').click();[...document.querySelectorAll('#contacts .contact')].find(e=>e.textContent.includes('上下文原生验收人物')).click();");
+  await reload();
+  await evaluate("document.querySelector('.app-grid [data-app=chat]').click();[...document.querySelectorAll('#contacts .contact')].find(e=>e.textContent.includes('详情未保存')).click();");
   await wait("document.querySelector('.phone').classList.contains('in-chat')");await evaluate("document.getElementById('details').click()");
   assert.equal(await evaluate("document.getElementById('chat-history-limit').value"),'7');
   await evaluate("document.getElementById('chat-style-open').click();document.getElementById('action-prompt').value='线上动作 {{char}}';document.querySelector('#chat-style-form button.primary').click()");
   await wait("document.getElementById('details-dialog').open");
   console.log('PASS: Android 11 numeric input, independent range survives reload/native SQLite, actual system Back restores details and unsaved fields; style save returns to parent. No model calls.');
-} finally {
+} catch(error) {console.error('Android acceptance failed:',error.message);throw error;} finally {
  try {
   if(original){
     await evaluate(`(async()=>{const {createLocalService}=await import('/assets/local-service.js');const s=await createLocalService(Capacitor.Plugins.TLocal);await s.api('/backup/restore','POST',${JSON.stringify(original)});})()`);
