@@ -37,7 +37,13 @@ try{
   await page.locator('#memory-proposal-generate').click();
   await page.locator('[data-proposal-id]').waitFor();
  };
- await open();await generate();assert.equal(requests.length,1);assert.equal(requests[0].model,'memory-fixture');assert.ok(!requests[0].messages[1].content.includes('不应发送'));
+ await open();await page.locator('#memory-link-proposals-dialog[open]').waitFor();
+ await page.getByRole('button',{name:'选择材料并生成候选',exact:true}).waitFor();
+ assert.equal(await page.evaluate(()=>window.tGoBack()),true);
+ await page.locator('#memory-link-proposals-dialog').waitFor({state:'hidden',timeout:2000});
+ assert.equal(await page.locator('#memory-links-dialog').isVisible(),true);
+ await page.getByRole('button',{name:'AI 关联候选',exact:true}).click();
+ await generate();assert.equal(requests.length,1);assert.equal(requests[0].model,'memory-fixture');assert.ok(!requests[0].messages[1].content.includes('不应发送'));
  assert.equal(await page.evaluate(async()=>{const {createLocalService}=await import('/assets/local-service.js');return (await createLocalService()).data.memory.links.length;}),0);
  const card=page.locator('[data-proposal-id]');assert.equal(await card.locator('.memory-source').count(),2);
  await card.locator('.proposal-type').selectOption('causes');await card.locator('.proposal-note').fill('人工改为因果解读，仍可复核');await card.locator('.proposal-accept').click();

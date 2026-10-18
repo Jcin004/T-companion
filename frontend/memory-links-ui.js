@@ -3,13 +3,15 @@ import {linkTypes} from './memory-links.js';
 import {mountMemoryLinkProposals} from './memory-link-proposals-ui.js';
 
 export function mountMemoryLinks({api,openSource,toast,report,cancel}){
-  const proposals=mountMemoryLinkProposals({api,openSource,toast,report,cancel,changed:async(ref,owner)=>{if(dialog.open)await open(ref,owner);}});
   const node=(tag,cls,text)=>{const n=document.createElement(tag);n.className=cls||'';if(text!==undefined)n.textContent=text;return n;};
   const dialog=node('dialog','memory-dialog');dialog.id='memory-links-dialog';
   const header=node('header'),heading=node('h2'),close=node('button','icon','×');
   close.type='button';close.setAttribute('aria-label','关闭');close.onclick=()=>dialog.close();header.append(heading,close);
   const content=node('div','memory-dialog-body'),status=node('p','memory-status');status.setAttribute('role','status');
   dialog.append(header,content,status);document.body.append(dialog);
+  // The existing Android Back adapter closes the last open dialog in DOM order.
+  // Mount the child after this parent so both native Back and close reach it first.
+  const proposals=mountMemoryLinkProposals({api,openSource,toast,report,cancel,changed:async(ref,owner)=>{if(dialog.open)await open(ref,owner);}});
   let busy=false;
   const run=fn=>async()=>{
     if(busy)return;busy=true;status.textContent='处理中…';

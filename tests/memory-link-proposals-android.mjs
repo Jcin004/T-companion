@@ -49,6 +49,10 @@ try {
   await wait('!![...document.querySelectorAll("#memory-links-dialog button")].find(b=>b.textContent==="AI 关联候选")');
   await evaluate('[...document.querySelectorAll("#memory-links-dialog button")].find(b=>b.textContent==="AI 关联候选").click()');
   await wait("!!document.querySelector('.proposal-accept')");
+  adb('shell','input','keyevent','4');
+  await wait("!document.getElementById('memory-link-proposals-dialog').open && document.getElementById('memory-links-dialog').open");
+  await evaluate('[...document.querySelectorAll("#memory-links-dialog button")].find(b=>b.textContent==="AI 关联候选").click()');
+  await wait("!!document.querySelector('.proposal-accept') && document.getElementById('memory-link-proposals-dialog').open");
   await evaluate("document.querySelector('.proposal-type').value='causes';document.querySelector('.proposal-note').value='原生确认说明';document.querySelector('.proposal-accept').click()");
   await wait("document.getElementById('toast').textContent==='已确认；关联按当前召回设置生效'");
   const saved=await evaluate(backupExpression),p=saved.memory.link_proposals.find(p=>p.id===result.pending.id),link=saved.memory.links.find(l=>l.id===p.link_id);
