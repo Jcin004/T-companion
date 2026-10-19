@@ -1,0 +1,24 @@
+{
+  "latent": {
+    "repository": "oliscatt/Latent-memory",
+    "commit": "e9e465de45575f425e1a4134d3b6ad15f31f0b76",
+    "files": {
+      "LICENSE": "8f9069e3b1c8d163a0677f1a467b608c32543fa3da11cd5d29812f25e03354ac",
+      "src/memory_retrieval.py": "84af9b72b109055555af82dc63208d9389bb637da648ecd4cd2e9cac0d62b638",
+      "src/passive_recall.py": "243333a4f23fdae9e70d680af395e0d901b57dc11827fca9669ced4c859890af",
+      "src/mcp_server.py": "2f86b389d11bc2266310f33c2ec7f5d45b429f51e82ee057fa9457af4068955b"
+    },
+    "python_source_tree_sha256": "e80491143e8df143f58feac61b61716b7dd40fd7502e21c54920775d8a5062a3"
+  },
+  "ombre": {
+    "repository": "Jcin004/Ombre-Brain",
+    "commit": "115d831d979bf67efc7150f976e2cb34c333c935",
+    "files": {
+      "LICENSE": "2c1ba2fc863528b42e0d904205792f538ecf01c7555c0a7ed2080897362b41b6",
+      "src/bucket_manager.py": "232554acf2345fd8a35f240a45ae36467d57fbe199e6556a9bae3bd8477c6d45",
+      "src/utils.py": "79d55ee108fb7f2bf05ab2317d47a00cc09369ac149f6bc90c223839c1087efa",
+      "src/bm25_index.py": "bc307cedba979163e9aba0aab9ea0d608fd547d1271408f1e32814f633b78149"
+    },
+    "python_source_tree_sha256": "3db5f7ed6552c7c4c92f03008b9af35ce53d0ce02bd8b19246b83def9cd6f1b3"
+  }
+}

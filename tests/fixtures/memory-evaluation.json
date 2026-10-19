@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "description": "Synthetic experiences only. Knowledge isolation is supplied by separate stores, not inferred from mentions.",
+  "records": [
+    {"id":"orchid","owner":"lin","scope":"daily","text":"青瓷兰花的花盆裂了，我答应明天去花店买一个新盆。","query":"青瓷兰花","state":"尚未买盆"},
+    {"id":"parcel","owner":"lin","scope":"daily","text":"银杏包裹已经送到北门，我已经取回包裹。","query":"银杏包裹","state":"已经取回"},
+    {"id":"secret","owner":"yu","scope":"daily","text":"紫铜钥匙藏在雨自己的抽屉里，林没有在场，也没有听说。","query":"紫铜钥匙","state":"尚未告诉林"},
+    {"id":"dragon","owner":"lin","scope":"story","text":"在虚构的浮岛冒险中，我拿到了琥珀龙蛋。","query":"琥珀龙蛋","state":"仅属于浮岛剧情"}
+  ],
+  "queries": [
+    {"id":"exact","owner":"lin","scope":"daily","text":"青瓷兰花","expected":["orchid"]},
+    {"id":"completed","owner":"lin","scope":"daily","text":"银杏包裹","expected":["parcel"]},
+    {"id":"owner-isolation","owner":"lin","scope":"daily","text":"紫铜钥匙","expected":[]},
+    {"id":"owner-own-knowledge","owner":"yu","scope":"daily","text":"紫铜钥匙","expected":["secret"]},
+    {"id":"story-isolation","owner":"lin","scope":"daily","text":"琥珀龙蛋","expected":[]},
+    {"id":"story-own-knowledge","owner":"lin","scope":"story","text":"琥珀龙蛋","expected":["dragon"]},
+    {"id":"absent","owner":"lin","scope":"daily","text":"量子潜艇","expected":[]},
+    {"id":"paraphrase-probe","owner":"lin","scope":"daily","text":"植物容器坏了之后有什么待办？","expected":["orchid"],"probe":true}
+  ]
+}
