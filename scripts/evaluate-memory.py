@@ -20,7 +20,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/memory-evaluation.json"
-MANIFEST = ROOT / "tests/fixtures/memory-evaluation-sources.json"
+MANIFEST = ROOT / "config/memory-sources.json"
 NETWORK_ATTEMPTS = 0
 
 

@@ -4,6 +4,12 @@ Checked on 2026-10-16. T- application code in this distribution is licensed unde
 AGPL-3.0-only; third-party components retain their own licenses. User-created
 identities, avatars, messages and credentials are data, not licensed by this notice.
 
+## Optional Ombre-Brain runtime integration (2026-10-20)
+
+- External source: `Jcin004/Ombre-Brain` at `115d831d979bf67efc7150f976e2cb34c333c935`, MIT. Source and license fingerprints are in `config/memory-sources.json`; the repository's `AUTHORS.md` retains contributor attribution.
+- `backend/ob_gateway.py` calls the unmodified external `BucketManager` and `SurfacePolicyVM` in a separate optional process. No OB implementation, artwork, persona, vault or service credential is bundled here. `frontend/external-memory*.js`, the gateway and transport adapter are original integration code.
+- OB remains externally installed with its LICENSE. No copied vendor files or modifications to list. The existing phone-local implementation stays available. Scope, exact behavior and acceptance evidence: `docs/OB_MEMORY_GATEWAY.md`.
+
 ## AI Virtual Phone / float: reused SSE parser
 
 - Fork: https://github.com/Jcin004/float

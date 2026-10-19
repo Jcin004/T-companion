@@ -2,6 +2,7 @@
 import {validateLinks} from './memory-links.js';
 import {validateProposals} from './memory-link-proposals.js';
 import {createRecallPlan} from './memory-recall.js';
+import {externalConfig} from './external-memory.js';
 import {dayKey,sourceMessages,validateEvidence} from './memory-evidence.js';
 export {dayKey,sourceMessages,validateEvidence,rosterSource} from './memory-evidence.js';
 // Original, platform-independent evidence and recall rules. Raw chat remains authoritative evidence.
@@ -11,6 +12,7 @@ export const newId=()=> 'mem_'+Date.now().toString(36)+'_'+Math.random().toStrin
 export function ensureMemory(data){
  if(!data.memory)data.memory={version:1,events:[],summaries:[],anchors:[],settings:{...memoryDefaults},watermarks:{}};
  const m=data.memory;
+ if(m.external===undefined)m.external=externalConfig();
  if(m.links===undefined)m.links=[];
  if(m.link_proposals===undefined)m.link_proposals=[];
  const nodes=[...(Array.isArray(m.events)?m.events:[]),...(Array.isArray(m.anchors)?m.anchors:[])];
@@ -34,6 +36,7 @@ export function recallPlan(data,owner,query,options={}){
 export function recall(data,owner,query,options){return recallPlan(data,owner,query,options).records;}
 export {formatMemoryContext as memoryContext} from './memory-recall.js';
 export function validateMemory(data){
+ const external=externalConfig(data.memory?.external);
  const m=ensureMemory(data);if(m.version!==1||!Array.isArray(m.events)||!Array.isArray(m.summaries)||!Array.isArray(m.anchors)||m.events.length>5000||m.summaries.length>5000||m.anchors.length>2000)throw Error('记忆备份格式或容量错误');
  if(!m.watermarks||typeof m.watermarks!=='object'||Array.isArray(m.watermarks)||Object.values(m.watermarks).some(v=>!Number.isSafeInteger(v)||v<0))throw Error('整理进度格式错误');
  const owners=new Set(data.characters.map(c=>c.id)),ids=new Set(),sourceCache=new Map(),dayCache=new Map();
@@ -47,5 +50,5 @@ export function validateMemory(data){
  validateLinks(data);
  validateProposals(data);
  const s={...memoryDefaults,...m.settings};for(const [key,min,max] of [['recall_limit',1,12],['budget',500,12000],['extract_interval',4,200],['context_messages',0,4]])if(!Number.isInteger(s[key])||s[key]<min||s[key]>max)throw Error('记忆设置范围错误');for(const key of ['recall','auto_extract','use_links','use_anchors'])if(typeof s[key]!=='boolean')throw Error('记忆开关格式错误');if(typeof s.profile_id!=='string')throw Error('记忆连接格式错误');m.settings=s;
- return m;
+ m.external=external;return m;
 }

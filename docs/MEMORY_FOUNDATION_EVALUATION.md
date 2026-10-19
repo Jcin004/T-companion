@@ -35,7 +35,7 @@
 | [Latent-memory](https://github.com/oliscatt/Latent-memory/tree/e9e465de45575f425e1a4134d3b6ad15f31f0b76) | `e9e465de45575f425e1a4134d3b6ad15f31f0b76` | 原版文件写入、语料重读、只读候选、撤回；自动浮现自检和事实模式测试 | 重点验证逐轮准入、去重、冷却与临时注入；尚未部署或接入 |
 | [SullyOS](https://github.com/qegj567-cloud/SullyOS/tree/9f41eddaa983c70f8dd41691a414e753357492cc) | `9f41eddaa983c70f8dd41691a414e753357492cc` | 本轮固定来源与检查记忆文档；未运行其 App 或性能测试 | 应用内水位线、归档、向量召回的后续复用候选 |
 
-供应商源码保留在仓库外的临时研究目录，未复制进本项目，也未改动。入口文件和完整 Python 源码树的 SHA-256 在 `tests/fixtures/memory-evaluation-sources.json`，运行前核验。本项目新增的是原创的中立夹具、调用脚本和报告，不包含供应商实现或私人设定。Latent 的 PolyForm Internal Use 许可与 OB 的 MIT 不混合；当前按用户单人自用研究，不在公开源码中嵌入 Latent。
+供应商源码保留在仓库外的临时研究目录，未复制进本项目，也未改动。入口文件和完整 Python 源码树的 SHA-256 在 `config/memory-sources.json`，运行前核验。本项目新增的是原创的中立夹具、调用脚本和报告，不包含供应商实现或私人设定。Latent 的 PolyForm Internal Use 许可与 OB 的 MIT 不混合；当前按用户单人自用研究，不在公开源码中嵌入 Latent。
 
 ## 同一夹具的结果
 
@@ -74,7 +74,7 @@ node scripts/evaluate-local-memory.mjs
 python scripts/evaluate-memory.py --output artifacts/memory-evaluation-local.json
 ```
 
-候选评测：在独立虚拟环境安装 `scripts/requirements-memory-evaluation.txt`，分别获取上表固定提交的 GitHub 源码 ZIP 并解压，通过参数传入目录。本次指纹基于 ZIP 原始字节；Git 检出若转换了换行，核验会拒绝。上游不是本项目的运行依赖。
+候选评测：在独立虚拟环境安装 `backend/requirements-ob-core.txt`，分别获取上表固定提交的 GitHub 源码 ZIP 并解压，通过参数传入目录。本次指纹基于 ZIP 原始字节；Git 检出若转换了换行，核验会拒绝。上游不是手机本地模式的运行依赖。
 
 ```powershell
 python scripts/evaluate-memory.py --latent-source <Latent源码目录> --ombre-source <OB源码目录> --output artifacts/memory-evaluation.json
@@ -88,9 +88,9 @@ python scripts/evaluate-memory.py --latent-source <Latent源码目录> --ombre-s
 
 下一小阶段只做一个可回退的接入原型：
 
-- [ ] 检查 OB 的现有 HTTP/MCP 能力，接到现有请求组装前；外部配置默认关闭。
-- [ ] 角色与日常/剧情分区由宿主明确路由；请求不能自由选择别人的库。
-- [ ] 外部召回超时或失败显示准确状态；保留当前本地模式和取消能力，不重复注入同一来源。
+- [x] 检查 OB 的现有 HTTP/MCP 能力，完成默认关闭的只读网关与请求前接入；见 OB_MEMORY_GATEWAY.md。
+- [x] 网关固定人物＋分区到独立库，当前聊天从会话选择 daily；口令拥有者仍可查询其网关全部映射，不是多租户授权。
+- [x] 超时/失败回退本地、取消停止请求，按 OB ID 和完全相同的正文去重；跨库改写尚无同源映射。
 - [ ] 用一个真实本地嵌入模型补跑换说法、无答案及弱相关干扰集；小样本通过也不冒充成熟度证明。
 - [ ] 单独验证开场未完事项与逐轮相关回忆；不把 OB 的 SessionStart hook 宣称为逐轮 hook。
 - [ ] 在 Latent 正式 hook 下验证共同夹具、过期/重复记忆和临时注入；不把原始候选直接塞给模型。

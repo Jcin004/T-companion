@@ -216,7 +216,7 @@ async function sendMessage(content, rid = requestId()) {
   const deadline=abortAfter(190000);
   const accepted=()=>{pending.state='generating';for(const row of el('messages').querySelectorAll('.message.user'))if(row.dataset.id===String(pending.id)){row.querySelector('.state').textContent='正在生成';row.querySelector('.retry')?.remove();}status('正在生成回复');};
   try {
-    if(mode==='local'){await (await localReady).stream(sid,pending.content,rid,(kind,data)=>{if(kind==='accepted'){liveStyle=data.chat_style||liveStyle;accepted();}if(kind==='delta'){const box=el('messages'),stick=box.scrollHeight-box.scrollTop-box.clientHeight<100;appendChunk(data.text);if(stick)box.scrollTop=box.scrollHeight;}if(kind==='complete')complete=true;});}
+    if(mode==='local'){await (await localReady).stream(sid,pending.content,rid,(kind,data)=>{if(kind==='accepted'){liveStyle=data.chat_style||liveStyle;accepted();}if(kind==='memory-status')toast(data.message);if(kind==='delta'){const box=el('messages'),stick=box.scrollHeight-box.scrollTop-box.clientHeight<100;appendChunk(data.text);if(stick)box.scrollTop=box.scrollHeight;}if(kind==='complete')complete=true;});}
     else {
     diagnostics.rememberSecret(token);remoteLog=diagnostics.begin({source:'remote',session_id:sid,request_id:rid,context_omitted:'等待后端返回实际请求快照'});
     const response = await fetch(backend+`/api/v1/contacts/${sid}/stream`,{method:'POST',headers:headers(),body:JSON.stringify({message:pending.content,request_id:rid,capture_context:diagnostics.state.capture_context}),signal:deadline.signal});
