@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     @Override public void onCreate(Bundle state) {
         registerPlugin(TDevicePlugin.class);
         registerPlugin(TLocalPlugin.class);
+        registerPlugin(TMemoryPlugin.class);
         registerPlugin(TUpdatePlugin.class);
         super.onCreate(state);
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {

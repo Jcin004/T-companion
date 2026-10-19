@@ -1,6 +1,6 @@
 # 当前架构、数据流与扩展路线
 
-2026-10-20：产品目标调整为“人物在持续世界中生活，用户与之发生关系”。首轮审查见 [记忆底座评测](MEMORY_FOUNDATION_EVALUATION.md)；新增默认关闭的 [OB 只读召回原型](OB_MEMORY_GATEWAY.md)，用于本机网页/Android，通过独立网关查询 OB 桶原文，不自动迁移或同步，不改变手机独立聊天。Latent 尚未接入。
+2026-10-20：Android 已把 OB 存储与召回核心内置 APK，SQLite 为唯一业务底账，派生 OB 缓存自动校正，无需外接记忆服务。完整数据流、迁移和测试见 [Android 内置记忆](ANDROID_EMBEDDED_MEMORY.md)。网页保留此前本地召回及可选 [OB 只读网关原型](OB_MEMORY_GATEWAY.md)，后续再统一。Latent 尚未接入。产品目标保持“人物在持续世界中生活，用户与之发生关系”。
 
 基线：`feat/chat-mvp` 的 `199dc76`（0.6.1），审计日期 2026-10-16；本机并发写入修复见下文。本文描述实际代码。`ARCHITECTURE.md`、`MODULE_DESIGN.md`、`INTERFACE_DESIGN.md` 保留早期总体愿景；其中的“一个核心”和“尚无记忆”等描述不能直接当作当前实现。
 
@@ -53,7 +53,7 @@ flowchart TD
 | SullyOS | React/Vite + Capacitor；同时有设备、剧情和云服务相关模块 | T- 尚无同等剧情、感知和应用生态；相似的桌面外观不代表同一架构。本轮未复制其受限制代码 |
 | AionsHome | 原生 JS 多页面 + FastAPI/SQLite/WebSocket，以常驻电脑服务支撑记忆、摄像头、定位等 | T- 默认手机离线于电脑仍可运行，但缺少其服务器统一调度和多端连续性；感知能力将来需独立模块和权限，而不是加到聊天按钮中 |
 | Serein | 服务端来源/版本/证据及召回管线 | T- 仅移植词频/BM25 核心，在手机本地运行；没有整体接入服务、重排器和整理管线 |
-| Ombre-Brain | 服务式记忆系统，含 BM25/jieba、向量等检索能力 | T- 仍是稀疏关键词检索，不是混合或向量检索；未引入其 Python 常驻服务 |
+| Ombre-Brain | Python 记忆系统，含存储、策略、BM25/jieba、向量等能力 | Android 内置其原版存储、BM25、模糊排序和浮现策略；不启用服务端、向量、梦境和自主任务。网页暂用原词法召回 |
 
 核对来源：[float package.json](https://github.com/Jcin004/float/blob/c1b0ea74d7690beae31bc7c9e2a8c382fa4b151b/package.json)、[SullyOS package.json](https://github.com/Jcin004/SullyOS/blob/master/package.json)、[AionsHome 项目档案](https://github.com/Jcin004/AionsHome/blob/main/README.md)。记忆项目的具体固定提交与文件在复用记录中。
 

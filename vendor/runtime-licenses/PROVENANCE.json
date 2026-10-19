@@ -1,0 +1,91 @@
+{
+  "packages": {
+    "chaquopy-libcxx": {
+      "Name": "chaquopy-libcxx",
+      "Version": "180000",
+      "Home-page": "",
+      "License": "",
+      "Author": ""
+    },
+    "chaquopy-libgfortran": {
+      "Name": "chaquopy-libgfortran",
+      "Version": "4.9",
+      "Home-page": "",
+      "License": "",
+      "Author": ""
+    },
+    "chaquopy-libyaml": {
+      "Name": "chaquopy-libyaml",
+      "Version": "0.2.5",
+      "Home-page": "",
+      "License": "",
+      "Author": ""
+    },
+    "chaquopy-openblas": {
+      "Name": "chaquopy-openblas",
+      "Version": "0.2.20",
+      "Home-page": "",
+      "License": "",
+      "Author": ""
+    },
+    "jieba": {
+      "Name": "jieba",
+      "Version": "0.42.1",
+      "Home-page": "https://github.com/fxsjy/jieba",
+      "License": "MIT",
+      "Author": "Sun, Junyi"
+    },
+    "numpy": {
+      "Name": "numpy",
+      "Version": "1.26.2",
+      "Home-page": "https://www.numpy.org",
+      "License": "Copyright (c) 2005-2023, NumPy Developers.",
+      "Author": "Travis E. Oliphant et al."
+    },
+    "python-frontmatter": {
+      "Name": "python-frontmatter",
+      "Version": "1.1.0",
+      "Home-page": "https://github.com/eyeseast/python-frontmatter",
+      "License": "MIT",
+      "Author": "Chris Amico"
+    },
+    "PyYAML": {
+      "Name": "PyYAML",
+      "Version": "6.0.3",
+      "Home-page": "https://pyyaml.org/",
+      "License": "MIT",
+      "Author": "Kirill Simonov"
+    },
+    "rank-bm25": {
+      "Name": "rank-bm25",
+      "Version": "0.2.2",
+      "Home-page": "https://github.com/dorianbrown/rank_bm25",
+      "License": "Apache2.0",
+      "Author": "D. Brown"
+    },
+    "tzdata": {
+      "Name": "tzdata",
+      "Version": "2025.2",
+      "Home-page": "https://github.com/python/tzdata",
+      "License": "Apache-2.0",
+      "Author": "Python Software Foundation"
+    }
+  },
+  "source": "Chaquopy 17.1.0 build, Python 3.12, arm64-v8a and x86_64; pip versions in config/requirements-ob-android.txt",
+  "files": {
+    "chaquopy_libcxx-180000.dist-info/LICENSE.TXT": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+    "chaquopy_libgfortran-4.9.dist-info/LICENSE.txt": "32a11faa664d83cea968b492f75fa5f065ff4bb4a00a93df6284bfa4b2caa46f",
+    "chaquopy_libyaml-0.2.5.dist-info/License": "c40112449f254b9753045925248313e9270efa36d226b22d82d4cc6c43c57f29",
+    "chaquopy_openblas-0.2.20.dist-info/LICENSE": "190b5a9c8d9723fe958ad33916bd7346d96fab3c5ea90832bb02d854f620fcff",
+    "numpy-1.26.2.dist-info/LICENSE.txt": "263223390c43a9d4a0841e0209265fd927a198f8e89c8eee809b7437d7e5e8c2",
+    "numpy-1.26.2.dist-info/LICENSES_bundled.txt": "ad41b7898fb2e9112cc665a7a99ba46239cdd780183dbc87f2aae6f3872a6e30",
+    "python_frontmatter-1.1.0.dist-info/LICENSE": "2e6885df8cdba51ba3aefe34598e68856f1b2468d1e58c719614004b86fb43d5",
+    "pyyaml-6.0.3.dist-info/LICENSE": "8d3928f9dc4490fd635707cb88eb26bd764102a7282954307d3e5167a577e8a4",
+    "rank_bm25-0.2.2.dist-info/LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "pyyaml-6.0.3.dist-info/licenses/LICENSE": "8d3928f9dc4490fd635707cb88eb26bd764102a7282954307d3e5167a577e8a4",
+    "tzdata-2025.2.dist-info/licenses/LICENSE": "33e8e5002d3512d3fcc2282b995e6bad9d334781b9c5ac31843f404900e1f3b4",
+    "tzdata-2025.2.dist-info/licenses/licenses/LICENSE_APACHE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "Chaquopy-LICENSE": "345a9fdfeed355d37b18569ef277ba56eb0ab7c0b17a08a90163ce8d33d2b862",
+    "Python-LICENSE": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf"
+  }
+}

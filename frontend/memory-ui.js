@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {mountMemoryLinks} from './memory-links-ui.js';
 import {mountExternalMemoryUI} from './external-memory-ui.js';
+import {mountEmbeddedMemoryUI} from './embedded-memory-ui.js';
 const el=id=>document.getElementById(id);
 const node=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;};
 const kinds={statement:'陈述',promise:'约定',interpretation:'理解',experience:'经历'};
@@ -23,6 +24,13 @@ export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toas
  let busy=false;
  const external=mountExternalMemoryUI({api,toast,report,isLocal});
  const externalButton=document.createElement('button');externalButton.textContent='外部记忆 · OB（可选）';externalButton.id='external-memory-open';externalButton.onclick=()=>external().catch(error=>{report(error);toast(error.message);});el('memory-tools').append(externalButton);
+ localReady.then(async()=>{
+  if(!isLocal())return;
+  const engine=await api('/memory-engine');
+  if(engine.provider!=='embedded-ob')return;
+  const open=mountEmbeddedMemoryUI({api});externalButton.id='embedded-memory-open';externalButton.textContent='内置 OB · 运行状态';
+  externalButton.onclick=()=>open().catch(error=>{report(error);toast(error.message);});
+ }).catch(report);
  const body=id=>el(id).querySelector('.memory-dialog-body');
  const run=fn=>async e=>{e?.preventDefault();if(busy){toast('请等待当前记忆操作结束');return;}busy=true;document.querySelectorAll('.memory-status').forEach(n=>n.textContent='处理中…');try{await fn(e);}catch(error){report(error);toast(error.message);document.querySelectorAll('.memory-status').forEach(n=>n.textContent=error.message);}finally{busy=false;document.querySelectorAll('.memory-status').forEach(n=>{if(n.textContent==='处理中…')n.textContent='';});}};
  const button=(text,fn)=>{const b=node('button','compact',text);b.type='button';b.onclick=run(fn);return b;};
