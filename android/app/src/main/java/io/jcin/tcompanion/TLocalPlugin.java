@@ -85,6 +85,41 @@ public class TLocalPlugin extends Plugin {
     }
     @PluginMethod public void cancel(PluginCall call){String id=call.getString("id","");cancelled.add(id);HttpURLConnection c=requests.get(id);if(c!=null)c.disconnect();call.resolve();}
     private void event(String id,String text){JSObject e=new JSObject();e.put("id",id);e.put("text",text);notifyListeners("modelChunk",e);}
+    @PluginMethod public void memoryRequest(PluginCall call){io.execute(()->{
+        String id=call.getString("id","");HttpURLConnection connection=null;
+        try{
+            URL url=new URL(call.getString("url",""));
+            boolean local=url.getHost().equals("localhost")||url.getHost().equals("127.0.0.1")||url.getHost().equals("[::1]");
+            if((!url.getProtocol().equals("https")&&!(local&&url.getProtocol().equals("http")))||url.getUserInfo()!=null||url.getQuery()!=null||url.getRef()!=null)throw new IOException("invalid_response");
+            if(!url.getPath().equals("/v1/recall")&&!url.getPath().equals("/v1/health"))throw new IOException("invalid_response");
+            String origin=url.getProtocol()+"://"+url.getHost().toLowerCase(java.util.Locale.ROOT);
+            if(url.getPort()!=-1&&url.getPort()!=url.getDefaultPort())origin+=":"+url.getPort();
+            byte[] digest=java.security.MessageDigest.getInstance("SHA-256").digest(origin.getBytes(StandardCharsets.UTF_8));
+            StringBuilder keyId=new StringBuilder("obmem_");for(byte b:digest)keyId.append(String.format(java.util.Locale.ROOT,"%02x",b&255));
+            if(!keyId.toString().equals(call.getString("profile_id","")))throw new IOException("unauthorized");
+            String key=modelKey(keyId.toString());if(key.isEmpty())throw new IOException("missing_token");
+            if(cancelled.contains(id))throw new IOException("cancelled");
+            int timeout=Math.max(300,Math.min(10000,call.getInt("timeout_ms",2500)));
+            connection=(HttpURLConnection)url.openConnection();requests.put(id,connection);
+            connection.setInstanceFollowRedirects(false);connection.setConnectTimeout(timeout);connection.setReadTimeout(timeout);
+            connection.setRequestProperty("Content-Type","application/json");connection.setRequestProperty("Accept","application/json");connection.setRequestProperty("Authorization","Bearer "+key);
+            String body=call.getString("body","");
+            if(!body.isEmpty()){
+                connection.setRequestMethod("POST");connection.setDoOutput(true);
+                byte[] bytes=body.getBytes(StandardCharsets.UTF_8);if(bytes.length>16000)throw new IOException("invalid_response");
+                connection.setFixedLengthStreamingMode(bytes.length);try(OutputStream out=connection.getOutputStream()){out.write(bytes);}
+            }
+            int status=connection.getResponseCode();if(status==401||status==403)throw new IOException("unauthorized");if(status!=200)throw new IOException("unavailable");
+            StringBuilder value=new StringBuilder();long deadline=System.currentTimeMillis()+timeout;
+            try(Reader reader=new InputStreamReader(connection.getInputStream(),StandardCharsets.UTF_8)){
+                char[] buffer=new char[2048];int count;
+                while((count=reader.read(buffer))!=-1){if(cancelled.contains(id))throw new IOException("cancelled");if(System.currentTimeMillis()>deadline)throw new IOException("timeout");value.append(buffer,0,count);if(value.length()>64000)throw new IOException("invalid_response");}
+            }
+            if(cancelled.contains(id))throw new IOException("cancelled");new JSONObject(value.toString());
+            JSObject result=new JSObject();result.put("body",value.toString());call.resolve(result);
+        }catch(Exception error){String reason=error instanceof java.net.SocketTimeoutException?"timeout":error.getMessage();if(!java.util.Arrays.asList("timeout","unauthorized","missing_token","invalid_response","cancelled").contains(reason))reason="unavailable";call.reject(reason);}
+        finally{requests.remove(id);cancelled.remove(id);if(connection!=null)connection.disconnect();}
+    });}
     @PluginMethod public void model(PluginCall call){io.execute(()->{
         String id=call.getString("id","");HttpURLConnection connection=null;
         try{

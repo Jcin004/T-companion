@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Read-only local business queries. No DOM, storage writes, keys or model transport.
 import {INVARIANTS} from './runtime-rules.js';
+import {externalMemoryContext} from './external-memory.js';
 import {styleInstructions} from './chat-style.js';
 import {historyLimit} from './context-policy.js';
 import {recallPlan,memoryContext,sourceMessages,rosterSource,copy} from './memory-core.js';
@@ -27,7 +28,7 @@ export function buildContext(data,sid,message,chatStyle,recalled){
   const complete=new Set(data.turns.filter(t=>t.session_id===sid&&t.state==='complete').flatMap(t=>[t.user_id,t.assistant_id]));
   const limit=historyLimit(data,sid);
   const history=(limit?data.messages.filter(m=>m.session_id===sid&&complete.has(m.id)).slice(-limit):[]).map(({role,content})=>({role,content}));
-  return [{role:'system',content:system},...history,{role:'user',content:message}];
+  return [{role:'system',content:system+externalMemoryContext(recalled?.external)},...history,{role:'user',content:message}];
 }
 
 // undefined means this route belongs to another module.

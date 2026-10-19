@@ -1,0 +1,7 @@
+{
+  "source_dir": "D:/your-private-memory/OB-source-at-pinned-commit",
+  "origins": ["http://127.0.0.1:8000"],
+  "bindings": [
+    {"character_id": "COPY_CHARACTER_ID_HERE", "scope": "daily", "vault": "D:/your-private-memory/character-daily-vault"}
+  ]
+}

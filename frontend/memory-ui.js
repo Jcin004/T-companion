@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {mountMemoryLinks} from './memory-links-ui.js';
+import {mountExternalMemoryUI} from './external-memory-ui.js';
 const el=id=>document.getElementById(id);
 const node=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;};
 const kinds={statement:'陈述',promise:'约定',interpretation:'理解',experience:'经历'};
@@ -20,6 +21,8 @@ export function installMemoryShell(){
 export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toast,report}){
  const links=mountMemoryLinks({api,openSource,toast,report,cancel:async()=>{const service=await localReady;if(service.auxTask)service.cancel();}});
  let busy=false;
+ const external=mountExternalMemoryUI({api,toast,report,isLocal});
+ const externalButton=document.createElement('button');externalButton.textContent='外部记忆 · OB（可选）';externalButton.id='external-memory-open';externalButton.onclick=()=>external().catch(error=>{report(error);toast(error.message);});el('memory-tools').append(externalButton);
  const body=id=>el(id).querySelector('.memory-dialog-body');
  const run=fn=>async e=>{e?.preventDefault();if(busy){toast('请等待当前记忆操作结束');return;}busy=true;document.querySelectorAll('.memory-status').forEach(n=>n.textContent='处理中…');try{await fn(e);}catch(error){report(error);toast(error.message);document.querySelectorAll('.memory-status').forEach(n=>n.textContent=error.message);}finally{busy=false;document.querySelectorAll('.memory-status').forEach(n=>{if(n.textContent==='处理中…')n.textContent='';});}};
  const button=(text,fn)=>{const b=node('button','compact',text);b.type='button';b.onclick=run(fn);return b;};

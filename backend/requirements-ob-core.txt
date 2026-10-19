@@ -1,4 +1,4 @@
-# Optional research environment only; not an application runtime dependency.
+# Optional OB gateway/evaluation only; not needed for local phone chat.
 jieba==0.42.1
 numpy==2.5.4
 python-frontmatter==1.1.0

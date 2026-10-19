@@ -7,6 +7,7 @@ import {historyLimit,validateHistoryLimit} from './context-policy.js';
 import {validateMemory,recallPlan} from './memory-core.js';
 import {MemoryModule} from './memory-service.js';
 import {buildContext,queryLocalData} from './local-queries.js';
+import {ExternalMemory,browserMemoryRequest,nativeMemoryRequest} from './external-memory.js';
 // Preserve the existing import path for callers while the implementation moves.
 export {buildContext} from './local-queries.js';
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -34,6 +35,7 @@ export function validateBackup(raw){
   d.api_profiles=d.api_profiles.map(p=>{if(typeof p.id!=='string'||!/^[\w-]{1,100}$/.test(p.id))throw Error('连接标识错误');return {id:p.id,...validateConnection(p)};});
   validateHistoryLimit(d.settings.history_limit);for(const s of d.sessions){s.chat_style=normalizeChatStyle(s.chat_style);if(s.history_limit!=null)validateHistoryLimit(s.history_limit);}
   validateMemory(d);
+  d.memory.external.enabled=false; // Restoring a backup never opts into remote disclosure.
   return d;
 }
 export class BrowserPersistence {
@@ -68,7 +70,7 @@ export async function nativeModel(plugin,settings,messages,onDelta,signal){
   try{if(signal.aborted)throw Error('已停止生成');await plugin.model({id,profile_id:settings.profile_id||'legacy',base_url:settings.base_url,model:settings.model,messages});if(failure)throw failure;}finally{signal.removeEventListener('abort',cancel);await listener.remove();}
 }
 export class LocalService {
-  constructor(persistence,transport,diagnostics=null){this.storage=persistence;this.transport=transport;this.diagnostics=diagnostics;this.queue=Promise.resolve();this.active=null;this.memoryModule=new MemoryModule(this);this.auxTask=null;}
+  constructor(persistence,transport,diagnostics=null,externalRequest=null){this.storage=persistence;this.transport=transport;this.diagnostics=diagnostics;this.queue=Promise.resolve();this.active=null;this.memoryModule=new MemoryModule(this);this.auxTask=null;this.externalMemory=new ExternalMemory(this,externalRequest||browserMemoryRequest(persistence,diagnostics));}
   async init(){this.data=await this.storage.load();ensureProfiles(this.data);validateMemory(this.data);for(const t of this.data.turns)if(t.state==='generating')t.state='interrupted';await this.transact(()=>{});return this;}
   // A command sees the last durable state; uncommitted candidates stay private.
   transact(change){
@@ -88,6 +90,12 @@ export class LocalService {
   message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
   async api(path,method='GET',body){
     const url=new URL(path,'https://local'),pathname=url.pathname,route=pathname.split('/').filter(Boolean)[0];
+    if(pathname==='/external-memory'||pathname==='/external-memory/test')return this.externalMemory.api(method,body,pathname);
+    if(pathname.match(/^\/contacts\/[^/]+\/context-preview$/)&&method==='POST'&&this.externalMemory.config().enabled){
+      if(typeof body?.message!=='string'||body.message.length>20000)throw Error('预览消息格式或长度不正确');
+      const sid=decodeURIComponent(pathname.split('/')[2]),recalled=await this.prepareRecall(sid,body.message,undefined,new AbortController().signal);
+      return {recall:clone(recalled.trace),external:recalled.external,note:'预览会查询外部记忆；发送时重新查询最新状态。',messages:buildContext(this.data,sid,body.message,undefined,recalled)};
+    }
     const queried=queryLocalData(this.data,url,method,body);
     if(queried!==undefined)return queried;
     if(['memories','summaries','self','memory-settings','memory-sources','memory-links','memory-link-proposals'].includes(route))return this.memoryModule.api(path,method,body);
@@ -164,6 +172,15 @@ export class LocalService {
     catch(e){const message=signal.aborted?'已停止生成':e instanceof TypeError?'无法连接模型服务；请检查网络、地址和浏览器跨域许可。Android 原生请求不受浏览器跨域限制。':e.message||'请求失败';this.diagnostics?.update(id,{state:signal.aborted?'cancelled':'failed',error:message,response_chars:chars});throw Error(message);}
   }
   cancel(){this.active?.abort();}
+  async prepareRecall(sid,text,beforeMessageId,signal){
+    const owner=this.data.sessions.find(s=>s.id===sid)?.character_id;
+    if(!owner)throw Error('会话不存在');
+    const recalled=recallPlan(this.data,owner,text,{sessionId:sid,beforeMessageId});
+    if(!this.data.memory.settings.recall)return recalled;
+    const external=await this.externalMemory.recall(owner,text,recalled,signal);
+    if(external){recalled.external=external;recalled.trace.external={...external,records:undefined};}
+    return recalled;
+  }
   async auxiliary(messages,meta){
     if(this.active)throw Error('请等待当前模型操作结束');const ctrl=new AbortController();this.active=ctrl;let text='';const timer=setTimeout(()=>ctrl.abort(),90000);
     const task=this.callModel(messages,chunk=>{text+=chunk;if(text.length>100000)ctrl.abort();},ctrl.signal,meta).then(()=>{if(!text.trim())throw Error('模型返回空内容');return text;});this.auxTask=task;
@@ -201,7 +218,9 @@ export class LocalService {
         const reply=d.messages.find(m=>m.id===turn.assistant_id);
         reply.content=content;if(state)turn.state=state;turn.error=error;
       });
-      const d=this.data,recalled=recallPlan(d,d.sessions.find(s=>s.id===sid).character_id,text,{sessionId:sid,beforeMessageId:accepted.user_id});
+      const recalled=await this.prepareRecall(sid,text,accepted.user_id,ctrl.signal),d=this.data;
+      if(ctrl.signal.aborted)throw Error('已停止生成');
+      if(recalled.external?.state==='fallback')onEvent('memory-status',{message:recalled.external.message});
       const timer=setTimeout(()=>ctrl.abort(),180000);
       try{
         await this.callModel(buildContext(d,sid,text,accepted.chat_style,recalled),chunk=>{
@@ -234,4 +253,4 @@ export class LocalService {
     }
   }
 }
-export async function createLocalService(plugin,diagnostics){const persistence=plugin?new NativePersistence(plugin):new BrowserPersistence();const transport=plugin?((s,k,m,delta,signal)=>nativeModel(plugin,s,m,delta,signal)):browserModel;return new LocalService(persistence,transport,diagnostics).init();}
+export async function createLocalService(plugin,diagnostics){const persistence=plugin?new NativePersistence(plugin):new BrowserPersistence();const transport=plugin?((s,k,m,delta,signal)=>nativeModel(plugin,s,m,delta,signal)):browserModel;return new LocalService(persistence,transport,diagnostics,plugin?nativeMemoryRequest(plugin):null).init();}
