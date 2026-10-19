@@ -10,9 +10,22 @@ const rounded=value=>Math.round(value*10000)/10000;
 const material=plan=>({records:plan.records,anchors:plan.anchors,links:plan.links});
 const size=plan=>plan.records.length||plan.anchors.length?JSON.stringify(material(plan)).length:0;
 
-export function createRecallPlan(data,owner,query,{settings,sessionId,beforeMessageId=Infinity}={}){
+export function recallInputs(data,owner,query,{sessionId,beforeMessageId=Infinity}={}){
+  const inputs=[{text:query,weight:1,reason:'lexical'}],cues=recallCues(query);
+  const session=data.sessions.find(s=>s.id===sessionId&&s.character_id===owner);
+  const settings=data.memory.settings;
+  if(cues.needsContext&&session&&settings.context_messages){
+    const count=Math.min(settings.context_messages,historyLimit(data,session.id));
+    const recent=count?sourceMessages(data,owner).filter(m=>m.session_id===session.id&&m.role==='user'&&m.id<beforeMessageId).slice(-count).reverse():[];
+    for(const [index,message] of recent.entries())inputs.push({text:message.content,weight:0.65/(index+1),reason:'recent_context',message_id:message.id});
+  }
+  return inputs;
+}
+
+export function createRecallPlan(data,owner,query,{settings,sessionId,beforeMessageId=Infinity,embedded}={}){
   const plan={records:[],anchors:[],links:[],trace:{method:'bm25+bounded-links',query_mode:'current',context_message_ids:[],markers:[],candidates:[],excluded:{},used_chars:0,budget:settings.budget,policy:{context_messages:settings.context_messages,use_links:settings.use_links,use_anchors:settings.use_anchors,recall_limit:settings.recall_limit}}};
   const trace=plan.trace,exclude=reason=>{trace.excluded[reason]=(trace.excluded[reason]||0)+1;};
+  if(embedded)trace.method='embedded-ob+bounded-links';
   if(!settings.recall){trace.disabled=true;return plan;}
   const character=data.characters.find(c=>c.id===owner);
   if(!character)throw Error('角色不存在');
@@ -45,14 +58,15 @@ export function createRecallPlan(data,owner,query,{settings,sessionId,beforeMess
     const top=ranked[0]?.score||1;
     for(const row of ranked.slice(0,Math.min(36,Math.max(12,settings.recall_limit*3))))offer('memory',row.e,weight*row.score/top,reason,row.matched_terms,row.score);
   }
-  lexical(query,1,'lexical');
   const cues=recallCues(query);trace.markers=cues.markers;
-  if(cues.needsContext&&session&&settings.context_messages){
-    const count=Math.min(settings.context_messages,historyLimit(data,session.id));
-    const recent=count?sources.filter(m=>m.session_id===session.id&&m.role==='user'&&m.id<beforeMessageId).slice(-count).reverse():[];
-    for(const [index,message] of recent.entries())lexical(message.content,0.65/(index+1),'recent_context');
-    trace.context_message_ids=recent.map(m=>m.id);if(recent.length)trace.query_mode='recent_context';
+  const inputs=recallInputs(data,owner,query,{sessionId,beforeMessageId});
+  for(const [index,input] of inputs.entries()){
+    if(!embedded){lexical(input.text,input.weight,input.reason);continue;}
+    const rows=embedded.ranked[index]||[],top=rows[0]?.score||1;
+    for(const row of rows){const event=validEvents.get(row.id);if(event)offer('memory',event,input.weight*row.score/top,'ob_'+input.reason,[],row.score);}
   }
+  trace.context_message_ids=inputs.filter(i=>i.message_id).map(i=>i.message_id);
+  if(trace.context_message_ids.length)trace.query_mode='recent_context';
   if(validAnchors.size){
     const rows=[...validAnchors.values()].map(a=>({id:a.id,title:a.label,content:a.interpretation,evidence:[{quote:a.quote}],updated_at:a.updated_at}));
     const ranked=new MemoryLexicalIndex(rows).search(query),top=ranked[0]?.score||1;

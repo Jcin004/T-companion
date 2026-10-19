@@ -1,4 +1,9 @@
 import {readFile,writeFile} from 'node:fs/promises';
-const escape=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const escape=s=>s.replace(/[ \t]+$/gm,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const notices=await readFile('THIRD_PARTY_NOTICES.md','utf8'),license=await readFile('LICENSE','utf8');
-await writeFile('frontend/legal.html','<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>T- · 许可与来源</title><style>body{font:15px/1.7 system-ui;max-width:900px;margin:30px auto;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}a{color:#337c70}</style><a href="javascript:history.back()">← 返回</a><h1>T- · 许可与来源</h1><p>应用代码采用 AGPL-3.0-only。对应源码随试用包提供，第三方模块保留其许可。</p><p><a href="licenses/Serein-MIT.txt">Serein MIT 完整许可</a> · <a href="vendor/jsonrepair/LICENSE.md">jsonrepair ISC 完整许可</a></p><pre>'+escape(notices)+'\n\n'+escape(license)+'</pre></html>\n');
+const bundled=['vendor/python/ombre/LICENSE','vendor/jieba-distribution/LICENSE','vendor/rapidfuzz-distribution/rapidfuzz-3.14.1.dist-info/licenses/LICENSE'];
+const runtime=JSON.parse(await readFile('vendor/runtime-licenses/PROVENANCE.json','utf8'));
+for(const path of Object.keys(runtime.files).sort())bundled.push('vendor/runtime-licenses/'+path);
+let runtimeNotices='\n\nAndroid embedded runtime licenses\n';
+for(const path of bundled)runtimeNotices+='\n'+path+'\n'+await readFile(path,'utf8');
+await writeFile('frontend/legal.html','<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>T- · 许可与来源</title><style>body{font:15px/1.7 system-ui;max-width:900px;margin:30px auto;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}a{color:#337c70}</style><a href="javascript:history.back()">← 返回</a><h1>T- · 许可与来源</h1><p>应用代码采用 AGPL-3.0-only。对应源码随试用包提供，第三方模块保留其许可。</p><p><a href="licenses/Serein-MIT.txt">Serein MIT 完整许可</a> · <a href="vendor/jsonrepair/LICENSE.md">jsonrepair ISC 完整许可</a></p><pre>'+escape(notices)+'\n\n'+escape(license+runtimeNotices)+'</pre></html>\n');

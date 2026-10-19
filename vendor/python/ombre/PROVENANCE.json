@@ -1,0 +1,245 @@
+{
+  "repository": "https://github.com/Jcin004/Ombre-Brain",
+  "commit": "115d831d979bf67efc7150f976e2cb34c333c935",
+  "copyright": "2026 P0lar1zzZ",
+  "license": "MIT",
+  "changes": "None; dependency closure only. Adaptation lives in android/app/src/main/python/t_memory.py",
+  "files": {
+    "LICENSE": {
+      "sha256": "2c1ba2fc863528b42e0d904205792f538ecf01c7555c0a7ed2080897362b41b6",
+      "git_blob": "2d1a270ba3cc3668232b5e5c2b621b0910b378fc"
+    },
+    "src/bm25_index.py": {
+      "sha256": "bc307cedba979163e9aba0aab9ea0d608fd547d1271408f1e32814f633b78149",
+      "git_blob": "6cf4c8c0b64d7f89724be66f1dc9c0f86c195e20"
+    },
+    "src/bucket_manager.py": {
+      "sha256": "232554acf2345fd8a35f240a45ae36467d57fbe199e6556a9bae3bd8477c6d45",
+      "git_blob": "eced329a507522bddcbe72b585368487b0111770"
+    },
+    "src/errors.py": {
+      "sha256": "c90ea6dd696ad3ba35506b7565e356fe9590fbe33946a05bb2753ecc64a8ab89",
+      "git_blob": "7c47ebb9c15c9ab42a687a8b828ec8c8ace54c64"
+    },
+    "src/ombrebrain/__init__.py": {
+      "sha256": "2f129b287e41927419d786215f20d2bdf157708446f99027f60897b97fd57ce9",
+      "git_blob": "1f9219646e6b788e4b26bf8ee421354164e39b17"
+    },
+    "src/ombrebrain/app/__init__.py": {
+      "sha256": "d1ed43d4302361f8443757a81fa13614201d56ffa781e992ae62fd2afe4d293c",
+      "git_blob": "d72df4fc233a959d188365138d991a9a0a2b724d"
+    },
+    "src/ombrebrain/app/execution.py": {
+      "sha256": "aa8c016e62831eb4f57be9a6db5550b5653b312a7f321503d87a88f2c1dca409",
+      "git_blob": "04f3e999331a4e854214497f255c6a4359b48fdf"
+    },
+    "src/ombrebrain/app/neural_router.py": {
+      "sha256": "1297520f0f4fc26ce219012a504853a60aa1b1a430b749d2cfd17e8c52dcfd37",
+      "git_blob": "241a17a78fa087d137d39a36f4204dfe28bd7abd"
+    },
+    "src/ombrebrain/app/profiles.py": {
+      "sha256": "c0d10cd6226bb41f0b7e2507cf95e18923d2e0a0c07418829eb843fb4989ac1a",
+      "git_blob": "77474ecb7a6203559d7b3e2513cc3342d767b52c"
+    },
+    "src/ombrebrain/app/tool_output_contract.py": {
+      "sha256": "a819053dfe335421f35c3419271736999597ddaa0331a6a0213e5146254ca2eb",
+      "git_blob": "f3b144f6c089d2fea6f54bfa666122b03c9c0c25"
+    },
+    "src/ombrebrain/domain/__init__.py": {
+      "sha256": "b433ee5d483442b75b7b05f0c3164f21c1d77ab0c6cddf34d28e05e639d964d6",
+      "git_blob": "38624b93ecc5a61e24018b4c57e4816a8cdb15b7"
+    },
+    "src/ombrebrain/domain/boundary.py": {
+      "sha256": "d497789519683863e82925aceaa5a9c2f90d96f45fa2ef97868298f7ae77a986",
+      "git_blob": "f4bf0e6dea801686d9899e3c40df2e9929705bf8"
+    },
+    "src/ombrebrain/domain/commands.py": {
+      "sha256": "443628805d26a61d4ec56aecee60440b95b116e2371a4aad830c8e388d2d5f40",
+      "git_blob": "5a64d9aeb886aa4d38dfe0bbcc3bbd3966457d6e"
+    },
+    "src/ombrebrain/domain/invariants.py": {
+      "sha256": "ce338b6176897e08a5df1e6dd14915ab163fbec38e88b01b4b82c4270da530dd",
+      "git_blob": "39acc8687cb8a3e254f35406473dbb8824536c98"
+    },
+    "src/ombrebrain/domain/plan_history.py": {
+      "sha256": "5b6b7f3a140a1cdf74f387501aa6a0eb62f04e5b7b460f597ec6acb66f2032f8",
+      "git_blob": "fc30c54a670037859e82718c303379202d2a8c7c"
+    },
+    "src/ombrebrain/eventsourcing/__init__.py": {
+      "sha256": "adb4363453a458006ef8367af2e312ea85476790c84185b7fbcf5964027894ea",
+      "git_blob": "c9b65936e39c998e8a41c661fcef84f1ac048e1a"
+    },
+    "src/ombrebrain/eventsourcing/footprint.py": {
+      "sha256": "d577d3987631212601a86fc5c936330f9e7ba15e59911628e3101e9b6e7d991b",
+      "git_blob": "9d1a4d158d97345e1a750e39db997c6ae88cbf81"
+    },
+    "src/ombrebrain/eventsourcing/ledger_mirror.py": {
+      "sha256": "ed73373a8b2ef6d56995fdb83201340dfe50c7d9c3e8738e9da5c4d88c70965f",
+      "git_blob": "d7f4539b6ec89cd9d24f394e4de1e4a0a649247a"
+    },
+    "src/ombrebrain/eventsourcing/ledger_replay.py": {
+      "sha256": "ae5a526845f837c10becc6a748b834d532eaa725ee673ad1afa69be5f87b8c28",
+      "git_blob": "458385554662521cfe84902bdf867e658879b7b3"
+    },
+    "src/ombrebrain/policy/__init__.py": {
+      "sha256": "7aad40f1868358fef93d79989af1fad39f33780ac7db93c7c25bb5188311d6e0",
+      "git_blob": "9be51279dd5425deb3e0a35bc5b5ba9356de9e40"
+    },
+    "src/ombrebrain/policy/contracts.py": {
+      "sha256": "fd878fda3f1524738bde95928081b23150766d93c79f51fe048773a7dbfa6922",
+      "git_blob": "4e54d10da1c404e70026b2140eef75bc3944e83b"
+    },
+    "src/ombrebrain/policy/engine.py": {
+      "sha256": "16eb1944223095d5ae209aaa084c4eed0a347ae7c8f399d9caf927e5a9ce7ced",
+      "git_blob": "2f5c0ff5ab4430ccfdf50bf7ac7865d1b0cf7713"
+    },
+    "src/ombrebrain/policy/formal_invariants.py": {
+      "sha256": "ac5461114c41d0bb9d35c630768f9e170b4bb21fc8bf14663ea186d5dd056e6a",
+      "git_blob": "249a463248ab6fa34e5cc1f254975eab7edf558a"
+    },
+    "src/ombrebrain/policy/red_lines.py": {
+      "sha256": "b15d089e48f0dbaae68e6083e264734528d3c1008769a0f9f3eb36a839d648d1",
+      "git_blob": "8aba7d33326b819a539e7c6345ca16384365f29e"
+    },
+    "src/ombrebrain/policy/static_surfaces.py": {
+      "sha256": "c26e52e548db266f5644459265069f4aefe4ef03f11933bb7f7731b7e8db05dd",
+      "git_blob": "23577f476d3ecda17ce5408d8bb8bd4b6c29a051"
+    },
+    "src/ombrebrain/policy/surfacing.py": {
+      "sha256": "5013903a352955eed196a37253faed1ef8f4a37b7e1c2c5a21e0c77d24ab0b9b",
+      "git_blob": "ad06534bc9d2ab15c1ed9e451b16c1ba857e1e5d"
+    },
+    "src/ombrebrain/policy/update_policy.py": {
+      "sha256": "ead7dd07f93df1b1ab23af9446ca3749b99e42793b9623eb4b108477e4195663",
+      "git_blob": "bfa57978502293244af04e27b2ab2ee22000c568"
+    },
+    "src/ombrebrain/policy/vm.py": {
+      "sha256": "b2272d2fa607961389b18d6ae7ddd9c64693b366701cf7590414195f2d340de7",
+      "git_blob": "e54fa3d13a61b79dbf5c3c92c26e1d9bbafd71c7"
+    },
+    "src/ombrebrain/projection/__init__.py": {
+      "sha256": "7da864a0e667edb431fb2b77ea2cdcd44b047ed2a99300f1dacb4e1537921f70",
+      "git_blob": "0750db47b5ee3096b410e18062af921debc0c468"
+    },
+    "src/ombrebrain/projection/audit_runtime.py": {
+      "sha256": "3fc79c7e6a57a442d587d41968cab5759744f43a77324bc33ca9f4715106496b",
+      "git_blob": "2b94346fa39227fce75768e4c2a096060a55f2e7"
+    },
+    "src/ombrebrain/projection/auditor.py": {
+      "sha256": "5656085d1f27a0f5dc00c4890fb0c5e169fd16af25fd2f2278bf044aaa4e0879",
+      "git_blob": "7530eab750bbfd85c36ebab78cde764334e71f50"
+    },
+    "src/ombrebrain/projection/journal.py": {
+      "sha256": "3244cf23c0c964ef2da4c4a0a81ea5d95794a9e16715fe19d84b5ad42c6fd9cd",
+      "git_blob": "fc0991a31ba723a882312648bf774b0c0da66fa1"
+    },
+    "src/ombrebrain/projection/observation.py": {
+      "sha256": "ec05d8fbd99215c4810289e9db9207a81724dadf0d9a9d829746319a3c5770b5",
+      "git_blob": "3a22e46f55b7c4127489e6db29b6815d1497c17c"
+    },
+    "src/ombrebrain/projection/observers.py": {
+      "sha256": "8e77a256c735f7c81d4a45ef7d8fdbd12937a7c04fc5a2a6203c303f33979945",
+      "git_blob": "d8572d49aa7e406551d81a840aa2e82fbb6a83ea"
+    },
+    "src/ombrebrain/projection/projection_mirror.py": {
+      "sha256": "9c5ec5bb777a87b30a2f448c206b6488b1c1aded9900bd0d1b430af3a45a183f",
+      "git_blob": "5d2ea8985114342910195f07ecaa1fc15170a63a"
+    },
+    "src/ombrebrain/projection/projection_sqlite.py": {
+      "sha256": "fbb5315667059b32279ae3ded3f3540f91fed03e80dae79dfc414e071bc07d50",
+      "git_blob": "6468bca3c7f95899672924599a7b2cbd0726512d"
+    },
+    "src/ombrebrain/projection/projection_vector.py": {
+      "sha256": "3d254b8f425acaa0efe813f607352a8e4aa80aa0d92a16237ede764b540a1753",
+      "git_blob": "9b51f0a5c3b20cbbc24d5e15c38cb8656d37e3df"
+    },
+    "src/ombrebrain/projection/runtime.py": {
+      "sha256": "13b32fa28cf058e6a9b3bb12cb3ab527891f1b61ca3df8599347d488711d0b5a",
+      "git_blob": "6c27071353e4920e83a654cc4daee20128d45076"
+    },
+    "src/ombrebrain/protocol/__init__.py": {
+      "sha256": "8abc3212491eb7d661c7a6c24389d2f31caaa14c7db166f25119980294814dc2",
+      "git_blob": "956be2ea459fec757ec0e04706011ecd9fbaa431"
+    },
+    "src/ombrebrain/protocol/manifests.py": {
+      "sha256": "fbb4b853b631192e854965520cee82699c34b9876f52bd2f9bdbd7b1c422aca1",
+      "git_blob": "fc54b46a79aa5a3d225ebcc974c1960b1b689207"
+    },
+    "src/ombrebrain/protocol/public_tools.py": {
+      "sha256": "74490a23ff7650af8536163bfc319b5f17036c9d8074b123ccb911efe2493618",
+      "git_blob": "9b1a9b0bdc0956de2b6520dcb407cbc3752f7ed1"
+    },
+    "src/ombrebrain/protocol/schemas.py": {
+      "sha256": "aadf0c6ee0ec8175bead1a5890746f92b7cb3c05b903c891cb4ca9487ef1f7f2",
+      "git_blob": "1ef95b17fa3a48ff2ff0bdd653e2e39dc3343171"
+    },
+    "src/ombrebrain/retrieval/__init__.py": {
+      "sha256": "3238987187193b27e7ae5f5a1f881c6b57ca615759f3db9dc9eb3410fb2bdde1",
+      "git_blob": "224cb2080488acef18b0577b764342f1e5e13765"
+    },
+    "src/ombrebrain/retrieval/bucket_scoring.py": {
+      "sha256": "ccaaf551984bb3ee434ca905e3841b4c30ab61a284544e7b709d634dff7d9254",
+      "git_blob": "8a9967fd7889593181ca99ed0909e42d5bf11aad"
+    },
+    "src/ombrebrain/retrieval/context.py": {
+      "sha256": "4148dfb45cb2156aafe6f756da767eb22670632d3bdfa05d9e79952e34d99085",
+      "git_blob": "f85dec08dc53bdf1ba9ccf155dfb59a5065a2752"
+    },
+    "src/ombrebrain/retrieval/engine.py": {
+      "sha256": "a7aacb4779785cf84d12202645c5db8a0fc81bdeb6fac16180d486c2d3aa2397",
+      "git_blob": "e017a22d66397b3f5505ada326976692eec2951a"
+    },
+    "src/ombrebrain/retrieval/planner.py": {
+      "sha256": "6c07dfb3bdb979ec7f2179c181081166c5bcb85ac6d386373b7b0961ced9c712",
+      "git_blob": "4db9b9dd65acb12a0dcb626d0248836287de1c2d"
+    },
+    "src/ombrebrain/retrieval/scoring.py": {
+      "sha256": "18a8f5d32f54eb9d612792fdbcc92d40095675f497b4edf6639811d0c9f417a5",
+      "git_blob": "0c9c9d780242df7d32a4f0f4a4ec36c9c23076f9"
+    },
+    "src/ombrebrain/storage/__init__.py": {
+      "sha256": "d45c1bc34a4687492e3b63d8dc24aecdceeffb6bf37be3435457a13d738ed6b7",
+      "git_blob": "df502925cfc7a4512a60b679a0b54cf008651d72"
+    },
+    "src/ombrebrain/storage/attribution.py": {
+      "sha256": "214a36223fcd435316a7a67e4f923b4b9ee90ac5caa848948f8bb5b0819fccd6",
+      "git_blob": "3504f3a6e9b298da2da75889414ea268cb648b06"
+    },
+    "src/ombrebrain/storage/bucket_paths.py": {
+      "sha256": "b66085651fc7f0d43183148a9b28c7293096196878951d70aac4f6cb64cd995b",
+      "git_blob": "bfd8a93b560d311424858d3c712dc4a70c5f1882"
+    },
+    "src/ombrebrain/storage/media_store.py": {
+      "sha256": "faa7bfa255d203d113ffffb645dc1c31f10fb1ae4ee8b5a7203eaad429a9c141",
+      "git_blob": "4086f4bd7178ed0e2359e877f61432bac5e9939c"
+    },
+    "src/ombrebrain/storage/metadata_normalize.py": {
+      "sha256": "b78c7f28abdebe74aef83f7eb8bec9da54b2f4387a21f91bbd7a5a3d312fff02",
+      "git_blob": "17903cc7dedcbd3e45e112cb44a90e961e8477a1"
+    },
+    "src/ombrebrain/storage/quote_store.py": {
+      "sha256": "e7e9f3a51a1ba12716961748829d73c2551ba6ff1b305979640118767df611a8",
+      "git_blob": "34c19f6df04d266c6b9895ebd24670cb791195e5"
+    },
+    "src/ombrebrain/storage/source_store.py": {
+      "sha256": "76ac22b755e5c6e7b1d995d95a77ebe7ea2e9f3f17d1fc5a53d7dd3a6d5e1d45",
+      "git_blob": "bdd8dff78f37563b713992313917a6eeb71b9ebf"
+    },
+    "src/ombrebrain/storage/vector_codec.py": {
+      "sha256": "850d1fc2ad9b7a9f64622bc747d90a6e78b43287510a89a9a4342146e5f4c53c",
+      "git_blob": "7b6933aa87751b638ffa95dc53a412677d3c4419"
+    },
+    "src/ombrebrain/version.py": {
+      "sha256": "4b54b1a52e6ad3c8ba5f27dd5e4c0ac9ed75bf5c3de141a78e6b5e112b34df19",
+      "git_blob": "573984f0ade120b44c5299a75adef3d518d4285e"
+    },
+    "src/utils.py": {
+      "sha256": "79d55ee108fb7f2bf05ab2317d47a00cc09369ac149f6bc90c223839c1087efa",
+      "git_blob": "bb7a3903661ceebf29fd0e875bc6f903fa184ac2"
+    },
+    "VERSION": {
+      "sha256": "050b1be586f238ff4c9b66a45397a4df7bd9de6a8809205f4f7dba0234d93790",
+      "git_blob": "37a142c49b2ab5dacd6796d7fda2b15d855b6871"
+    }
+  }
+}

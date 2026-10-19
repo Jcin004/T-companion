@@ -311,3 +311,14 @@
 - `frontend/memory-link-proposals-ui.js`：显式勾选、候选展示、调整确认和已处理记录；不直接读取业务文档。
 - `tests/memory-link-proposals.test.mjs`、`tests/memory-link-proposals-browser.mjs`、`tests/memory-link-proposals-android.mjs`：状态隔离、证据、失败原子性、实际界面/模拟请求和原生 SQLite 验收。
 - `docs/MEMORY_LINK_PROPOSALS.md`：当前契约、复用核对及范围。
+
+## Android 内置记忆
+
+- `frontend/embedded-memory.js`：本机命令适配、快照、候选范围核对及引擎状态，无远程地址。
+- `frontend/embedded-memory-ui.js`：运行状态说明；卡片和设置继续用既有界面。
+- `TMemoryPlugin.java`：单线程 Python 执行桥，无联网、密钥及业务数据库逻辑。
+- `android/app/src/main/python/t_memory.py`：OB 派生缓存协调、路径适配、按快照 CRUD、自动浮现策略和时间评分适配。
+- `vendor/python/`：固定版 OB、RapidFuzz Python 和 jieba 核心，原文件不改；配套目录保留逐文件来源与许可。
+- `config/requirements-ob-*.txt`：构建端及主机测试依赖；手机不安装依赖。
+- `tests/embedded-*.test.mjs`、`tests/test_embedded_ob.py`：事务、原核心与来源完整性检查。
+- `tests/embedded-ob-android.mjs`、`EmbeddedMemoryInstrumentation.java`：独立模拟器完整验收与原生装载检查。

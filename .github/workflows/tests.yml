@@ -18,6 +18,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install -r backend/requirements-lock.txt
+      - run: python -m pip install -r config/requirements-ob-host.txt
       - run: python -m pytest -q -W error
       - uses: actions/setup-node@v4
         with:
@@ -52,6 +53,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - run: npm ci
       - run: npm run android:sync
       - run: chmod +x android/gradlew && android/gradlew -p android :app:assembleDebug :app:assembleDebugAndroidTest -PupdateTestRunner=io.jcin.tcompanion.UpdateChannelInstrumentation --no-daemon

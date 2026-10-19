@@ -8,6 +8,7 @@ import {validateMemory,recallPlan} from './memory-core.js';
 import {MemoryModule} from './memory-service.js';
 import {buildContext,queryLocalData} from './local-queries.js';
 import {ExternalMemory,browserMemoryRequest,nativeMemoryRequest} from './external-memory.js';
+import {EmbeddedMemory} from './embedded-memory.js';
 // Preserve the existing import path for callers while the implementation moves.
 export {buildContext} from './local-queries.js';
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -70,14 +71,17 @@ export async function nativeModel(plugin,settings,messages,onDelta,signal){
   try{if(signal.aborted)throw Error('已停止生成');await plugin.model({id,profile_id:settings.profile_id||'legacy',base_url:settings.base_url,model:settings.model,messages});if(failure)throw failure;}finally{signal.removeEventListener('abort',cancel);await listener.remove();}
 }
 export class LocalService {
-  constructor(persistence,transport,diagnostics=null,externalRequest=null){this.storage=persistence;this.transport=transport;this.diagnostics=diagnostics;this.queue=Promise.resolve();this.active=null;this.memoryModule=new MemoryModule(this);this.auxTask=null;this.externalMemory=new ExternalMemory(this,externalRequest||browserMemoryRequest(persistence,diagnostics));}
+  constructor(persistence,transport,diagnostics=null,externalRequest=null,embeddedMemory=null){this.storage=persistence;this.transport=transport;this.diagnostics=diagnostics;this.queue=Promise.resolve();this.active=null;this.memoryModule=new MemoryModule(this);this.auxTask=null;this.externalMemory=new ExternalMemory(this,externalRequest||browserMemoryRequest(persistence,diagnostics));this.embeddedMemory=embeddedMemory;}
   async init(){this.data=await this.storage.load();ensureProfiles(this.data);validateMemory(this.data);for(const t of this.data.turns)if(t.state==='generating')t.state='interrupted';await this.transact(()=>{});return this;}
   // A command sees the last durable state; uncommitted candidates stay private.
   transact(change){
     const task=this.queue.catch(()=>{}).then(async()=>{
       const next=clone(this.data);
       const result=await change(next);
-      await this.storage.save(next);
+      try{
+        if(this.embeddedMemory)await this.embeddedMemory.sync(next);
+        await this.storage.save(next);
+      }catch(error){this.embeddedMemory?.invalidate();throw error;}
       this.data=next;
       return result===undefined?undefined:clone(result);
     });
@@ -90,11 +94,15 @@ export class LocalService {
   message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
   async api(path,method='GET',body){
     const url=new URL(path,'https://local'),pathname=url.pathname,route=pathname.split('/').filter(Boolean)[0];
-    if(pathname==='/external-memory'||pathname==='/external-memory/test')return this.externalMemory.api(method,body,pathname);
-    if(pathname.match(/^\/contacts\/[^/]+\/context-preview$/)&&method==='POST'&&this.externalMemory.config().enabled){
+    if(pathname==='/memory-engine'&&method==='GET')return this.embeddedMemory?.status()||{provider:'browser-local',installed:false};
+    if(pathname==='/external-memory'||pathname==='/external-memory/test'){
+      if(this.embeddedMemory)throw Error('Android 已使用内置 OB，无需外部网关配置');
+      return this.externalMemory.api(method,body,pathname);
+    }
+    if(pathname.match(/^\/contacts\/[^/]+\/context-preview$/)&&method==='POST'&&(this.embeddedMemory||this.externalMemory.config().enabled)){
       if(typeof body?.message!=='string'||body.message.length>20000)throw Error('预览消息格式或长度不正确');
       const sid=decodeURIComponent(pathname.split('/')[2]),recalled=await this.prepareRecall(sid,body.message,undefined,new AbortController().signal);
-      return {recall:clone(recalled.trace),external:recalled.external,note:'预览会查询外部记忆；发送时重新查询最新状态。',messages:buildContext(this.data,sid,body.message,undefined,recalled)};
+      return {recall:clone(recalled.trace),external:recalled.external,note:this.embeddedMemory?'预览与发送使用同一内置 OB 召回管线；发送时重新核对最新记录。':'预览会查询外部记忆；发送时重新查询最新状态。',messages:buildContext(this.data,sid,body.message,undefined,recalled)};
     }
     const queried=queryLocalData(this.data,url,method,body);
     if(queried!==undefined)return queried;
@@ -175,6 +183,14 @@ export class LocalService {
   async prepareRecall(sid,text,beforeMessageId,signal){
     const owner=this.data.sessions.find(s=>s.id===sid)?.character_id;
     if(!owner)throw Error('会话不存在');
+    if(this.embeddedMemory){
+      const data=this.data,options={sessionId:sid,beforeMessageId};
+      if(!data.memory.settings.recall)return recallPlan(data,owner,text,{...options,embedded:{ranked:[]}});
+      const embedded=await this.embeddedMemory.recall(data,owner,text,options);
+      if(signal?.aborted)throw Error('已停止生成');
+      if(JSON.stringify(data.memory)!==JSON.stringify(this.data.memory))throw Error('记忆已变化，请重新发送');
+      return recallPlan(data,owner,text,{...options,embedded});
+    }
     const recalled=recallPlan(this.data,owner,text,{sessionId:sid,beforeMessageId});
     if(!this.data.memory.settings.recall)return recalled;
     const external=await this.externalMemory.recall(owner,text,recalled,signal);
@@ -253,4 +269,4 @@ export class LocalService {
     }
   }
 }
-export async function createLocalService(plugin,diagnostics){const persistence=plugin?new NativePersistence(plugin):new BrowserPersistence();const transport=plugin?((s,k,m,delta,signal)=>nativeModel(plugin,s,m,delta,signal)):browserModel;return new LocalService(persistence,transport,diagnostics,plugin?nativeMemoryRequest(plugin):null).init();}
+export async function createLocalService(plugin,diagnostics,memoryPlugin=globalThis.Capacitor?.Plugins?.TMemory){const persistence=plugin?new NativePersistence(plugin):new BrowserPersistence();const transport=plugin?((s,k,m,delta,signal)=>nativeModel(plugin,s,m,delta,signal)):browserModel;return new LocalService(persistence,transport,diagnostics,plugin?nativeMemoryRequest(plugin):null,plugin?new EmbeddedMemory(memoryPlugin):null).init();}
