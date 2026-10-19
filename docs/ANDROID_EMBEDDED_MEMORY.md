@@ -65,3 +65,5 @@ android/gradlew -p android :app:assembleDebug :app:assembleDebugAndroidTest '-Pu
 主机测试使用真实固定版 OB 和合成材料；Node 测试验证统一事务、模型上下文、旧备份、边界和故障。Android 验收脚本 `tests/embedded-ob-android.mjs` 只允许专用空模拟器，使用真实 Python/OB/SQLite 和模拟模型传输，覆盖整理、进程重启、编辑、停用/启用、隔离、删除/恢复、保存失败和界面。
 
 交付 APK 保持原包名与原签名，覆盖安装保留数据；源码归档来自匹配提交。当前为个人本地试用包，生成文件不代表 GitHub 在线更新渠道已经发布。
+
+本轮结果：97 项 Python、87 项 Node 检查通过；Android 11 x86_64 专用模拟器的 11 项完整验收通过。另以原试用签名实测 0.9.0 → 0.10.0 覆盖安装，保留角色、联系人、聊天、轮次、草稿、配置、记忆原有字段，旧卡片自动由内置 OB 召回；新增的旧网关兼容字段保持关闭。脚本为 `tests/embedded-ob-upgrade.mjs`。模型传输均为模拟，未用真实用户记录、真实 API 或物理手机。

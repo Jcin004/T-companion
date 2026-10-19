@@ -26,7 +26,10 @@ try{
     const {createLocalService}=await import('/assets/local-service.js'),s=await createLocalService(Capacitor.Plugins.TLocal);
     return {data:await s.api('/backup'),preview:await s.api('/contacts/'+chat+'/context-preview','POST',{message:'兰花'}),engine:await s.api('/memory-engine'),version:await Capacitor.Plugins.TUpdate.info()};
   },baseline.chat);
-  for(const key of ['characters','sessions','messages','turns','drafts','memory','settings','api_profiles','api_groups'])assert.deepEqual(upgraded.data[key],baseline.data[key],'retained '+key);
+  for(const key of ['characters','sessions','messages','turns','drafts','settings','api_profiles','api_groups'])assert.deepEqual(upgraded.data[key],baseline.data[key],'retained '+key);
+  const upgradedMemory={...upgraded.data.memory};
+  if(baseline.data.memory.external===undefined){assert.equal(upgradedMemory.external.enabled,false);assert.equal(upgradedMemory.external.url,'');delete upgradedMemory.external;}
+  assert.deepEqual(upgradedMemory,baseline.data.memory,'all original memory fields retained');
   assert.equal(upgraded.version.versionCode,14);assert.equal(upgraded.engine.provider,'embedded-ob');
   assert.match(upgraded.preview.messages[0].content,/紫色兰花花盆待修理/);
   assert.equal(upgraded.preview.recall.method,'embedded-ob+bounded-links');

@@ -11,8 +11,10 @@ const adb=(...args)=>run(adbPath,['-s',serial,...args]);
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 let socket,sequence=0;const pending=new Map();
 async function connect(embedded=true){
-  const {stdout}=await adb('shell','pidof','io.jcin.tcompanion');
-  await adb('forward','tcp:9224','localabstract:webview_devtools_remote_'+stdout.trim());
+  let pid='';
+  for(let i=0;i<100;i++){try{pid=(await adb('shell','pidof','io.jcin.tcompanion')).stdout.trim();if(pid)break;}catch{}await pause(200);}
+  if(!pid)throw Error('App process unavailable');
+  await adb('forward','tcp:9224','localabstract:webview_devtools_remote_'+pid);
   let target;
   for(let i=0;i<150;i++){
     try{target=(await(await fetch('http://127.0.0.1:9224/json')).json()).find(t=>t.type==='page');if(target)break;}catch{}
