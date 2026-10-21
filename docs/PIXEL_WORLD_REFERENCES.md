@@ -16,17 +16,17 @@
 
 原图是包含聊天界面的私人截图，仅保留在本机忽略目录 `data/reference-images/pixel-room-reference.jpg`，不提交到公开仓库。图片用于确定视觉方向，实际制作需使用来源明确的素材。
 
-## 找到哪些项目，实际 Fork 了哪一个
+## 找到哪些项目，实际 Fork 了哪些
 
 | 候选 | 核对版本 | 与本阶段的关系 |
 |---|---|---|
 | [Alicization Town](https://github.com/ceresOPA/Alicization-Town) | `1a33ba65d0af2134b369b1eb4eb68f45d2c817c4` | 已 Fork 到 [Jcin004/Alicization-Town](https://github.com/Jcin004/Alicization-Town)。参考地图、寻路、移动、范围观察与世界命令分工 |
-| [InternalBeyond](https://github.com/Sui-IB/InternalBeyond) | `31c1bf410f2cc8b7a0c9d0eb0fd7c43eef500714` | 当前人机恋合集中明确收录的像素互动房间；更适合参考房间交互与人物对话的呈现 |
+| [InternalBeyond](https://github.com/Sui-IB/InternalBeyond) | `31c1bf410f2cc8b7a0c9d0eb0fd7c43eef500714` | 已 Fork 到 [Jcin004/InternalBeyond](https://github.com/Jcin004/InternalBeyond)。当前人机恋合集中明确收录的像素互动房间；更适合参考房间交互与人物对话的呈现 |
 | [a16z AI Town](https://github.com/a16z-infra/ai-town) | `8e05997f2409275669c8344b84a51692e83f3f33` | 多人物世界的备选研究对象；实际依赖 React/Pixi 与 Convex，需要额外适配现有本机结构 |
 
 合集本轮核对提交：`DasterProkio/awesome-ai-companion@cfbca6d98ad099485f84b91f5ca1e8523ae6bb91`。该版 README 包含 InternalBeyond，没有 Alicization Town；后者是补充搜索找到的世界参考，不能声称它就是用户记得的那一项。
 
-Fork 本机目录：`E:/codex/AI-Projects/Alicization-Town`。`origin` 是用户 Fork，`upstream` 是原作者仓库；本轮保持源码不变，未安装其 Skill、未接入公开世界、未启动其 AI 或服务器。
+Alicization Town 的 Fork 本机目录：`E:/codex/AI-Projects/Alicization-Town`。`origin` 是用户 Fork，`upstream` 是原作者仓库；本轮保持源码不变，未安装其 Skill、未接入公开世界、未启动其 AI 或服务器。InternalBeyond 已在 GitHub Fork，本轮未克隆到本机。
 
 逐文件 Git blob、SHA256、最近提交与作者记录在 [参考来源清单](../config/world-reference-sources.json)。清单记录的是审阅文件，不表示已经将这些文件导入 T。
 
