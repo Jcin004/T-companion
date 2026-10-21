@@ -1,5 +1,7 @@
 # 当前架构、数据流与扩展路线
 
+2026-10-22：0.12.0 增加居民有限自主活动、分角色交流/经历整理、角色主动消息与未读来源，以及 Android WorkManager + QuickJS 的无界面执行宿主。世界规则和记忆接受规则前后台共用；SQLite 加版本 CAS/租约，OB 仍为派生缓存。完整接口、费用预算、恢复与平台限制见 [居民生活](RESIDENT_LIFE.md)。
+
 2026-10-21：最小世界已在 `feat/minimal-pixel-world` 实现：原创像素房间、网格移动/碰撞、世界命令与持久观察、独立场景会话，以及带知情校验的世界事件记忆来源。Android 继续独立运行并复用内置 OB/SQLite。接口、数据所有者、复用和验证见 [最小像素世界](MINIMAL_PIXEL_WORLD.md)。
 
 参考研究阶段（现已由上述实现接续）：像素世界参考已 Fork 到 Jcin004/InternalBeyond（合集中的像素房间）和 Jcin004/Alicization-Town（补充的多人世界参考）；代码适配评估、两个星露谷 Mod 的只读检查、画风与下一阶段验收见 [像素世界参考交接](PIXEL_WORLD_REFERENCES.md)。本轮没有移植运行代码或更改 APK。

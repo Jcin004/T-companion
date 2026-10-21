@@ -30,7 +30,7 @@ export function buildContext(data,sid,message,chatStyle,recalled,scene){
   const system=INVARIANTS+'\n\nAuthoritative Character Canon:\n'+lines(facts)+'\n\nStable Persona:\n'+lines(traits)+styleInstructions(chatStyle||session.chat_style,{characterName:c.name,scene:!!currentScene})+setting+memoryContext(recalled||recallPlan(data,c.id,message,{sessionId:sid}));
   const complete=new Set(data.turns.filter(t=>t.session_id===sid&&t.state==='complete').flatMap(t=>[t.user_id,t.assistant_id]));
   const limit=historyLimit(data,sid);
-  const history=(limit?data.messages.filter(m=>m.session_id===sid&&complete.has(m.id)).slice(-limit):[]).map(({role,content})=>({role,content}));
+  const history=(limit?data.messages.filter(m=>m.session_id===sid&&(complete.has(m.id)||m.origin==='world_share'&&m.source_owner_id===c.id)).slice(-limit):[]).map(({role,content})=>({role,content}));
   return [{role:'system',content:system+externalMemoryContext(recalled?.external)},...history,{role:'user',content:message}];
 }
 

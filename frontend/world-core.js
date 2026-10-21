@@ -15,7 +15,7 @@ export function validateWorld(data){
   if(Object.keys(w.positions).length!==actors.length||actors.some(id=>!point(w.positions[id]))||new Set(Object.values(w.positions).map(p=>p.x+','+p.y)).size!==actors.length)throw Error('世界位置无效或重叠');
   const ids=new Set(),requests=new Set();
   for(const e of w.events){
-    if(!e||typeof e.id!=='string'||ids.has(e.id)||typeof e.request_id!=='string'||requests.has(e.request_id)||typeof e.fingerprint!=='string'||!Number.isFinite(Date.parse(e.created_at))||e.location!==ROOM.id||!point(e.position)||typeof e.content!=='string'||!e.content||e.content.length>210000||!Array.isArray(e.participants)||e.participants.some(id=>id!=='user'&&!owners.has(id))||!Array.isArray(e.observations)||new Set(e.observations.map(o=>o.owner_id)).size!==e.observations.length||e.observations.some(o=>!owners.has(o.owner_id)||!['witness','heard'].includes(o.kind)||!point(o.position))||!['user_command','completed_dialogue'].includes(e.source?.type))throw Error('世界事件或知情范围格式错误');
+    if(!e||typeof e.id!=='string'||ids.has(e.id)||typeof e.request_id!=='string'||requests.has(e.request_id)||typeof e.fingerprint!=='string'||!Number.isFinite(Date.parse(e.created_at))||e.location!==ROOM.id||!point(e.position)||typeof e.content!=='string'||!e.content||e.content.length>210000||!Array.isArray(e.participants)||e.participants.some(id=>id!=='user'&&!owners.has(id))||!Array.isArray(e.observations)||new Set(e.observations.map(o=>o.owner_id)).size!==e.observations.length||e.observations.some(o=>!owners.has(o.owner_id)||!['witness','heard'].includes(o.kind)||!point(o.position))||!['user_command','completed_dialogue','resident_action','resident_dialogue'].includes(e.source?.type))throw Error('世界事件或知情范围格式错误');
     if(e.source.type==='completed_dialogue'){
       const t=data.turns.find(t=>t.request_id===e.source.request_id&&t.state==='complete');
       if(!t||t.user_id!==e.source.message_ids?.[0]||t.assistant_id!==e.source.message_ids?.[1])throw Error('世界对话来源未完成');
@@ -41,12 +41,12 @@ export function sceneSnapshot(data,sid){
   if(!w.residents.includes(s.character_id)||distance(w.positions.user,p)>3)throw Error('请走近人物后再对话');
   return {mode:'world',location:ROOM.name,room_id:ROOM.id,tick:w.tick,position:copy(w.positions.user),nearby:w.residents.filter(id=>distance(w.positions.user,w.positions[id])<=3).map(id=>({id,name:data.characters.find(c=>c.id===id).name,position:copy(w.positions[id])})),facts:['用户与当前交谈人物在同一房间、近处交流。','房间有书架、书桌、床铺、盆栽和窗帘。',w.lamp?'台灯亮着。':'台灯熄灭。'],dialogue:'仅交谈双方听到本轮对话。旁白和人物陈述不自动改变世界事实。'};
 }
-function append(w,command,content,position,participants,observations,source){
+export function appendWorldEvent(w,command,content,position,participants,observations,source,at=new Date().toISOString()){
   if(w.events.length>=20000)throw Error('世界事件已达容量，请先导出备份');
-  const event={id:'world_'+command.request_id,request_id:command.request_id,fingerprint:JSON.stringify(command),created_at:new Date().toISOString(),tick:w.tick,location:ROOM.id,position:copy(position),participants,content,source,observations};
+  const event={id:'world_'+command.request_id,request_id:command.request_id,fingerprint:JSON.stringify(command),created_at:at,tick:w.tick,location:ROOM.id,position:copy(position),participants,content,source,observations};
   w.events.push(event);return copy(event);
 }
-export function applyWorldCommand(data,input){
+export function applyWorldCommand(data,input,options={}){
   const w=ensureWorld(data),command=copy(input||{});
   if(typeof command.request_id!=='string'||!/^[-\w]{1,100}$/.test(command.request_id))throw Error('世界操作缺少稳定请求标识');
   if(command.request_id.startsWith('dialogue_'))throw Error('世界操作请求标识使用了保留前缀');
@@ -74,7 +74,7 @@ export function applyWorldCommand(data,input){
     observe(p);content=name+'在暖木小屋停留了片刻。';
   }else throw Error('不支持的世界命令');
   w.tick++;
-  return append(w,command,content,w.positions[actor],actor==='user'?['user']:[actor],[...witnesses.values()],{type:'user_command',command:copy(command)});
+  return appendWorldEvent(w,command,content,w.positions[actor],actor==='user'?['user']:[actor],[...witnesses.values()],{type:options.sourceType||'user_command',command:copy(command),...(options.jobId?{job_id:options.jobId}:{})},options.at);
 }
 export function completeWorldDialogue(data,turn){
   const s=data.sessions.find(s=>s.id===turn.session_id);
@@ -82,5 +82,5 @@ export function completeWorldDialogue(data,turn){
   const w=data.world,u=data.messages.find(m=>m.id===turn.user_id),a=data.messages.find(m=>m.id===turn.assistant_id);
   const command={request_id:'dialogue_'+turn.request_id,type:'dialogue'};
   w.tick++;
-  append(w,command,'用户说：'+u.content+'\n'+data.characters.find(c=>c.id===s.character_id).name+'说：'+a.content,turn.scene.position,['user',s.character_id],[{owner_id:s.character_id,kind:'heard',position:turn.scene.nearby.find(c=>c.id===s.character_id).position}],{type:'completed_dialogue',request_id:turn.request_id,message_ids:[u.id,a.id]});
+  appendWorldEvent(w,command,'用户说：'+u.content+'\n'+data.characters.find(c=>c.id===s.character_id).name+'说：'+a.content,turn.scene.position,['user',s.character_id],[{owner_id:s.character_id,kind:'heard',position:turn.scene.nearby.find(c=>c.id===s.character_id).position}],{type:'completed_dialogue',request_id:turn.request_id,message_ids:[u.id,a.id]});
 }

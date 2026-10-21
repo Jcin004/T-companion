@@ -10,6 +10,9 @@ import {buildContext,queryLocalData} from './local-queries.js';
 import {ExternalMemory,browserMemoryRequest,nativeMemoryRequest} from './external-memory.js';
 import {EmbeddedMemory} from './embedded-memory.js';
 import {WorldModule} from './world-service.js';
+import {validateProactiveMessages} from './proactive-messages.js';
+import {ResidentLifeService} from './resident-life-service.js';
+import {validateLife} from './resident-life-core.js';
 import {validateWorld,sceneSnapshot,completeWorldDialogue} from './world-core.js';
 // Preserve the existing import path for callers while the implementation moves.
 export {buildContext} from './local-queries.js';
@@ -37,7 +40,7 @@ export function validateBackup(raw){
   for(const g of d.api_groups)if(typeof g.id!=='string'||!g.name||g.name.length>80)throw Error('分组格式错误');
   d.api_profiles=d.api_profiles.map(p=>{if(typeof p.id!=='string'||!/^[\w-]{1,100}$/.test(p.id))throw Error('连接标识错误');return {id:p.id,...validateConnection(p)};});
   validateHistoryLimit(d.settings.history_limit);for(const s of d.sessions){s.chat_style=normalizeChatStyle(s.chat_style);if(s.history_limit!=null)validateHistoryLimit(s.history_limit);}
-  validateWorld(d);validateMemory(d);
+  validateWorld(d);validateProactiveMessages(d);if(d.world.life)validateLife(d);validateMemory(d);
   d.memory.external.enabled=false; // Restoring a backup never opts into remote disclosure.
   return d;
 }
@@ -51,9 +54,11 @@ export class BrowserPersistence {
   async getKey(id){return localStorage.getItem(this.keyName(id))||'';}
 }
 export class NativePersistence {
-  constructor(plugin){this.plugin=plugin;}
-  async load(){const r=await this.plugin.load();return r.data?JSON.parse(r.data):emptyData();}
-  async save(data){await this.plugin.save({data:JSON.stringify(data)});}
+  constructor(plugin){this.plugin=plugin;this.owner='ui_'+uid();}
+  async begin(){await this.plugin.beginWrite?.({owner:this.owner});}
+  async end(){await this.plugin.endWrite?.({owner:this.owner});}
+  async load(){const r=await this.plugin.load();this.revision=r.revision;return r.data?JSON.parse(r.data):emptyData();}
+  async save(data){const r=await this.plugin.save({data:JSON.stringify(data),revision:this.revision,owner:this.owner});this.revision=r?.revision;}
   async setKey(value,id='legacy'){await this.plugin.setKey({value:value||'',profile_id:id});}
   async hasKey(id='legacy'){return (await this.plugin.hasKey({profile_id:id})).value;}
 }
@@ -74,10 +79,13 @@ export async function nativeModel(plugin,settings,messages,onDelta,signal){
 }
 export class LocalService {
   constructor(persistence,transport,diagnostics=null,externalRequest=null,embeddedMemory=null){this.storage=persistence;this.transport=transport;this.diagnostics=diagnostics;this.queue=Promise.resolve();this.active=null;this.memoryModule=new MemoryModule(this);this.auxTask=null;this.externalMemory=new ExternalMemory(this,externalRequest||browserMemoryRequest(persistence,diagnostics));this.embeddedMemory=embeddedMemory;}
-  async init(){this.data=await this.storage.load();ensureProfiles(this.data);validateWorld(this.data);validateMemory(this.data);for(const t of this.data.turns)if(t.state==='generating')t.state='interrupted';await this.transact(()=>{});return this;}
+  async init(){this.data=await this.storage.load();ensureProfiles(this.data);validateWorld(this.data);validateProactiveMessages(this.data);validateMemory(this.data);for(const t of this.data.turns)if(t.state==='generating')t.state='interrupted';await this.transact(d=>{for(const t of d.turns)if(t.state==='generating')t.state='interrupted';});return this;}
   // A command sees the last durable state; uncommitted candidates stay private.
   transact(change){
     const task=this.queue.catch(()=>{}).then(async()=>{
+      await this.storage.begin?.();
+      try{
+      if(this.storage.plugin?.beginWrite){const durable=await this.storage.load();ensureProfiles(durable);validateWorld(durable);validateMemory(durable);this.data=durable;}
       const next=clone(this.data);
       const result=await change(next);
       try{
@@ -86,6 +94,7 @@ export class LocalService {
       }catch(error){this.embeddedMemory?.invalidate();throw error;}
       this.data=next;
       return result===undefined?undefined:clone(result);
+      }finally{await this.storage.end?.();}
     });
     this.queue=task;
     return task;
@@ -95,7 +104,18 @@ export class LocalService {
   async publicSettings(){return {...this.connection(),active_profile_id:this.data.active_profile_id,has_api_key:await this.storage.hasKey(this.data.active_profile_id)};}
   message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
   async api(path,method='GET',body){
+    if(this.storage.plugin?.beginWrite&&!this.active){await this.queue.catch(()=>{});const current=await this.storage.load();ensureProfiles(current);validateWorld(current);validateMemory(current);this.data=current;}
     const url=new URL(path,'https://local'),pathname=url.pathname,route=pathname.split('/').filter(Boolean)[0];
+    if(route==='world-life'){
+      if(this.storage.plugin?.lifeRun&&['run','resume','cancel','settings'].includes(pathname.split('/')[2])){
+        if(pathname.endsWith('/run')||pathname.endsWith('/resume'))return this.storage.plugin.lifeRun({id:body?.request_id||body?.run_id||'batch_'+Date.now().toString(36),resume:pathname.endsWith('/resume'),skip:body?.skip_uncertain===true});
+        if(pathname.endsWith('/cancel'))await this.storage.plugin.lifeCancel();
+      }
+      this.lifeService??=new ResidentLifeService(this);
+      const result=await this.lifeService.api(path,method,body);
+      if(this.storage.plugin?.lifeSchedule&&pathname.endsWith('/settings'))await this.storage.plugin.lifeSchedule();
+      return result;
+    }
     if(route==='world')return new WorldModule(this).api(path,method,body);
     if(pathname==='/memory-engine'&&method==='GET')return this.embeddedMemory?.status()||{provider:'browser-local',installed:false};
     if(pathname==='/external-memory'||pathname==='/external-memory/test'){
@@ -153,9 +173,10 @@ export class LocalService {
     if(parts[0]==='contacts'){
       if(parts.length===1){
         if(method==='POST'){if(!d.characters.some(c=>c.id===body.character_id))throw Error('角色不存在');let c=d.sessions.find(s=>s.character_id===body.character_id&&s.mode!=='world');if(!c){c={id:uid(),character_id:body.character_id,title:d.characters.find(c=>c.id===body.character_id).name,note:'',background:'#eef2f3',voice:'',created_at:now()};d.sessions.push(c);}return clone(c);}
-        return d.sessions.filter(s=>s.mode!=='world').map(s=>{const ms=d.messages.filter(m=>m.session_id===s.id),last=ms[ms.length-1];return {...s,last_message:last?.content||'',last_time:last?.created_at,last_assistant_id:ms.filter(m=>m.role==='assistant'&&this.message(m).state==='complete').pop()?.id||0};}).reverse();
+        return d.sessions.filter(s=>s.mode!=='world').map(s=>{const ms=d.messages.filter(m=>m.session_id===s.id),last=ms[ms.length-1];return {...s,unread_shares:ms.filter(m=>m.origin==='world_share'&&m.id>(s.read_message_id||0)).length,last_message:last?.content||'',last_time:last?.created_at,last_assistant_id:ms.filter(m=>m.role==='assistant'&&this.message(m).state==='complete').pop()?.id||0};}).reverse();
       }
       const s=d.sessions.find(s=>s.id===parts[1]);if(!s)throw Error('会话不存在');
+      if(parts[2]==='read'&&method==='POST'){if(!Number.isSafeInteger(body.message_id)||body.message_id<0)throw Error('已读消息标识无效');s.read_message_id=Math.max(s.read_message_id||0,body.message_id);return {ok:true};}
       if(method==='PATCH'&&parts.length===2){if(body.history_limit!==undefined&&body.history_limit!==null)validateHistoryLimit(body.history_limit);for(const k of ['note','background','voice'])if(body[k]!==undefined)s[k]=String(body[k]);if('history_limit' in body)s.history_limit=body.history_limit;if(body.chat_style)s.chat_style=normalizeChatStyle(body.chat_style);return clone(s);}
       if(parts[2]==='draft'){
         if(method==='PATCH'){if(typeof body?.text!=='string'||body.text.length>100000)throw Error('草稿格式或长度不正确');d.drafts[s.id]=body.text;}

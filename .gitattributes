@@ -15,6 +15,7 @@
 # Preserve verbatim upstream package bytes and integrity digests.
 frontend/vendor/jsonrepair/** -text
 frontend/vendor/alicization-town/** -text
+frontend/vendor/alicization-town-life/** -text
 
 # Preserve exact upstream bytes recorded in vendor provenance.
 vendor/** -text -whitespace

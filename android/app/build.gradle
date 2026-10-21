@@ -9,8 +9,8 @@ android {
         ndk { abiFilters 'arm64-v8a', 'x86_64' }
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode = Integer.parseInt(project.findProperty('trialVersionCode') ?: '15')
-        versionName = project.findProperty('trialVersionName') ?: "0.11.0-trial"
+        versionCode = Integer.parseInt(project.findProperty('trialVersionCode') ?: '16')
+        versionName = project.findProperty('trialVersionName') ?: "0.12.0-trial"
         testInstrumentationRunner = project.findProperty('updateTestRunner') ?: "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -46,6 +46,8 @@ repositories {
 }
 
 dependencies {
+    implementation 'app.cash.quickjs:quickjs-android:0.9.2'
+    implementation 'androidx.work:work-runtime:2.10.1'
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"

@@ -40,4 +40,5 @@ export function drawWorld(canvas,world,visualPositions=world.state.positions){
     rect(x+6,y-11,13,14,'#e9c5a4');rect(x+5,y-13,15,6,id==='user'?'#624b42':index===0?'#b48759':'#60484c');rect(x+6,y-7,2,6,'#654c42');rect(x+11,y-3,2,2,'#493b3e');rect(x+17,y-3,2,2,'#493b3e');
     const name=id==='user'?'我':world.residents.find(r=>r.id===id)?.name||'?';c.font='9px sans-serif';c.textAlign='center';c.fillStyle='#fff0d3';c.fillText(name,x+12,y-18,64);
   }
+  canvas.dataset.drawn='yes';
 }

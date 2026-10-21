@@ -46,3 +46,7 @@ AI 关联候选不参与召回；显式选材、两端原话、确认/拒绝、�
 ## 0.11.0 最小世界
 
 本机桌面新增世界入口，保留原有各 App。世界状态、位置、事件、实际知情记录同事务保存，操作重试去重；场景会话与线上历史分开，未完成回复不成为世界经历。记忆新增明确 world_event 来源，不伪造聊天；原聊天证据、记忆管理、关联、预算和 Android 内置 OB 均保留。验收入口：`tests/world.test.mjs`、`tests/world-browser.mjs`、`tests/world-android.mjs`。使用与限制见 [最小世界](MINIMAL_PIXEL_WORLD.md)。
+
+## 0.12.0 居民活动与主动消息
+
+保留原世界与聊天。两位居民独立上下文、合法移动/交互与定向交流；自主经历整理用原 MemoryModule 验证和 OB；主动消息是带事件来源的角色消息，无伪造用户轮次。未读保存到会话游标，原聊天失败重试保留。原生前后台共用 QuickJS 规则包、SQLite CAS/租约与 OB 锁；WorkManager 管网络/电量约束，安静时段/额度由规则管理。任务预留、响应和接受分开保存；不确定请求明确跳过，已返回结果保存失败可无额外模型调用恢复。回归入口：resident-life.test.mjs、resident-life-browser.mjs、ResidentLifeInstrumentation.java；实际平台验收见 RESIDENT_LIFE.md。

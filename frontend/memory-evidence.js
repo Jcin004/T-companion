@@ -5,7 +5,7 @@ export function dayKey(stamp,zone='Asia/Shanghai'){const raw=stamp.replace(' ','
 export function sourceMessages(data,owner,day){
  const sessions=new Set(data.sessions.filter(s=>s.character_id===owner).map(s=>s.id));
  const complete=new Set(data.turns.filter(t=>sessions.has(t.session_id)&&t.state==='complete').flatMap(t=>[t.user_id,t.assistant_id]));
- return data.messages.filter(m=>sessions.has(m.session_id)&&complete.has(m.id)&&(!day||dayKey(m.created_at,data.settings.timezone)===day)).sort((a,b)=>a.id-b.id);
+ return data.messages.filter(m=>sessions.has(m.session_id)&&(complete.has(m.id)||m.origin==='world_share'&&m.source_owner_id===owner)&&(!day||dayKey(m.created_at,data.settings.timezone)===day)).sort((a,b)=>a.id-b.id);
 }
 export function validateEvidence(data,owner,input,allowed,sourceLookup){
  if(!Array.isArray(input)||!input.length||input.length>20)throw Error('每条记忆需要 1–20 条来源原话');

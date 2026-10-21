@@ -33,7 +33,7 @@ try{
   await page.locator('#world-close').tap();
   await page.locator('#world-places').getByRole('button',{name:'盆栽',exact:true}).tap();
   await page.waitForFunction(()=>Number(document.querySelector('#world-time').textContent.match(/第 (\d+)/)[1])>=4);
-  await page.locator('#world details summary').tap();
+  await page.getByText('世界经历与知情范围',{exact:true}).tap();
   const save=page.getByRole('button',{name:'保存为林的经历',exact:true}).first();
   await save.tap();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('已保存'));
   await page.locator('#home-button').tap();await app('memory');

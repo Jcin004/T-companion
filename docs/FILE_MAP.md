@@ -338,3 +338,20 @@
 | tests/world-browser.mjs | 模拟模型与手机触屏网页验收 |
 | tests/world-android.mjs | 专用模拟器原签名升级、真实 SQLite/OB 与触屏验收 |
 | docs/MINIMAL_PIXEL_WORLD.md | 模块所有者、接口、来源、使用及验证 |
+
+## 0.12.0 居民生活文件
+
+| 文件 | 所有者/职责 |
+|---|---|
+| resident-life-core.js / resident-headless.js | 无 DOM 的有限任务状态机与原生调用口 |
+| resident-life-service.js / resident-life-ui.js | 浏览器编排与世界设置界面 |
+| resident-lock.js / resident-perception.js | 上游 Promise 锁与近处观察适配 |
+| proactive-messages.js | 聊天拥有的主动投递和来源验证 |
+| world-memory.js | MemoryModule 与无界面宿主共用的世界候选接受规则 |
+| TDocumentStore.java | 唯一 SQLite 文档、版本和写入租约 |
+| TResidentEngine.java / TResidentWorker.java | QuickJS 原生 I/O 宿主及 WorkManager 有限唤醒 |
+| TSecrets.java / TMemoryEngine.java | 从旧插件收口的原凭据读取和共用 OB 锁 |
+| build-resident.mjs | 仅构建纯规则；生成脚本留在忽略目录 |
+| vendor/alicization-town-life、resident-runtime-sources.json、新增许可 | 原件、逐文件来源、依赖版本与许可证 |
+| resident-life 测试与 ResidentLifeInstrumentation.java | 合成模型、恢复、隔离、未读、无 Activity Worker 验收 |
+| RESIDENT_LIFE.md | 使用、架构、限制、逐文件复用与验证 |

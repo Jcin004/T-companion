@@ -2,6 +2,7 @@
 import {drawWorld} from './world-renderer.js';
 import {ROOM,FURNITURE,collision,distance} from './world-map.js';
 import {findPath} from './world-pathfinding.js';
+import {mountResidentLifeUI} from './resident-life-ui.js';
 const el=id=>document.getElementById(id);
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
 const requestId=()=>globalThis.crypto?.randomUUID?.()||'op_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
@@ -22,10 +23,12 @@ export function mountWorldUI({api,localReady,isLocal,toast,report}){
   let world,session,person,busy=false,pending=null,failedTurn=null,animation=0,older=0;
   const safe=fn=>async(...args)=>{try{await fn(...args);}catch(e){report(e);toast(e.message);el('world-dialogue-status').textContent=e.message;}};
   const button=(text,fn)=>{const b=node('button',text);b.type='button';b.onclick=safe(fn);return b;};
+  const lifeUI=mountResidentLifeUI({api,toast,report,refreshWorld:refresh});
   async function refresh(){
     cancelAnimationFrame(animation);
     if(!isLocal()){el('world-notice').textContent='世界使用本机数据，请在设置切换到本机模式。';el('world-play').hidden=true;el('world-setup').replaceChildren();return;}
-    world=await api('/world');el('world-notice').textContent='每次操作都会保存；离开 App 后世界暂停。';
+    world=await api('/world');el('world-notice').textContent='每次操作都会保存；居民生活和后台推进可在下方设置。';
+    await lifeUI.refresh();
     const ready=world.state.residents.length===2;el('world-play').hidden=!ready;el('world-setup').replaceChildren();
     if(!ready){
       const chars=await api('/characters');el('world-setup').append(node('p','从人设名册选择两位居民。世界只保存人物标识，资料继续由名册管理。'));

@@ -1,5 +1,7 @@
 # 最小像素世界 0.11.0
 
+后续 0.12.0 已接续居民自主经历、分享与 Android 间歇后台；下文保留 0.11.0 阶段记录，当前行为见 [居民生活](RESIDENT_LIFE.md)。
+
 本阶段基线为 `research/pixel-world-references@a69002c`，包含 `feat/android-embedded-ob@0b8c7ff`；开始时无未提交修改。功能分支 `feat/minimal-pixel-world`，不合并 main。Android 与本机网页支持本轮功能，共同后端暂不提供世界 API。
 
 ## 数据与接口
