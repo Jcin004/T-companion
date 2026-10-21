@@ -1,7 +1,7 @@
 {
   "version": 1,
   "reviewed_on": "2026-10-21",
-  "scope": "read-only reference review and GitHub fork; no imported runtime code/assets",
+  "scope": "reference review plus minimal-world pathfinding import; see frontend/vendor/alicization-town/provenance.json",
   "primary": {
     "upstream": "https://github.com/ceresOPA/Alicization-Town",
     "fork": "https://github.com/Jcin004/Alicization-Town",
@@ -79,7 +79,13 @@
       "role": "catalog-listed pixel-room interaction reference",
       "code_license": "PolyForm Noncommercial 1.0.0",
       "asset_document_license": "CC-BY-NC-SA-4.0 within author-owned rights",
-      "imported": false
+      "imported": false,
+      "reviewed_runtime_file": {
+        "path": "game/game_module.js",
+        "git_blob": "05c5d1c63c8048158b709aa3aa9f6cf0ac3532d9",
+        "author": "Sui",
+        "imported": false
+      }
     },
     {
       "repository": "https://github.com/a16z-infra/ai-town",
@@ -165,5 +171,14 @@
     "readme_sha256": "c2567c7a166b163beba26ed6667d43975ea2c02928886ebd7d0fcf2f7f849e19",
     "internal_beyond_listed": true,
     "alicization_town_listed": false
-  }
+  },
+  "runtime_imports": [
+    {
+      "repository": "https://github.com/Jcin004/Alicization-Town",
+      "commit": "1a33ba65d0af2134b369b1eb4eb68f45d2c817c4",
+      "file": "server/src/engine/pathfinding.js",
+      "provenance": "frontend/vendor/alicization-town/provenance.json",
+      "adapted_file": "frontend/world-pathfinding.js"
+    }
+  ]
 }

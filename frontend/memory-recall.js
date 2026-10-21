@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Read-only selection policy. Evidence, lexical indexing, storage and model transport stay separate.
-import {sourceMessages,validateEvidence,rosterSource} from './memory-evidence.js';
+import {sourceMessages,validateEvidence,rosterSource,evidenceProjection} from './memory-evidence.js';
 import {rankedMemories,MemoryLexicalIndex} from './memory-lexical.js';
 import {recallCues} from './recall-cues.js';
 import {historyLimit} from './context-policy.js';
@@ -108,7 +108,7 @@ export function createRecallPlan(data,owner,query,{settings,sessionId,beforeMess
     const metadata={reason:candidate.reason,...(candidate.via?{via:candidate.via}:{})};
     const item=kind==='memory'?{
       id:node.id,title:node.title,kind:node.kind,content:node.content,
-      evidence:node.evidence.map(ref=>{const m=sourceLookup.get(ref.message_id);return {message_id:m.id,role:m.role,created_at:m.created_at,quote:ref.quote};}),
+      evidence:node.evidence.map(ref=>evidenceProjection(data,owner,ref,sourceLookup)),
       score:rounded(candidate.score),matched_terms:candidate.matchedTerms,recall:metadata,
       ...(conflicts.has('memory:'+node.id)?{has_conflicting_evidence:true}:{})
     }:{id:node.id,label:node.label,interpretation:node.interpretation,quote:node.quote,origin:'manual',recall:metadata};

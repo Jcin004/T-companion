@@ -1,6 +1,8 @@
 # 当前架构、数据流与扩展路线
 
-2026-10-21：像素世界参考已 Fork 到 Jcin004/InternalBeyond（合集中的像素房间）和 Jcin004/Alicization-Town（补充的多人世界参考）；代码适配评估、两个星露谷 Mod 的只读检查、画风与下一阶段验收见 [像素世界参考交接](PIXEL_WORLD_REFERENCES.md)。本轮没有移植运行代码或更改 APK。
+2026-10-21：最小世界已在 `feat/minimal-pixel-world` 实现：原创像素房间、网格移动/碰撞、世界命令与持久观察、独立场景会话，以及带知情校验的世界事件记忆来源。Android 继续独立运行并复用内置 OB/SQLite。接口、数据所有者、复用和验证见 [最小像素世界](MINIMAL_PIXEL_WORLD.md)。
+
+参考研究阶段（现已由上述实现接续）：像素世界参考已 Fork 到 Jcin004/InternalBeyond（合集中的像素房间）和 Jcin004/Alicization-Town（补充的多人世界参考）；代码适配评估、两个星露谷 Mod 的只读检查、画风与下一阶段验收见 [像素世界参考交接](PIXEL_WORLD_REFERENCES.md)。本轮没有移植运行代码或更改 APK。
 
 2026-10-20：Android 已把 OB 存储与召回核心内置 APK，SQLite 为唯一业务底账，派生 OB 缓存自动校正，无需外接记忆服务。完整数据流、迁移和测试见 [Android 内置记忆](ANDROID_EMBEDDED_MEMORY.md)。网页保留此前本地召回及可选 [OB 只读网关原型](OB_MEMORY_GATEWAY.md)，后续再统一。Latent 尚未接入。产品目标保持“人物在持续世界中生活，用户与之发生关系”。
 

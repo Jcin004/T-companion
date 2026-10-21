@@ -42,3 +42,7 @@ Git 保存的是源码版本，可以查看或恢复旧代码。真实聊天、�
 聊天详情子页（风格、历史、名册）返回时恢复上一级，保留详情表单草稿；跳转来源或返回桌面不重新弹出父页。回归入口：`tests/chat-settings-browser.mjs`。
 
 AI 关联候选不参与召回；显式选材、两端原话、确认/拒绝、版本失效和失败回滚必须保留。确认不覆盖已有人工关系，删除候选不删正式关联。回归入口：`tests/memory-link-proposals.test.mjs`、`tests/memory-link-proposals-browser.mjs`。
+
+## 0.11.0 最小世界
+
+本机桌面新增世界入口，保留原有各 App。世界状态、位置、事件、实际知情记录同事务保存，操作重试去重；场景会话与线上历史分开，未完成回复不成为世界经历。记忆新增明确 world_event 来源，不伪造聊天；原聊天证据、记忆管理、关联、预算和 Android 内置 OB 均保留。验收入口：`tests/world.test.mjs`、`tests/world-browser.mjs`、`tests/world-android.mjs`。使用与限制见 [最小世界](MINIMAL_PIXEL_WORLD.md)。

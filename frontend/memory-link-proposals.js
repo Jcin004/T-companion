@@ -35,8 +35,8 @@ function proofValue(data,owner,value,proof,{fresh=true}={}) {
     const node=linkNode(data,owner,ref),key=proposalKey(ref);covered.add(key);
     if(ref.kind==='memory') {
       validateEvidence(data,owner,[p]);
-      if(fresh&&!node.evidence.some(e=>e.message_id===p.message_id&&e.quote.includes(p.quote)))throw Error('候选引文不在已提供的记忆依据内');
-      return {kind:ref.kind,id:ref.id,message_id:p.message_id,quote:p.quote};
+      if(fresh&&!node.evidence.some(e=>(e.source_type==='world_event'?p.source_type==='world_event'&&e.event_id===p.event_id:e.message_id===p.message_id)&&e.quote.includes(p.quote)))throw Error('候选引文不在已提供的记忆依据内');
+      return {kind:ref.kind,id:ref.id,...(p.source_type==='world_event'?{source_type:'world_event',event_id:p.event_id}:{message_id:p.message_id}),quote:p.quote};
     }
     if(fresh&&!node.quote.includes(p.quote))throw Error('候选标签引文不匹配');
     return {kind:ref.kind,id:ref.id,quote:p.quote};
