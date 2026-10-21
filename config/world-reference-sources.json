@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "reviewed_on": "2026-10-21",
+  "scope": "read-only reference review and GitHub fork; no imported runtime code/assets",
+  "primary": {
+    "upstream": "https://github.com/ceresOPA/Alicization-Town",
+    "fork": "https://github.com/Jcin004/Alicization-Town",
+    "commit": "1a33ba65d0af2134b369b1eb4eb68f45d2c817c4",
+    "root_license": "AGPL-3.0-or-later",
+    "license_notes": "README contains a stale MIT badge; server/package.json and some package manifests say MIT. Resolve actual file-level scope when importing; do not infer all core files are MIT.",
+    "reviewed_files": {
+      "LICENSE": {
+        "sha256": "2a8154cffcb10397c20f3cf68ad9ab4b06e8d2b4b675717f7f6f19ed9fe0c77c",
+        "git_blob": "6da352dc50974f3966c28bd1b0a24ecf92bdf0bf",
+        "last_change_commit": "1b25d019c4a44eda49cc6cec01774f4fc115ddf7",
+        "last_author": "CeresOPA"
+      },
+      "package.json": {
+        "sha256": "e7129928345a12b0aa18725abe8b172f97f33701093839e19ffe2d0ebb034447",
+        "git_blob": "9dadd3b75c422e71d049f7f9785629926af5ff10",
+        "last_change_commit": "63f0c39aeb9129113b052a10883136c3321a8f34",
+        "last_author": "CeresOPA"
+      },
+      "server/package.json": {
+        "sha256": "9ccb207ea2917d5fadf4734f29964509c5001d0e53484684d5c106cd741b57e6",
+        "git_blob": "ab8ddb7729034e17e877849bf1f9b970e0ef0118",
+        "last_change_commit": "1363805ec33e2050cd76b49622b404d1931e41f5",
+        "last_author": "CeresOPA"
+      },
+      "server/web/index.html": {
+        "sha256": "7afb46f3fb67ec91a41ad3ab840d8d2a6600f48f41e77cabce14898e1eaf9ccf",
+        "git_blob": "b6a66438e316a3ca22db74d7c3685d16ef3e4f77",
+        "last_change_commit": "e3e03aa061d427aec177b513164465cb4fbc5ed6",
+        "last_author": "MuleRun Bot"
+      },
+      "server/web/js/game.js": {
+        "sha256": "6c3110e7882dcea3e78e7de282f16df3f952a5590d3023c5b1cf681832ccd6f4",
+        "git_blob": "4dbf77467cae13173d6a832b63e3d1d0ff27a2fb",
+        "last_change_commit": "1363805ec33e2050cd76b49622b404d1931e41f5",
+        "last_author": "CeresOPA"
+      },
+      "server/src/engine/pathfinding.js": {
+        "sha256": "dad4f9e5b19dcd85269ba279d00bd13a8d201f46f35da888e3f6c37c055ee376",
+        "git_blob": "0254cab9ccf7e11769336839b0d040ffe4fdb1d1",
+        "last_change_commit": "aeb1cb733d9fd6670e8d2deca6c59f762ee15a61",
+        "last_author": "Northseadl"
+      },
+      "server/src/engine/perception.js": {
+        "sha256": "638d653abfb152c2d0bcf64daa3eb7ec472561d7f72b81c97fb8471470cf06a3",
+        "git_blob": "31597d15500e52250dcad02fb1423654fa9ed055",
+        "last_change_commit": "4d6aa21bc79a8b9c6f8997ede95e0a864d9bc8fc",
+        "last_author": "Northseadl"
+      },
+      "server/src/engine/world-engine.js": {
+        "sha256": "e631a2726e1e1b0daf195702de190b749b1b45abed41b30541d98a707c8f6a3f",
+        "git_blob": "a2bd73b1ed94dab49c15bc21c3e1aeb109a136de",
+        "last_change_commit": "165b9e1332a812407a9d6d1c1cd914eb1f970bdc",
+        "last_author": "CeresOPA"
+      },
+      "server/src/persistence/sqlite-state-store.js": {
+        "sha256": "e15682fed7498e1bbce9d56660b18ebf48314872891f84fc6f8e6f1d4b95e8ce",
+        "git_blob": "8192b5511269935e9c57c10b5b7dcf9f4f60c287",
+        "last_change_commit": "04a2ca72123e231e4d3a9e3818a49465d176d500",
+        "last_author": "Northseadl"
+      },
+      "packages/core-interfaces/package.json": {
+        "sha256": "f0ac0cffd7817aab011e52bfb8e3a0cc75860e64046e5511e04468ec8900101e",
+        "git_blob": "1d50184dc67ed36d97cbdd3fb49b37a2be953d3d",
+        "last_change_commit": "48b8dd0eee0c1b1861d385fe3468e3ec27f6bd03",
+        "last_author": "ceresOPA"
+      }
+    }
+  },
+  "secondary": [
+    {
+      "repository": "https://github.com/Sui-IB/InternalBeyond",
+      "commit": "31c1bf410f2cc8b7a0c9d0eb0fd7c43eef500714",
+      "role": "catalog-listed pixel-room interaction reference",
+      "code_license": "PolyForm Noncommercial 1.0.0",
+      "asset_document_license": "CC-BY-NC-SA-4.0 within author-owned rights",
+      "imported": false
+    },
+    {
+      "repository": "https://github.com/a16z-infra/ai-town",
+      "commit": "8e05997f2409275669c8344b84a51692e83f3f33",
+      "role": "alternative world simulation reference; Convex+React/Pixi coupling",
+      "code_license": "MIT",
+      "imported": false
+    }
+  ],
+  "mods": [
+    {
+      "archive_name": "Multimedia EAC 51196 2.3.4 2026-10-08T15-37Z 9UPSpTRCu.zip",
+      "archive_sha256": "143e92611a52f7a871c89421fd70ff3b3ac4009b39f92b8d157be00dd19a457e",
+      "manifest_version": "2.3.3",
+      "manifest_author": "kuanglang",
+      "manifest_unique_id": "kuanglang.EvolvingAIConversation",
+      "minimum_smapi_version": "4.0.0",
+      "api_major_in_docs": 4,
+      "reviewed_files": [
+        {
+          "path": "2.3.4/manifest.json",
+          "sha256": "52a859ca0ae2beb277c2949c55864822e92157a4e6323e673b928f53bbefc689"
+        },
+        {
+          "path": "2.3.4/docs/API/API_USAGE_NOTICE.md",
+          "sha256": "96baacd37adc1bc6aaaf713608f8311594ee5d17d61878a553733f05ce4263bb"
+        },
+        {
+          "path": "2.3.4/docs/API/PUBLIC_API.md",
+          "sha256": "326f86b2219a9d8755380dd6c0386a193e10bca3e771ec585366aad4bbbb8a32"
+        },
+        {
+          "path": "2.3.4/docs/API/PUBLIC_API_CN.md",
+          "sha256": "269d52a02dd1b004a690d549c09184129e39402a37ca6dfc8839f27022ad5325"
+        },
+        {
+          "path": "2.3.4/docs/API/IEvolvingAIConversationApi.cs",
+          "sha256": "33bcbd2c7decf2c1ff4cbb66b0816d2ae5e75ad109bdcf96ddb2925d5d2273a4"
+        }
+      ],
+      "core_source_in_archive": false,
+      "core_license": "archive includes only a limited interoperability permission for the API declarations; core terms not included",
+      "code_or_assets_imported": false
+    },
+    {
+      "archive_name": "EvolvingAIConversation 51196 1.2.1 2026-09-19T19-52Z sewzgCnk0.zip",
+      "archive_sha256": "1274748e85b54c15995339223d3797391a7f5392ecc497de05a3c4c196f42e12",
+      "manifest_version": "1.3.0",
+      "manifest_author": "kuanglang",
+      "manifest_unique_id": "kuanglang.EvolvingAIConversation",
+      "minimum_smapi_version": "4.0.0",
+      "api_major_in_docs": 4,
+      "reviewed_files": [
+        {
+          "path": "EvolvingAIConversation-nf/manifest.json",
+          "sha256": "21626e3b2ce23583306880a395f99ad22f5a0e8ddc2d56b20b0b5a011b16e9fc"
+        },
+        {
+          "path": "EvolvingAIConversation-nf/docs/API/API_USAGE_NOTICE.md",
+          "sha256": "96baacd37adc1bc6aaaf713608f8311594ee5d17d61878a553733f05ce4263bb"
+        },
+        {
+          "path": "EvolvingAIConversation-nf/docs/API/PUBLIC_API.md",
+          "sha256": "fdd80ba94e9e350137bb549a937eceaec5d5865737713ada97279e4b9b5a3a95"
+        },
+        {
+          "path": "EvolvingAIConversation-nf/docs/API/PUBLIC_API_CN.md",
+          "sha256": "3ca3ce09557a40e7181188cae9ccee5de50edcf6f4e2b7023d0125dc0558113e"
+        },
+        {
+          "path": "EvolvingAIConversation-nf/docs/API/IEvolvingAIConversationApi.cs",
+          "sha256": "33bcbd2c7decf2c1ff4cbb66b0816d2ae5e75ad109bdcf96ddb2925d5d2273a4"
+        }
+      ],
+      "core_source_in_archive": false,
+      "core_license": "archive includes only a limited interoperability permission for the API declarations; core terms not included",
+      "code_or_assets_imported": false
+    }
+  ],
+  "catalog": {
+    "repository": "https://github.com/DasterProkio/awesome-ai-companion",
+    "commit": "cfbca6d98ad099485f84b91f5ca1e8523ae6bb91",
+    "readme_sha256": "c2567c7a166b163beba26ed6667d43975ea2c02928886ebd7d0fcf2f7f849e19",
+    "internal_beyond_listed": true,
+    "alicization_town_listed": false
+  }
+}
