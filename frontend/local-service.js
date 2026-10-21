@@ -9,6 +9,8 @@ import {MemoryModule} from './memory-service.js';
 import {buildContext,queryLocalData} from './local-queries.js';
 import {ExternalMemory,browserMemoryRequest,nativeMemoryRequest} from './external-memory.js';
 import {EmbeddedMemory} from './embedded-memory.js';
+import {WorldModule} from './world-service.js';
+import {validateWorld,sceneSnapshot,completeWorldDialogue} from './world-core.js';
 // Preserve the existing import path for callers while the implementation moves.
 export {buildContext} from './local-queries.js';
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -35,7 +37,7 @@ export function validateBackup(raw){
   for(const g of d.api_groups)if(typeof g.id!=='string'||!g.name||g.name.length>80)throw Error('分组格式错误');
   d.api_profiles=d.api_profiles.map(p=>{if(typeof p.id!=='string'||!/^[\w-]{1,100}$/.test(p.id))throw Error('连接标识错误');return {id:p.id,...validateConnection(p)};});
   validateHistoryLimit(d.settings.history_limit);for(const s of d.sessions){s.chat_style=normalizeChatStyle(s.chat_style);if(s.history_limit!=null)validateHistoryLimit(s.history_limit);}
-  validateMemory(d);
+  validateWorld(d);validateMemory(d);
   d.memory.external.enabled=false; // Restoring a backup never opts into remote disclosure.
   return d;
 }
@@ -72,7 +74,7 @@ export async function nativeModel(plugin,settings,messages,onDelta,signal){
 }
 export class LocalService {
   constructor(persistence,transport,diagnostics=null,externalRequest=null,embeddedMemory=null){this.storage=persistence;this.transport=transport;this.diagnostics=diagnostics;this.queue=Promise.resolve();this.active=null;this.memoryModule=new MemoryModule(this);this.auxTask=null;this.externalMemory=new ExternalMemory(this,externalRequest||browserMemoryRequest(persistence,diagnostics));this.embeddedMemory=embeddedMemory;}
-  async init(){this.data=await this.storage.load();ensureProfiles(this.data);validateMemory(this.data);for(const t of this.data.turns)if(t.state==='generating')t.state='interrupted';await this.transact(()=>{});return this;}
+  async init(){this.data=await this.storage.load();ensureProfiles(this.data);validateWorld(this.data);validateMemory(this.data);for(const t of this.data.turns)if(t.state==='generating')t.state='interrupted';await this.transact(()=>{});return this;}
   // A command sees the last durable state; uncommitted candidates stay private.
   transact(change){
     const task=this.queue.catch(()=>{}).then(async()=>{
@@ -94,6 +96,7 @@ export class LocalService {
   message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
   async api(path,method='GET',body){
     const url=new URL(path,'https://local'),pathname=url.pathname,route=pathname.split('/').filter(Boolean)[0];
+    if(route==='world')return new WorldModule(this).api(path,method,body);
     if(pathname==='/memory-engine'&&method==='GET')return this.embeddedMemory?.status()||{provider:'browser-local',installed:false};
     if(pathname==='/external-memory'||pathname==='/external-memory/test'){
       if(this.embeddedMemory)throw Error('Android 已使用内置 OB，无需外部网关配置');
@@ -149,8 +152,8 @@ export class LocalService {
     }
     if(parts[0]==='contacts'){
       if(parts.length===1){
-        if(method==='POST'){if(!d.characters.some(c=>c.id===body.character_id))throw Error('角色不存在');let c=d.sessions.find(s=>s.character_id===body.character_id);if(!c){c={id:uid(),character_id:body.character_id,title:d.characters.find(c=>c.id===body.character_id).name,note:'',background:'#eef2f3',voice:'',created_at:now()};d.sessions.push(c);}return clone(c);}
-        return d.sessions.map(s=>{const ms=d.messages.filter(m=>m.session_id===s.id),last=ms[ms.length-1];return {...s,last_message:last?.content||'',last_time:last?.created_at,last_assistant_id:ms.filter(m=>m.role==='assistant'&&this.message(m).state==='complete').pop()?.id||0};}).reverse();
+        if(method==='POST'){if(!d.characters.some(c=>c.id===body.character_id))throw Error('角色不存在');let c=d.sessions.find(s=>s.character_id===body.character_id&&s.mode!=='world');if(!c){c={id:uid(),character_id:body.character_id,title:d.characters.find(c=>c.id===body.character_id).name,note:'',background:'#eef2f3',voice:'',created_at:now()};d.sessions.push(c);}return clone(c);}
+        return d.sessions.filter(s=>s.mode!=='world').map(s=>{const ms=d.messages.filter(m=>m.session_id===s.id),last=ms[ms.length-1];return {...s,last_message:last?.content||'',last_time:last?.created_at,last_assistant_id:ms.filter(m=>m.role==='assistant'&&this.message(m).state==='complete').pop()?.id||0};}).reverse();
       }
       const s=d.sessions.find(s=>s.id===parts[1]);if(!s)throw Error('会话不存在');
       if(method==='PATCH'&&parts.length===2){if(body.history_limit!==undefined&&body.history_limit!==null)validateHistoryLimit(body.history_limit);for(const k of ['note','background','voice'])if(body[k]!==undefined)s[k]=String(body[k]);if('history_limit' in body)s.history_limit=body.history_limit;if(body.chat_style)s.chat_style=normalizeChatStyle(body.chat_style);return clone(s);}
@@ -214,18 +217,20 @@ export class LocalService {
         let turn=d.turns.find(t=>t.request_id===rid);
         if(turn&&(turn.session_id!==sid||d.messages.find(m=>m.id===turn.user_id)?.content!==text))throw Error('请求标识与原消息不匹配');
         if(turn?.state==='complete')return {complete:true};
+        const scene=turn?.scene||sceneSnapshot(d,sid);
         const nextId=()=>d.messages.reduce((n,m)=>Math.max(n,m.id),0)+1;
         if(!turn){
           const u={id:nextId(),session_id:sid,role:'user',content:text,created_at:now()};
           d.messages.push(u);
           turn={request_id:rid,session_id:sid,user_id:u.id,assistant_id:null};d.turns.push(turn);
+          if(scene)turn.scene=scene;
         }
         turn.state='generating';turn.error='';
         if(!turn.chat_style)turn.chat_style=turnChatStyle(d.sessions.find(s=>s.id===sid).chat_style,rid);
         let reply=d.messages.find(m=>m.id===turn.assistant_id);
         if(!reply){reply={id:nextId(),session_id:sid,role:'assistant',content:'',created_at:now()};d.messages.push(reply);turn.assistant_id=reply.id;}
         else reply.content='';
-        return {chat_style:turn.chat_style,user_id:turn.user_id};
+        return {chat_style:turn.chat_style,user_id:turn.user_id,scene:turn.scene};
       });
       if(accepted.complete){onEvent('complete',{});return;}
       started=true;onEvent('accepted',accepted);
@@ -233,13 +238,14 @@ export class LocalService {
         const turn=d.turns.find(t=>t.request_id===rid);
         const reply=d.messages.find(m=>m.id===turn.assistant_id);
         reply.content=content;if(state)turn.state=state;turn.error=error;
+        if(state==='complete')completeWorldDialogue(d,turn);
       });
       const recalled=await this.prepareRecall(sid,text,accepted.user_id,ctrl.signal),d=this.data;
       if(ctrl.signal.aborted)throw Error('已停止生成');
       if(recalled.external?.state==='fallback')onEvent('memory-status',{message:recalled.external.message});
       const timer=setTimeout(()=>ctrl.abort(),180000);
       try{
-        await this.callModel(buildContext(d,sid,text,accepted.chat_style,recalled),chunk=>{
+        await this.callModel(buildContext(d,sid,text,accepted.chat_style,recalled,accepted.scene),chunk=>{
           if(ctrl.signal.aborted)return;
           partial+=chunk;if(partial.length>100000){ctrl.abort();return;}
           onEvent('delta',{text:chunk});

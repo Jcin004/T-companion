@@ -1,0 +1,27 @@
+{
+  "repository": "https://github.com/Jcin004/Alicization-Town",
+  "upstream": "https://github.com/ceresOPA/Alicization-Town",
+  "commit": "1a33ba65d0af2134b369b1eb4eb68f45d2c817c4",
+  "license": "AGPL-3.0-or-later",
+  "author": "Northseadl",
+  "last_change_commit": "aeb1cb733d9fd6670e8d2deca6c59f762ee15a61",
+  "files": {
+    "pathfinding.cjs": {
+      "source": "server/src/engine/pathfinding.js",
+      "git_blob": "0254cab9ccf7e11769336839b0d040ffe4fdb1d1",
+      "sha256": "faad262c36d3090c4f03c0e9630a442c08142a38219640acad159a3b74b9fe50",
+      "changes": "none"
+    },
+    "LICENSE": {
+      "source": "LICENSE",
+      "git_blob": "6da352dc50974f3966c28bd1b0a24ecf92bdf0bf",
+      "sha256": "07d3eec4b72e3c2c1c7ebc36ce3dacd77b0193a5c7dab25c6261ef8ef9b1cc0d",
+      "changes": "none"
+    }
+  },
+  "adapter": {
+    "path": "frontend/world-pathfinding.js",
+    "changes": "Replace CommonJS module.exports footer with ESM export; prepend provenance comment. Algorithm unchanged.",
+    "dependencies": []
+  }
+}
