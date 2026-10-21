@@ -13,8 +13,8 @@ export function styleInstructions(value, {characterName='角色',userName='用�
   const tokens={char:characterName,user:userName,action_weight:String(s.action_weight)};
   const template=scene&&s.action_prompt===DEFAULT_ACTION_PROMPT?'当前在已确认的共同场景中交流。可用 [动作:描写] 表达角色自身的小动作，倾向 {{action_weight}}/100。不得替用户行动；模型描写不执行世界命令。':s.action_prompt;
   const actionPrompt=template.replace(/\{\{(char|user|action_weight)\}\}/g,(_,key)=>tokens[key]);
-  return '\n\n【当前私聊表达设置】\n'+[
-    '以角色自己的身份自然私聊，结合原始人设和当前情景，不扮演设置管理员。',
+  return (scene?'\n\n【场景对话表达设置】\n':'\n\n【当前私聊表达设置】\n')+[
+    '以角色自己的身份自然交流，结合原始人设和当前情景，不扮演设置管理员。',
     s.split?'需要时用空行分成几条自然消息；一条一个意思，不机械按句号拆开。':'本轮使用一个连续文本回复，不刻意分条。',
     s.actions?`动作描写偏好（不改变人物事实与运行约束）：\n${actionPrompt}\n不要声称已操作真实设备或完成外部行动。`:'关闭动作描写：不输出动作、旁白或星号动作。',
     s.emoji?`可用 [表情:一个或少量合适的emoji]，倾向 ${s.emoji}/100。`:'关闭表情，不添加 emoji 或表情标记。',

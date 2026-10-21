@@ -158,6 +158,13 @@ The user confirmed on 2026-10-17 that the official SullyOS community announcemen
 - Chaquopy 17.1.0 (MIT), CPython 3.12 (PSF), python-frontmatter 1.1.0 (MIT), rank-bm25 0.2.2 (Apache-2.0), PyYAML 6.0.3 (MIT), NumPy 1.26.2 (BSD and bundled notices), tzdata 2025.2 (Apache-2.0 / upstream timezone notices), and packaged numerical/runtime libraries retain license texts in `vendor/runtime-licenses/`. Its manifest records actual build package versions and license digests. Full texts are also displayed in the app legal page.
 - Adaptation is outside vendor files: `t_memory.py`, `TMemoryPlugin.java`, `frontend/embedded-memory*.js`. SQLite remains authoritative; OB files are disposable projections. The adapter canonicalizes Android paths, uses original event dates for ranking, waits for the upstream BM25 rebuild, and selects RapidFuzz's supported Python implementation. Existing T domain evidence/owner/graph/budget rules remain. No OB model client, MCP server, embedding network call, dream/autonomous task or private material is imported.
 - Earlier reference-only statements describe previous releases. Android now executes this original Python core; browser retains the earlier Serein port and optional gateway evaluation. The complete application remains AGPL-3.0-only.
+# Alicization Town grid pathfinding (2026-10-21)
+
+Imported from [Jcin004/Alicization-Town](https://github.com/Jcin004/Alicization-Town), upstream [ceresOPA/Alicization-Town](https://github.com/ceresOPA/Alicization-Town), commit `1a33ba65d0af2134b369b1eb4eb68f45d2c817c4`. Source: `server/src/engine/pathfinding.js`, last author Northseadl, change `aeb1cb733d9fd6670e8d2deca6c59f762ee15a61`, blob `0254cab9ccf7e11769336839b0d040ffe4fdb1d1`.
+
+Exact source and root license are retained in `frontend/vendor/alicization-town/`; per-file hashes are in `provenance.json`. `frontend/world-pathfinding.js` changes only the CommonJS export to ESM and adds a provenance comment. The A* heap, traversal and nearest-walkable algorithm are unchanged. No Node dependencies. We use the root AGPL-3.0-or-later grant (version 3 for this combined AGPL-3.0-only application); README/package MIT labels conflict and are not used to relicense the engine.
+
+Canvas rendering, room geometry, command/observation persistence and UI are original T-companion code. No upstream character, AI, model, memory, authentication, analytics, network service or art is imported. The private room screenshot is a local style reference only. InternalBeyond code/art is not imported; its file review and noncommercial license scope are recorded in `docs/MINIMAL_PIXEL_WORLD.md`.
 
 
                     GNU AFFERO GENERAL PUBLIC LICENSE

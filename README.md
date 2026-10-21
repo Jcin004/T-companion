@@ -71,3 +71,7 @@ npm test
 ## Android 下载与覆盖更新
 
 公开试用下载：[T-companion-updates Releases](https://github.com/Jcin004/T-companion-updates/releases)。安装前导出备份，直接覆盖旧版，不要卸载。0.7.0 起在 Android 应用“设置 → 关于与更新”检查后续版本；浏览器仅提供下载渠道说明。发布附件包含匹配源码与许可。
+
+## 最小像素世界 0.11.0
+
+桌面“世界”可进入暖木小屋，从现有名册绑定两位居民，点地板移动、点人物场景对话、点家具交互或推进一步。世界状态与知情事件保存在本机，Android 不需要电脑常开。事件可显式保存为知情人物的记忆，并由既有内置 OB 召回及回溯来源；线上聊天不默认面对面。详见 [最小世界说明](docs/MINIMAL_PIXEL_WORLD.md)。

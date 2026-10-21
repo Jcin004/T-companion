@@ -29,7 +29,7 @@ export function mountMemoryLinks({api,openSource,toast,report,cancel}){
   function details(record,owner,back){
     show(record.kind==='memory'?'关联记忆':'关联核心标签');
     content.append(button('返回关联',back),node('h3','',record.title),node('p','memory-text',record.content||record.interpretation));
-    if(record.kind==='memory')for(const source of record.evidence){const b=button('原话 #'+source.message_id+' · '+source.quote,()=>openSource(source.message_id,owner));b.classList.add('memory-source');content.append(b);}
+    if(record.kind==='memory')for(const source of record.evidence){const b=button((source.source_type==='world_event'?'世界事件 #'+source.event_id:'原话 #'+source.message_id)+' · '+source.quote,()=>openSource(source.source_type==='world_event'?source:source.message_id,owner));b.classList.add('memory-source');content.append(b);}
     else content.append(node('blockquote','memory-text',record.quote));
   }
   async function open(ref,owner){

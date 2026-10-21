@@ -19,7 +19,7 @@ export function mountMemoryLinkProposals({api,openSource,toast,report,cancel,cha
   function proof(container,items,owner){
     for(const p of items){
       if(p.kind==='memory'){
-        const b=button('原话 #'+p.message_id+' · '+p.quote,()=>openSource(p.message_id,owner));
+        const b=button((p.source_type==='world_event'?'世界事件 #'+p.event_id:'原话 #'+p.message_id)+' · '+p.quote,()=>openSource(p.source_type==='world_event'?p:p.message_id,owner));
         b.classList.add('memory-source');container.append(b);
       }else container.append(node('blockquote','名册原话：'+p.quote));
     }

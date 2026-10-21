@@ -322,3 +322,19 @@
 - `config/requirements-ob-*.txt`：构建端及主机测试依赖；手机不安装依赖。
 - `tests/embedded-*.test.mjs`、`tests/test_embedded_ob.py`：事务、原核心与来源完整性检查。
 - `tests/embedded-ob-android.mjs`、`EmbeddedMemoryInstrumentation.java`：独立模拟器完整验收与原生装载检查。
+
+## 最小世界新增文件
+
+| 文件 | 职责 |
+|---|---|
+| frontend/world-map.js | 原创房间几何、地点、碰撞网格 |
+| frontend/world-pathfinding.js | Alicization Town A* 的 ESM 适配，算法未改 |
+| frontend/vendor/alicization-town/* | 原版寻路、完整许可和逐文件来源 |
+| frontend/world-core.js | 世界状态验证、移动/交互、事件、观察、场景快照 |
+| frontend/world-service.js | 世界读写接口与统一事务接入 |
+| frontend/world-renderer.js | 原创 Canvas 像素美术，只读取世界投影 |
+| frontend/world-ui.js、world.css | 桌面世界入口、触屏操作、场景对话与来源呈现 |
+| tests/world.test.mjs | 持久化/隔离/失败/去重/上下文/来源/复用测试 |
+| tests/world-browser.mjs | 模拟模型与手机触屏网页验收 |
+| tests/world-android.mjs | 专用模拟器原签名升级、真实 SQLite/OB 与触屏验收 |
+| docs/MINIMAL_PIXEL_WORLD.md | 模块所有者、接口、来源、使用及验证 |

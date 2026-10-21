@@ -4,6 +4,8 @@ import {LocalService,emptyData,validateBackup} from '../frontend/local-service.j
 import {findPath} from '../frontend/world-pathfinding.js';
 import {collision} from '../frontend/world-map.js';
 import {proposalValue} from '../frontend/memory-link-proposals.js';
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 const copy=x=>structuredClone(x);
 async function fixture(){
   let saved=emptyData(),fail=false,calls=[];
@@ -80,4 +82,22 @@ test('pathfinding adapts unchanged upstream algorithm; obstacles and occupied ce
   assert.equal(findPath(cells,12,13,5,8,4,6).reachable,false);
   const result=findPath(cells,12,13,5,8,4,3);assert.equal(result.reachable,true);
   for(const p of result.path)assert.equal(cells[p.y*12+p.x],0);
+});
+test('world evidence participates in reviewed directional links and their proposals without sharing',async()=>{
+  const {s}=await fixture();const e=await cmd(s,'known','advance');await memory(s,'a',e);
+  const online=await s.api('/contacts','POST',{character_id:'a'});await s.stream(online.id,'旧聊天的来源','source',()=>{});
+  await s.api('/memories','POST',{owner_id:'a',title:'旧聊天',content:'旧聊天的来源',kind:'statement',evidence:[{message_id:1,quote:'旧聊天的来源'}]});
+  const [one,two]=s.data.memory.events;
+  const proposal=proposalValue(s.data,'a',{from:{kind:'memory',id:one.id},to:{kind:'memory',id:two.id},type:'supplements',reason:'补充材料',proof:[{kind:'memory',id:one.id,source_type:'world_event',event_id:e.id,quote:e.content},{kind:'memory',id:two.id,message_id:1,quote:'旧聊天的来源'}]});
+  assert.equal(proposal.proof[0].source_type,'world_event');
+  await s.api('/memory-links','POST',{owner_id:'a',from:proposal.from,to:proposal.to,type:'supplements',note:'人工确认'});
+  assert.equal((await s.api('/memory-links?owner=a')).length,1);assert.equal((await s.api('/memory-links?owner=b')).length,0);
+  const backup=await s.api('/backup');assert.equal(validateBackup(backup).memory.events.length,2);
+});
+test('vendored bytes and ESM adaptation match recorded upstream, no Node runtime dependency',async()=>{
+  const root=new URL('../frontend/vendor/alicization-town/',import.meta.url),p=JSON.parse(await readFile(new URL('provenance.json',root),'utf8'));
+  for(const [name,ref] of Object.entries(p.files))assert.equal(createHash('sha256').update(await readFile(new URL(name,root))).digest('hex'),ref.sha256);
+  const original=(await readFile(new URL('pathfinding.cjs',root),'utf8')).replace(/\r\n/g,'\n');
+  const adapted=(await readFile(new URL('../frontend/world-pathfinding.js',import.meta.url),'utf8')).replace(/\r\n/g,'\n');
+  assert.equal(adapted.split('\n').slice(1).join('\n'),original.replace('module.exports = { findPath, findNearestWalkable };','export { findPath, findNearestWalkable };'));
 });
