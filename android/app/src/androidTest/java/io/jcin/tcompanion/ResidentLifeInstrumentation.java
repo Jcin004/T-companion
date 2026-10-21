@@ -20,12 +20,14 @@ public class ResidentLifeInstrumentation extends Instrumentation {
             JSONObject snap=store.read();original=snap.getString("data");JSONObject d=new JSONObject(original);
             JSONArray chars=d.getJSONArray("characters");check(chars.length()==2&&chars.getJSONObject(0).getString("name").equals("林")&&chars.getJSONObject(1).getString("name").equals("雨"),"Dedicated synthetic emulator required");
             String a=chars.getJSONObject(0).getString("id"),b=chars.getJSONObject(1).getString("id");JSONObject w=d.getJSONObject("world");
+            long previousSequence=w.optJSONObject("life")==null?0:w.getJSONObject("life").optLong("sequence");
             w.getJSONObject("positions").put(a,new JSONObject().put("x",4).put("y",6)).put(b,new JSONObject().put("x",5).put("y",6));w.remove("life");
             // Create settings through the same JS reducer initialization used by the UI.
             try(app.cash.quickjs.QuickJs js=app.cash.quickjs.QuickJs.create()){
                 java.io.InputStream in=getTargetContext().getAssets().open("resident/rules.js");java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();byte[] bytes=new byte[8192];int n;while((n=in.read(bytes))!=-1)out.write(bytes,0,n);in.close();js.evaluate(out.toString("UTF-8"));
                 String value=(String)js.evaluate("JSON.stringify(ResidentRules.command("+d.toString()+",'initialize',{}).data)");d=new JSONObject(value);
             }
+            d.getJSONObject("world").getJSONObject("life").put("sequence",previousSequence);
             JSONObject settings=d.getJSONObject("world").getJSONObject("life").getJSONObject("settings");settings.put("enabled",true).put("background",true).put("quiet_start",0).put("quiet_end",0).put("max_actions",1).put("max_requests",6).put("daily_requests",200).put("interval_minutes",15);
             check(store.acquire("instrumentation"),"lease");store.save(d.toString(),snap.getLong("revision"),"instrumentation");store.release("instrumentation");
             final int[] calls={0};final String ownerA=a;
@@ -54,6 +56,7 @@ public class ResidentLifeInstrumentation extends Instrumentation {
                 boolean observed=false;for(int i=0;i<1260;i++){Thread.sleep(1000);JSONObject latest=new JSONObject(store.read().getString("data"));JSONArray runs=latest.getJSONObject("world").getJSONObject("life").getJSONArray("runs");if(runs.length()>before){JSONObject last=runs.getJSONObject(runs.length()-1);if(last.optString("state").equals("complete")){observed=true;evidence.put("natural_run",last);break;}}}
                 evidence.put("natural_scheduled_at",scheduled).put("natural_observed",observed);check(observed,"natural periodic execution not observed in 21 minutes");
             }
+            evidence.put("model_requests",calls[0]);
             File out=new File(getTargetContext().getFilesDir(),"resident-acceptance.json");Files.write(out.toPath(),evidence.toString(2).getBytes(StandardCharsets.UTF_8));
             result.putString("stream","PASS: shared QuickJS foreground + no-Activity Worker, real OB/SQLite, mock model; natural="+natural+"\n");finish(-1,result);
         }catch(Throwable e){java.io.StringWriter trace=new java.io.StringWriter();e.printStackTrace(new java.io.PrintWriter(trace));result.putString("stream",trace.toString());finish(1,result);

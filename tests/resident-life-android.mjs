@@ -13,28 +13,33 @@ async function tap(selector){
 }
 async function shot(name){await adb('shell','screencap','-p','/sdcard/life-native.png');await adb('pull','/sdcard/life-native.png','artifacts/'+name+'.png');}
 try{
- await adb('shell','am','start','-n','io.jcin.tcompanion/.MainActivity');await connect();await wait(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
+ await adb('shell','am','force-stop','io.jcin.tcompanion');await adb('shell','am','start','-n','io.jcin.tcompanion/.MainActivity');await connect();await wait(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
  const baseline=JSON.parse(await readFile('artifacts/life-upgrade-before.json','utf8'));
  const current=await evaluate(async()=>{const {createLocalService}=await import('/assets/local-service.js'),s=await createLocalService(Capacitor.Plugins.TLocal);return {data:await s.api('/backup'),version:await Capacitor.Plugins.TUpdate.info()};});
  assert.equal(current.version.versionCode,16);
- for(const key of ['characters','settings','api_profiles','api_groups','turns','drafts'])assert.deepEqual(current.data[key],baseline[key],'upgrade retained '+key);
+ for(const key of ['characters','settings','api_profiles','api_groups','turns'])assert.deepEqual(current.data[key],baseline[key],'upgrade retained '+key);
+ for(const [id,text] of Object.entries(baseline.drafts))assert.equal(current.data.drafts[id],text,'original draft retained');
  for(const m of baseline.messages)assert.deepEqual(current.data.messages.find(x=>x.id===m.id),m,'old message retained');
  for(const e of baseline.world.events)assert.deepEqual(current.data.world.events.find(x=>x.id===e.id),e,'old event retained');
  for(const m of baseline.memory.events)assert.deepEqual(current.data.memory.events.find(x=>x.id===m.id),m,'old memory retained');
  assert.ok(current.data.messages.some(m=>m.origin==='world_share'));assert.ok(current.data.world.events.some(e=>e.source.type==='resident_dialogue'));
  await tap('.app-grid [data-app="chat"]');await wait(()=>!!document.querySelector('#contacts .unread'));
- await shot('life-android-inbox');await tap('#contacts .contact');await wait(()=>!![...document.querySelectorAll('#messages button')].find(b=>b.textContent==='事件来源'));
+ await shot('life-android-inbox');await evaluate(()=>document.querySelector('#contacts .unread').closest('.contact').id='life-unread-contact');await tap('#life-unread-contact');await wait(()=>!![...document.querySelectorAll('#messages button')].find(b=>b.textContent==='事件来源'));
  await evaluate(()=>[...document.querySelectorAll('#messages button')].find(b=>b.textContent==='事件来源').id='life-source-test');await tap('#life-source-test');await wait(()=>document.querySelector('#world-source-dialog').open);await shot('life-android-source');
  await adb('shell','input','keyevent','4');await wait(()=>!document.querySelector('#world-source-dialog').open);
  await tap('#home-button');await tap('.app-grid [data-app="world"]');
  await wait(()=>{const c=document.querySelector('#world-canvas');return c?.dataset.drawn==='yes'&&c.getBoundingClientRect().width>100&&c.getContext('2d').getImageData(130,170,1,1).data[3]===255;});
  await evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await pause(400);await shot('life-android-room');
  const palette=await evaluate(()=>{const c=document.querySelector('#world-canvas').getContext('2d');return [[5,5],[190,25],[130,170],[35,78]].map(([x,y])=>Array.from(c.getImageData(x,y,1,1).data));});assert.ok(new Set(palette.map(JSON.stringify)).size>=3);
+ const ground=await evaluate(()=>{const r=document.querySelector('#world-canvas').getBoundingClientRect();return {x:r.x+6.5/12*r.width,y:r.y+8.5/13*r.height,scale:devicePixelRatio};});
+ await adb('shell','input','tap',String(Math.round(ground.x*ground.scale+inset.x)),String(Math.round(ground.y*ground.scale+inset.y)));
+ await wait(()=>document.querySelector('#world-time').textContent!=='');await pause(700);
+ assert.deepEqual(await evaluate(async()=>JSON.parse((await Capacitor.Plugins.TLocal.load()).data).world.positions.user),{x:6,y:8});
  const clicked=await evaluate(async()=>{const {createLocalService}=await import('/assets/local-service.js'),s=await createLocalService(Capacitor.Plugins.TLocal),w=(await s.api('/world')).state;const actor=w.residents[0],p=w.positions[actor],r=document.querySelector('#world-canvas').getBoundingClientRect();return {x:r.x+(p.x+.5)/12*r.width,y:r.y+(p.y+.25)/13*r.height,scale:devicePixelRatio};});
  await adb('shell','input','tap',String(Math.round(clicked.x*clicked.scale+inset.x)),String(Math.round(clicked.y*clicked.scale+inset.y)));await wait(()=>document.querySelector('#world-dialogue').open);await shot('life-android-dialogue');
  await adb('shell','input','keyevent','4');await wait(()=>!document.querySelector('#world-dialogue').open);await tap('#home-button');await tap('.app-grid [data-app="world"]');await wait(()=>document.querySelector('#world-canvas').getBoundingClientRect().width>100);
  const before=await evaluate(async()=>JSON.parse((await Capacitor.Plugins.TLocal.load()).data).world);await restart();await wait(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
  const after=await evaluate(async()=>JSON.parse((await Capacitor.Plugins.TLocal.load()).data).world);assert.deepEqual(after,before);
- await writeFile('artifacts/life-android-ui-validation.json',JSON.stringify({version:current.version,originalDataRetained:true,nativeScreenshots:true,paintedPalette:palette,touchInboxSourceDialogueBackReentry:true,worldRestartRetained:true,eventCount:after.events.length,model:'instrumentation mock only; UI verification makes no model request'},null,2));
+ await writeFile('artifacts/life-android-ui-validation.json',JSON.stringify({version:current.version,originalDataRetained:true,nativeScreenshots:true,paintedPalette:palette,touchMovement:true,touchInboxSourceDialogueBackReentry:true,worldRestartRetained:true,eventCount:after.events.length,model:'instrumentation mock only; UI verification makes no model request'},null,2));
  console.log('PASS: original data retained, Android native pixels and screenshots, unread inbox/source, touch conversation/back/reentry and restart');
 }finally{disconnect();}

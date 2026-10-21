@@ -111,7 +111,7 @@ export class LocalService {
         if(pathname.endsWith('/run')||pathname.endsWith('/resume'))return this.storage.plugin.lifeRun({id:body?.request_id||body?.run_id||'batch_'+Date.now().toString(36),resume:pathname.endsWith('/resume'),skip:body?.skip_uncertain===true});
         if(pathname.endsWith('/cancel'))await this.storage.plugin.lifeCancel();
       }
-      this.lifeService??=new ResidentLifeService(this);
+      if(!this.lifeService)this.lifeService=new ResidentLifeService(this);
       const result=await this.lifeService.api(path,method,body);
       if(this.storage.plugin?.lifeSchedule&&pathname.endsWith('/settings'))await this.storage.plugin.lifeSchedule();
       return result;

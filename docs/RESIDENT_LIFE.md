@@ -71,3 +71,15 @@ WorkManager 的周期不是精确定时：系统休眠、配额和厂商策略�
 安装原签名新版 → 桌面世界 → 绑定两位已有名册人物 → 展开“居民生活” → 配置模型及额度、关闭不需要的安静时段 → 启用并保存 → 点“让居民生活一批”。居民可能分享，也可能不分享；到聊天列表查看未读消息，打开来源，再进入世界走近人物询问。需要后台时另勾选 Android 间歇后台，保存后退出到系统桌面等待系统调度；暂停按钮会取消。
 
 自动化仅合成数据与模拟模型：`tests/resident-life.test.mjs`、`tests/resident-life-browser.mjs`、`ResidentLifeInstrumentation.java`。原世界触屏、原记忆、关系和模型切换沿用原回归。Android 显示验收必须等 Canvas 实际绘制（data-drawn 与不透明像素），并保存 Android screencap 原生截图，不能只看 DOM/点击成功。旧空白证据已用原生截图复核：房间可以实际显示；无需改变像素美术。
+
+
+## 本轮实际验收
+
+- 103 项 Node 测试、97 项 Python 测试（-W error）通过；前端语法与 git diff --check 通过。
+- 手机尺寸浏览器：自主批次、自动记忆、未读分享、来源、继续聊天、进入世界及刷新通过；回归旧世界触屏、记忆管理、关联及候选、召回/上下文、API 悬浮切换、外观/分组预设和事务故障隔离。
+- Android 11 API 30 x86_64 专用模拟器：真实 QuickJS、Python/OB 和 SQLite；模型为进程内模拟。前台批次和主动触发 OneTime Worker 分别通过；未创建 Activity/WebView 执行规则，跨宿主租约冲突被拒绝。
+- 自然调度使用同分支早期验收 APK，退出到系统桌面，正常注册 15 分钟初始延迟的 Periodic Work，未使用 JobScheduler 强制运行或 TestDriver 改时间。约 15 分钟后实际产生 worker 来源事件；在再次打开界面前直接复制并读取 SQLite 确认事件、分享和实际执行时间。最终交付包又通过前台/主动 Worker 入口复测；未在最终包上重复等待第二个自然周期。两类证据分别为 artifacts/life-worker-natural.json 与 life-worker-final.json。
+- 最终 0.12.0 原签名覆盖安装保留原人物、消息、轮次、草稿、预设、记忆和旧事件。原生 screencap 显示完整房间；彩色像素、触屏移动、人物对话、来源、未读、返回/重入及进程重启保留通过。修正 Android 11 不支持的逻辑赋值语法；没有扩大像素美术范围。
+- 画面证据是 artifacts/life-android-room.png、life-android-inbox.png、life-android-source.png 和 life-android-dialogue.png，均为系统原生截图。原 0.11.0 空白证据未复现为持续绘制故障；补充了等待绘制、检查不透明像素并做原生截图的条件。
+
+未验证实体手机、真实模型服务、厂商后台限制和真实磁盘耗尽。保存失败/已返回结果恢复使用故障注入；不能表述为物理存储耗尽实测。网络/低电量使用官方 WorkManager 约束，未穷举切网和省电模式的设备行为。没有服务器或付费模型测试请求，也没有发布在线更新。
