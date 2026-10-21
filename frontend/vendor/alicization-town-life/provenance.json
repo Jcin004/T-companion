@@ -1,0 +1,42 @@
+{
+  "repository": "https://github.com/Jcin004/Alicization-Town",
+  "upstream": "https://github.com/ceresOPA/Alicization-Town",
+  "commit": "1a33ba65d0af2134b369b1eb4eb68f45d2c817c4",
+  "license": "AGPL-3.0-or-later",
+  "files": {
+    "action-lock.cjs": {
+      "source": "server/src/engine/action-lock.js",
+      "git_blob": "8c5e3277f79a56d61d9f3f9838cac00fa253f1e5",
+      "last_author": "ceresOPA",
+      "last_change_commit": "e7cc8b42625a449e1fc69c91625dfe1b7ac47885",
+      "sha256": "d4a30df8f11109b52d47c2f2072d33a9db4707016a20fb2047cc39e25bc35449",
+      "changes": "none"
+    },
+    "LICENSE": {
+      "source": "LICENSE",
+      "git_blob": "6da352dc50974f3966c28bd1b0a24ecf92bdf0bf",
+      "last_author": "CeresOPA",
+      "last_change_commit": "1b25d019c4a44eda49cc6cec01774f4fc115ddf7",
+      "sha256": "07d3eec4b72e3c2c1c7ebc36ce3dacd77b0193a5c7dab25c6261ef8ef9b1cc0d",
+      "changes": "none"
+    },
+    "ai-scheduler.cjs": {
+      "source": "server/src/ai/scheduler/ai-scheduler.js",
+      "git_blob": "71a8f17334f3593e5b3a4a165feda47032873360",
+      "last_author": "CeresOPA",
+      "last_change_commit": "1363805ec33e2050cd76b49622b404d1931e41f5",
+      "sha256": "8cc69a3e0873b05cbd3bd0d51bac26da98d978da4af74579d299913eec7d96c1",
+      "changes": "none, reference source only; never executed"
+    }
+  },
+  "adapter": {
+    "file": "frontend/resident-lock.js",
+    "changes": "Add provenance comment; replace CommonJS footer with ESM export. Lock algorithm unchanged.",
+    "usage": "serialize browser resident batches, including failures; Android adds SQLite lease and CAS for different execution hosts."
+  },
+  "perception_adapter": {
+    "file": "frontend/resident-perception.js",
+    "source_method": "AiScheduler.gatherContext neighborhood loop",
+    "changes": "Extract pure Manhattan range projection; replace engine players with roster ID/position inputs; include NPC residents instead of excluding them; range 15 -> 3; remove all online identity and independent memory reads."
+  }
+}

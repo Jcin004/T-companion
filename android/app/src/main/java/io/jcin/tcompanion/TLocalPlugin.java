@@ -22,17 +22,19 @@ import javax.crypto.spec.GCMParameterSpec;
 /** Original thin adapters over Android SQLite, Keystore and streaming HTTPS. */
 @CapacitorPlugin(name="TLocal")
 public class TLocalPlugin extends Plugin {
-    private Database database;
+    private TDocumentStore database;
     private final ExecutorService io = Executors.newCachedThreadPool();
     private final ConcurrentHashMap<String,HttpURLConnection> requests = new ConcurrentHashMap<>();
     private final java.util.Set<String> cancelled = ConcurrentHashMap.newKeySet();
     private static final String ALIAS="t-local-model-v1";
-    private static class Database extends SQLiteOpenHelper {
-        Database(Context context){super(context,"t-local.db",null,1);setWriteAheadLoggingEnabled(true);}
-        @Override public void onCreate(SQLiteDatabase db){db.execSQL("CREATE TABLE documents(id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)");}
-        @Override public void onUpgrade(SQLiteDatabase db,int oldVersion,int newVersion){}
-    }
-    @Override public void load(){database=new Database(getContext());}
+    @PluginMethod public void lifeSchedule(PluginCall call){try{TResidentWorker.schedule(getContext());call.resolve();}catch(Exception e){call.reject("后台计划保存失败");}}
+    @PluginMethod public void lifeRun(PluginCall call){io.execute(()->{
+        try(TResidentEngine engine=new TResidentEngine(getContext())){
+            JSONObject result=engine.run(call.getString("id",""),"foreground",call.getBoolean("resume",false),call.getBoolean("skip",false));call.resolve(new JSObject(result.toString()));
+        }catch(Exception e){String reason=e.getMessage();if(reason==null)reason="居民推进未完成，请查看任务状态";call.reject(reason.split("\n")[0].substring(0,Math.min(reason.split("\n")[0].length(),180)));}
+    });}
+    @PluginMethod public void lifeCancel(PluginCall call){TResidentEngine.cancel();androidx.work.WorkManager.getInstance(getContext()).cancelUniqueWork(TResidentWorker.NAME);io.execute(()->{try{for(int i=0;i<100&&TResidentEngine.running.get();i++)Thread.sleep(100);call.resolve();}catch(Exception e){call.reject("取消任务未完成，请重试");}});}
+    @Override public void load(){database=new TDocumentStore(getContext());}
     private SQLiteDatabase diagnosticDatabase(){SQLiteDatabase db=database.getWritableDatabase();db.execSQL("CREATE TABLE IF NOT EXISTS diagnostics(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL)");return db;}
     @PluginMethod public void loadDiagnostics(PluginCall call){
         try(Cursor cursor=diagnosticDatabase().rawQuery("SELECT data FROM diagnostics WHERE id=1",null)){JSObject result=new JSObject();if(cursor.moveToFirst())result.put("data",cursor.getString(0));call.resolve(result);}catch(Exception e){call.reject("读取运行日志失败");}
@@ -41,26 +43,19 @@ public class TLocalPlugin extends Plugin {
         try{String value=call.getString("data","");if(value.length()>1100000)throw new IOException();new JSONObject(value);ContentValues row=new ContentValues();row.put("id",1);row.put("data",value);if(diagnosticDatabase().insertWithOnConflict("diagnostics",null,row,SQLiteDatabase.CONFLICT_REPLACE)==-1)throw new IOException();call.resolve();}catch(Exception e){call.reject("保存运行日志失败");}
     }
     @PluginMethod public void load(PluginCall call){
-        try(Cursor cursor=database.getReadableDatabase().rawQuery("SELECT data FROM documents WHERE id=1",null)){
-            JSObject result=new JSObject();if(cursor.moveToFirst())result.put("data",cursor.getString(0));call.resolve(result);
-        }catch(Exception error){call.reject("读取本机 SQLite 失败");}
+        try{call.resolve(new JSObject(database.read().toString()));}catch(Exception e){call.reject("读取本机 SQLite 失败");}
     }
+    @PluginMethod public void beginWrite(PluginCall call){
+        if(!database.acquire(call.getString("owner",""))){call.reject("居民正在推进，请稍后操作");return;}call.resolve();
+    }
+    @PluginMethod public void endWrite(PluginCall call){database.release(call.getString("owner",""));call.resolve();}
     @PluginMethod public void save(PluginCall call){
-        SQLiteDatabase db=database.getWritableDatabase();
-        try{String value=call.getString("data","");new JSONObject(value);db.beginTransaction();
-            ContentValues row=new ContentValues();row.put("id",1);row.put("data",value);
-            if(db.insertWithOnConflict("documents",null,row,SQLiteDatabase.CONFLICT_REPLACE)==-1)throw new IOException();db.setTransactionSuccessful();db.endTransaction();call.resolve();
-        }catch(Exception error){call.reject("保存本机数据失败，请检查剩余空间");}finally{if(db.inTransaction())db.endTransaction();}
+        try{long rev=call.getLong("revision",-1L);if(rev<0)rev=database.read().getLong("revision");
+            long next=database.save(call.getString("data",""),rev,call.getString("owner",""));
+            JSObject result=new JSObject();result.put("revision",next);call.resolve(result);
+        }catch(Exception e){call.reject(e instanceof IllegalStateException?e.getMessage():"保存本机数据失败，请检查剩余空间");}
     }
-    private javax.crypto.SecretKey encryptionKey() throws Exception {
-        KeyStore store=KeyStore.getInstance("AndroidKeyStore");store.load(null);
-        if(!store.containsAlias(ALIAS)){
-            KeyGenerator generator=KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore");
-            generator.init(new KeyGenParameterSpec.Builder(ALIAS,KeyProperties.PURPOSE_ENCRYPT|KeyProperties.PURPOSE_DECRYPT)
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build());generator.generateKey();
-        }
-        return (javax.crypto.SecretKey)store.getKey(ALIAS,null);
-    }
+    private javax.crypto.SecretKey encryptionKey() throws Exception { return TSecrets.encryptionKey(); }
     @PluginMethod public void setKey(PluginCall call){
         try{String value=call.getString("value","");
             String suffix=keySuffix(call.getString("profile_id","legacy"));
@@ -75,14 +70,7 @@ public class TLocalPlugin extends Plugin {
     }
     private String keySuffix(String id){return id.equals("legacy")?"":"."+id.replaceAll("[^a-zA-Z0-9_-]", "_");}
     @PluginMethod public void hasKey(PluginCall call){JSObject r=new JSObject();r.put("value",getContext().getSharedPreferences("t-secrets",0).contains("cipher"+keySuffix(call.getString("profile_id","legacy"))));call.resolve(r);}
-    private String modelKey(String id) throws Exception {
-        String suffix=keySuffix(id);
-        android.content.SharedPreferences prefs=getContext().getSharedPreferences("t-secrets",0);
-        if(!prefs.contains("cipher"+suffix))return "";
-        Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE,encryptionKey(),new GCMParameterSpec(128,Base64.decode(prefs.getString("iv"+suffix,""),Base64.NO_WRAP)));
-        return new String(cipher.doFinal(Base64.decode(prefs.getString("cipher"+suffix,""),Base64.NO_WRAP)),StandardCharsets.UTF_8);
-    }
+    private String modelKey(String id) throws Exception { return TSecrets.modelKey(getContext(),id); }
     @PluginMethod public void cancel(PluginCall call){String id=call.getString("id","");cancelled.add(id);HttpURLConnection c=requests.get(id);if(c!=null)c.disconnect();call.resolve();}
     private void event(String id,String text){JSObject e=new JSObject();e.put("id",id);e.put("text",text);notifyListeners("modelChunk",e);}
     @PluginMethod public void memoryRequest(PluginCall call){io.execute(()->{
@@ -121,6 +109,7 @@ public class TLocalPlugin extends Plugin {
         finally{requests.remove(id);cancelled.remove(id);if(connection!=null)connection.disconnect();}
     });}
     @PluginMethod public void model(PluginCall call){io.execute(()->{
+        if(TResidentEngine.running.get()){call.reject("居民正在推进，请稍后发送");return;}
         String id=call.getString("id","");HttpURLConnection connection=null;
         try{
             URL url=new URL(call.getString("base_url","").replaceAll("/+$","")+"/chat/completions");

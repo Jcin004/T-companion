@@ -2,6 +2,7 @@
 import {linkValue,linkNode,describeLink,removeNodeLinks} from './memory-links.js';
 import {parseModelObject} from './model-json.js';
 import {MemoryLinkProposalService} from './memory-link-proposal-service.js';
+import {acceptWorldMemories} from './world-memory.js';
 import {copy,newId,ensureMemory,sourceMessages,eventValue,validateMemory,rosterSource,dayKey} from './memory-core.js';
 const stamp=()=>new Date().toISOString();
 const saveVersion=(item)=>{const {versions,...snapshot}=item;item.versions=[...(versions||[]),copy(snapshot)].slice(-10);};
@@ -11,6 +12,7 @@ export class MemoryModule {
  get data(){return this.host.data;}
  get memory(){return ensureMemory(this.data);}
  owner(id){const c=this.data.characters.find(c=>c.id===id);if(!c)throw Error('请选择角色');return c;}
+ acceptWorld(owner,candidates,allowed,jobId,at){return this.write(draft=>acceptWorldMemories(draft.data,owner,candidates,allowed,jobId,at));}
  async generate(prompt,purpose){if(this.job||this.saving)throw Error('请等待当前记忆操作结束');this.job=purpose;try{const parsed=parseModelObject(await this.host.auxiliary(prompt,{purpose,profile_id:this.memory.settings.profile_id}));this.host.diagnostics?.record('system','模型结构解析',{purpose,mode:parsed.mode});return parsed.value;}finally{this.job='';}}
  async write(change,verify=()=>{}){
   if(this.host.active||this.saving)throw Error('请等待当前操作结束');

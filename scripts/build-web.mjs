@@ -1,4 +1,5 @@
 import './build-legal.mjs';
+import './build-resident.mjs';
 import {mkdir, copyFile, readdir, cp} from 'node:fs/promises';
 await mkdir('dist/assets', {recursive: true});
 await copyFile('frontend/index.html', 'dist/index.html');

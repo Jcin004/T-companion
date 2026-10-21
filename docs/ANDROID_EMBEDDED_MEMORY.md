@@ -67,3 +67,7 @@ android/gradlew -p android :app:assembleDebug :app:assembleDebugAndroidTest '-Pu
 交付 APK 保持原包名与原签名，覆盖安装保留数据；源码归档来自匹配提交。当前为个人本地试用包，生成文件不代表 GitHub 在线更新渠道已经发布。
 
 本轮结果：97 项 Python、87 项 Node 检查通过；Android 11 x86_64 专用模拟器的 11 项完整验收通过。另以原试用签名实测 0.9.0 → 0.10.0 覆盖安装，保留角色、联系人、聊天、轮次、草稿、配置、记忆原有字段，旧卡片自动由内置 OB 召回；新增的旧网关兼容字段保持关闭。脚本为 `tests/embedded-ob-upgrade.mjs`。模型传输均为模拟，未用真实用户记录、真实 API 或物理手机。
+
+## 0.12.0 无界面宿主
+
+世界经历仍经逐字 world_event 证据与人物知情校验接受为原 memory.events 卡片。前台和 Worker 共用 TMemoryEngine 的 Python/OB 锁及缓存目录；TDocumentStore 管 SQLite 版本 CAS 与租约。居民任务按已预留请求与已保存响应恢复，不自动重发不确定请求。详见 RESIDENT_LIFE.md。

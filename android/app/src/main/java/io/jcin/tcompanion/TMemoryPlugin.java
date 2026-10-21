@@ -24,10 +24,7 @@ public class TMemoryPlugin extends Plugin {
         }
         worker.execute(() -> {
             try {
-                if (!Python.isStarted()) Python.start(new AndroidPlatform(getContext()));
-                File projection = new File(getContext().getCacheDir(), "embedded-ob-v1");
-                String result = Python.getInstance().getModule("t_memory")
-                    .callAttr("dispatch", projection.getAbsolutePath(), request).toString();
+                String result = TMemoryEngine.execute(getContext(),request);
                 JSObject output = new JSObject();
                 output.put("result", result);
                 call.resolve(output);

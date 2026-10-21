@@ -78,6 +78,7 @@ function avatar(c, user = false) {
 const dialogs=mountDialogNavigation({canReturn:()=>activeApp==='chat'&&chatOpen});
 function app(name) {
   dialogs.dismissAll();
+  if(name==='chat')refreshContacts().catch(e=>{reportError(e);toast(e.message);});
   worldUI?.leave();
   if(name==='world')worldUI?.refresh().catch(e=>{reportError(e);toast(e.message);});
   if(name==='memory'||name==='self')memoryUI?.refresh(name);
@@ -87,7 +88,7 @@ function app(name) {
   document.querySelector('.phone').classList.toggle('in-chat', name === 'chat' && chatOpen);
   if(name==='settings'&&device)device.voices().then(data=>{nativeVoices=data.voices;voiceOptions(el('voice'),prefs.voice);}).catch(()=>{});
 }
-function seen() { if (current && !document.hidden && !hasAfter) localStorage.setItem(key('seen'), String(Math.max(0,...items.filter(m=>m.role==='assistant').map(m=>m.id)))); }
+function seen() { if (current && !document.hidden && !hasAfter){const id=Math.max(0,...items.filter(m=>m.role==='assistant').map(m=>m.id));localStorage.setItem(key('seen'),String(id));if(mode==='local'&&id)api('/contacts/'+current.id+'/read','POST',{message_id:id}).catch(reportError);} }
 function renderContacts() {
   el('contacts').replaceChildren();
   for (const c of contacts) {
@@ -97,7 +98,7 @@ function renderContacts() {
     line.append(node('strong','',c.note || who?.name || c.title),node('time','',time(c.last_time)));
     info.append(line,node('p','',c.last_message || '从一句问候开始'));
     b.append(avatar(who),info);
-    if ((c.last_assistant_id || 0) > Number(localStorage.getItem(key('seen',c.id)) || 0)) b.append(node('span','unread'));
+    if (c.unread_shares || (c.last_assistant_id || 0) > Number(localStorage.getItem(key('seen',c.id)) || 0)) b.append(node('span','unread'));
     b.onclick = guard(() => openContact(c)); el('contacts').append(b);
   }
 }
@@ -135,6 +136,11 @@ function makeMessage(m) {
   const visibleText=m.role==='assistant'?replyParts(m.content,m.chat_style||current?.chat_style).map(p=>p.text).join('\n\n'):m.content;
   const copy = node('button','','复制'); copy.type = 'button'; copy.onclick = guard(async () => { await copyText(visibleText); toast('已复制'); });
   tools.append(node('span','state',m.role==='user' ? ({generating:'正在生成',failed:'生成失败',cancelled:'已停止',interrupted:'上次生成中断',sending:'发送中',complete:'已发送'}[m.state] || '已发送') : (m.state&&m.state!=='complete'?({generating:'正在生成',failed:'部分回复 · 未完成',cancelled:'已停止 · 未完成',interrupted:'中断 · 未完成'}[m.state]||m.state):time(m.created_at))),copy);
+  if(m.origin==='world_share'){
+    tools.append(node('small','','主动分享'));
+    const source=node('button','','事件来源');source.onclick=guard(()=>showWorldSource(api,{event_id:m.source_event_id},m.source_owner_id));
+    const world=node('button','','到世界询问');world.onclick=()=>app('world');tools.append(source,world);
+  }
   if (m.role==='assistant' && (device || 'speechSynthesis' in window)) { const read = node('button','','朗读'); read.onclick = () => speak(replyParts(m.content,m.chat_style||current?.chat_style).filter(p=>p.type==='text'||p.type==='voice').map(p=>p.text).join('\n'),current.voice || prefs.voice); tools.append(read); }
   if (m.role==='user' && (['failed','sending','cancelled','interrupted'].includes(m.state))) { const retry = node('button','retry','重试'); retry.onclick = guard(()=>sendMessage(m.content,m.request_id)); tools.append(retry); }
   body.append(bubble,tools); row.append(avatar(character(),m.role==='user'),body); return row;
@@ -343,12 +349,12 @@ async function restoreData(data){if(!confirm('恢复将替换当前数据源全�
 el('restore').onchange=guard(async()=>{const file=el('restore').files[0];el('restore').value='';if(!file)return;if(file.size>20000000)throw Error('备份文件超过 20 MB');await restoreData(JSON.parse(await file.text()));});
 if(device){el('restore').closest('label').style.display='none';const importButton=node('button','','选择备份恢复');importButton.id='native-restore';importButton.onclick=guard(async()=>{if(busy)throw Error('请先停止生成再恢复');const file=await device.importFile();await restoreData(JSON.parse(file.data));});el('backup').after(importButton);}
 window.addEventListener('pagehide',saveDraft);
-setInterval(async()=>{if(mode==='local'||!backend||busy||document.hidden)return;try{await refreshContacts();const remote=contacts.find(c=>c.id===current?.id);const lastId=last(items.filter(m=>m.role==='assistant'))?.id||0;if(current&&(items.some(m=>m.state==='generating')||(remote?.last_assistant_id||0)>lastId)){const box=el('messages');if(!hasAfter&&box.scrollHeight-box.scrollTop-box.clientHeight<180)await loadLatest();else el('latest').hidden=false;}}catch(e){status('连接中断，正在等待恢复');}},5000);
-window.addEventListener('focus',guard(async()=>{if(mode==='remote'&&backend&&!busy){await refreshContacts();const box=el('messages');if(current&&!hasAfter&&box.scrollHeight-box.scrollTop-box.clientHeight<180)await loadLatest();}}));
+setInterval(async()=>{if((mode==='remote'&&!backend)||busy||document.hidden)return;try{await refreshContacts();const remote=contacts.find(c=>c.id===current?.id);const lastId=last(items.filter(m=>m.role==='assistant'))?.id||0;if(current&&(items.some(m=>m.state==='generating')||(remote?.last_assistant_id||0)>lastId)){const box=el('messages');if(!hasAfter&&box.scrollHeight-box.scrollTop-box.clientHeight<180)await loadLatest();else el('latest').hidden=false;}}catch(e){status('连接中断，正在等待恢复');}},5000);
+window.addEventListener('focus',guard(async()=>{if((mode==='local'||backend)&&!busy){await refreshContacts();const box=el('messages');if(current&&!hasAfter&&box.scrollHeight-box.scrollTop-box.clientHeight<180)await loadLatest();}}));
 el('backend').value=backend;el('token').value=token;
-const legal=node('section','card');legal.append(node('h2','','关于与更新'),node('p','','T- 0.11.0 试用版 · versionCode 15 · io.jcin.tcompanion · AGPL-3.0-only。软件按现状提供，不附带任何保证。可按许可证修改与再分发应用代码；导入的个人数据保留原有权利。'));
+const legal=node('section','card');legal.append(node('h2','','关于与更新'),node('p','','T- 0.12.0 试用版 · versionCode 16 · io.jcin.tcompanion · AGPL-3.0-only。软件按现状提供，不附带任何保证。可按许可证修改与再分发应用代码；导入的个人数据保留原有权利。'));
 const legalLink=node('a','','许可、署名与复用记录 →');legalLink.href=new URL('legal.html',import.meta.url).href;
-const sourceButton=node('button','','对应源码');sourceButton.onclick=guard(async()=>{if(mode==='local'){toast('对应源码在试用分发包的 T-companion-0.11.0-source.zip 中，包含构建说明与许可证。');return;}const response=await fetch(backend+'/api/v1/source',{headers:headers()});if(!response.ok)throw Error('源码导出失败，请检查后端连接和访问口令');await exportBlob(await response.blob(),'t-chat-source.zip');});
+const sourceButton=node('button','','对应源码');sourceButton.onclick=guard(async()=>{if(mode==='local'){toast('对应源码在试用分发包的 T-companion-0.12.0-source.zip 中，包含构建说明与许可证。');return;}const response=await fetch(backend+'/api/v1/source',{headers:headers()});if(!response.ok)throw Error('源码导出失败，请检查后端连接和访问口令');await exportBlob(await response.blob(),'t-chat-source.zip');});
 legal.append(legalLink,node('p','','默认渠道：公开 GitHub 试用版；可在下方设置自建更新清单。覆盖安装保留角色、聊天和设置。'),sourceButton);document.querySelector('.settings-grid').append(legal);
 mountAppUpdate(legal,native?window.Capacitor?.Plugins?.TUpdate:null,()=>busy,(label,data)=>diagnostics.record('update',label,data));
 mountDiagnostics({store:diagnostics,exportFile:exportBlob,report:e=>{reportError(e,'日志导出失败');toast(e.message);},preview:async()=>{
@@ -356,7 +362,7 @@ mountDiagnostics({store:diagnostics,exportFile:exportBlob,report:e=>{reportError
   if(!current)throw Error('请先打开一个聊天，再回到这里查看预览。');
   return api(`/contacts/${current.id}/context-preview`,'POST',{message:el('input').value});
 }});
-diagnosticsReady.then(()=>diagnostics.record('system','应用启动',{version:'0.11.0-trial',platform:native?'android':'browser'}));
+diagnosticsReady.then(()=>diagnostics.record('system','应用启动',{version:'0.12.0-trial',platform:native?'android':'browser'}));
 window.tGoBack=()=>{const dialog=last([...document.querySelectorAll('dialog[open]')]);if(dialog){dialog.close();return true;}const phone=document.querySelector('.phone');if(phone.classList.contains('in-chat')){chatOpen=false;app('chat');return true;}if(activeApp!=='home'){app('home');return true;}return false;};
 async function refreshSettings(){
  prefs=await api('/settings');showPreferences();await preferences.refresh(prefs);
