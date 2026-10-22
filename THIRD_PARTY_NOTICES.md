@@ -174,5 +174,7 @@ Canvas rendering, room geometry, command/observation persistence and UI are orig
 
 # Original world artwork and visual adaptation (0.13.0)
 
+0.13.1 revises only the project's original `residents.png` through the same built-in image_gen tool to use standing/contact/standing/opposite-contact frames. The replacement and predecessor hashes and revised brief are recorded in the existing asset manifest. The other three production images retain their original bytes and provenance.
+
 - `frontend/assets/world/`: four original production PNGs generated for this project with the built-in image_gen tool from text briefs, after approval of the visual direction. File hashes, dimensions, briefs and distribution license are recorded in `PROVENANCE.json`. No stock assets, upstream game artwork, private screenshot, real chat or user identity is bundled. These replaceable example appearances do not define roster Canon/Persona.
 - Existing Alicization Town imports above remain unchanged. `server/web/js/game.js` at the same pinned `1a33ba65d0af2134b369b1eb4eb68f45d2c817c4` was additionally reviewed for step animation (533–545) and facing/frame selection (875–883). The local renderer uses its own elapsed-time path animation and a different, generated atlas layout; the whole upstream page and art are not copied. No new third-party engine or runtime dependency.

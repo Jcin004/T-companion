@@ -50,3 +50,22 @@ body.world-talking #world .world-stage{bottom:min(310px,50vh)}body.world-talking
 body.world-active #api-floating-switcher{display:none}
 
 .world-menu-grid .world-menu-icon{width:60px;height:55px;background-image:url(assets/world/menu-icons.png);background-size:300% 300%;image-rendering:pixelated}
+
+/* The selected person, navigation and exit never scroll away. */
+#world-looks-dialog{position:fixed;top:7vh;top:7dvh;right:0;bottom:auto;left:0;margin:0 auto;padding:0;width:calc(100% - 20px);max-width:420px;overflow:hidden;height:86vh;height:86dvh}
+#world-looks-dialog[open]{display:flex;flex-direction:column}
+#world-looks-dialog .looks-heading{display:block;flex-shrink:0;margin:0;padding:12px 14px 0;border-bottom:1px solid #c39a73;background:#f6e6c7}
+.looks-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#world-looks-dialog #looks-close{font-size:14px;min-width:68px;min-height:44px}
+.looks-heading label{display:block;font-size:12px;margin:8px 0}.looks-heading select{margin-top:5px;padding:8px}
+.looks-tabs{display:flex;gap:8px}.looks-tabs button{flex:1;border-radius:4px 4px 0 0;border-color:#c39a73;background:#ead1af}
+.looks-tabs button[aria-pressed=true]{background:#986344;color:#fff4dc}
+.looks-scroll{min-height:0;overflow:auto;overscroll-behavior:contain;padding:14px;flex:1}
+.looks-scroll section[hidden]{display:none}.looks-scroll h3{font-size:16px;margin:0 0 8px}.looks-scroll p{margin:8px 0 12px}
+.looks-scroll label{display:block;font-size:12px;margin:12px 0}.looks-scroll select,.looks-scroll input{margin-top:6px}
+#world-looks-dialog .looks-previews{justify-content:center;min-height:150px}.looks-previews img{height:180px;width:130px}
+#world-looks-dialog .file-button{background:#fff4dc;border:2px dashed #b88358;border-radius:5px;color:#755145;font-weight:600;padding:12px}
+#world-looks-dialog input[type=file]{font-weight:normal;border:0;padding:8px 0 0}
+.looks-footer{flex-shrink:0;background:#f6e6c7;border-top:1px solid #c39a73;padding:10px 14px}.looks-footer button{width:100%}.looks-footer p{margin:5px 0 0;min-height:16px}
+.looks-default{margin-top:18px;border-top:1px solid #c39a73;padding-top:10px;font-size:12px}
+.looks-frame-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.looks-frame-strip figure{margin:0;text-align:center}.looks-frame-strip canvas{width:100%;height:auto;image-rendering:pixelated}.looks-frame-strip figcaption{font-size:10px}
