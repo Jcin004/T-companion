@@ -18,6 +18,7 @@ final class TDocumentStore extends SQLiteOpenHelper {
         db.execSQL("CREATE TABLE IF NOT EXISTS document_revision(id INTEGER PRIMARY KEY, revision INTEGER NOT NULL)");
         db.execSQL("INSERT OR IGNORE INTO document_revision VALUES(1,0)");
         db.execSQL("CREATE TABLE IF NOT EXISTS document_lease(id INTEGER PRIMARY KEY, owner TEXT, expires INTEGER)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS look_assets(id TEXT PRIMARY KEY, data TEXT NOT NULL)");
         if(processStarted.compareAndSet(false,true))db.delete("document_lease",null,null);
         return db;
     }
@@ -25,7 +26,7 @@ final class TDocumentStore extends SQLiteOpenHelper {
         SQLiteDatabase db=ready();db.beginTransaction();
         try {
             JSONObject result=new JSONObject();
-            try(Cursor c=db.rawQuery("SELECT data FROM documents WHERE id=1",null)){if(c.moveToFirst())result.put("data",c.getString(0));}
+            try(Cursor c=db.rawQuery("SELECT data FROM documents WHERE id=1",null)){if(c.moveToFirst())result.put("data",TLookAssets.decode(db,c.getString(0)));}
             try(Cursor c=db.rawQuery("SELECT revision FROM document_revision WHERE id=1",null)){c.moveToFirst();result.put("revision",c.getLong(0));}
             db.setTransactionSuccessful();return result;
         } finally { db.endTransaction(); }
@@ -48,7 +49,7 @@ final class TDocumentStore extends SQLiteOpenHelper {
         try {
             try(Cursor c=db.rawQuery("SELECT revision FROM document_revision WHERE id=1",null)){c.moveToFirst();if(revision!=c.getLong(0))throw new IllegalStateException("数据版本已更新，请重新操作");}
             try(Cursor c=db.rawQuery("SELECT owner,expires FROM document_lease WHERE id=1",null)){if(c.moveToFirst()&&!owner.equals(c.getString(0))&&c.getLong(1)>System.currentTimeMillis())throw new IllegalStateException("居民正在推进，请稍后操作");}
-            ContentValues row=new ContentValues();row.put("id",1);row.put("data",value);
+            ContentValues row=new ContentValues();row.put("id",1);row.put("data",TLookAssets.encode(db,value));
             if(db.insertWithOnConflict("documents",null,row,SQLiteDatabase.CONFLICT_REPLACE)==-1)throw new java.io.IOException();
             db.execSQL("UPDATE document_revision SET revision=revision+1 WHERE id=1");db.setTransactionSuccessful();return revision+1;
         } finally { db.endTransaction(); }

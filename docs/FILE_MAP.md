@@ -335,6 +335,10 @@
 | frontend/world-renderer.js | 原创 Canvas 像素美术，只读取世界投影 |
 | frontend/world-ui.js、world.css | 桌面世界入口、触屏操作、场景对话与来源呈现 |
 | frontend/world-joystick.js | 摇杆指针、方向、连续单步与取消；不持有世界数据或存储 |
+| frontend/world-art.js、assets/world/* | 有来源的生产图集、预加载、方向选帧、场景与点击坐标投影 |
+| frontend/world-dialogue-ui.js | 底部立绘、台词分页、原场景聊天历史与设备朗读 |
+| frontend/character-looks.js、character-looks-ui.js | 绑定原人物 ID 的形象验证/事务接口与导入预览界面 |
+| frontend/world-scene-actions.js | 已完成回复的受限动作候选与可达地点规划，无 DOM 或模型传输 |
 | tests/world.test.mjs | 持久化/隔离/失败/去重/上下文/来源/复用测试 |
 | tests/world-browser.mjs | 模拟模型与手机触屏网页验收 |
 | tests/world-android.mjs | 专用模拟器原签名升级、真实 SQLite/OB 与触屏验收 |

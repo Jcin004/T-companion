@@ -56,6 +56,11 @@ public class TDevicePlugin extends Plugin {
         if (result == TextToSpeech.ERROR) call.reject("系统朗读失败，请检查语音引擎"); else call.resolve();
     }
 
+    @PluginMethod public void stopSpeech(PluginCall call) {
+        if (speech != null) speech.stop();
+        call.resolve();
+    }
+
     @PluginMethod public void exportFile(PluginCall call) {
         try {
             String name = call.getString("name", "");

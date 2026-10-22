@@ -6,7 +6,8 @@ export const FURNITURE = Object.freeze([
   {id:'desk',name:'书桌',x:5,y:3,w:2,h:1,action:'在书桌前读了一会儿书。'},
   {id:'lamp',name:'台灯',x:8,y:3,w:1,h:1,action:'切换了台灯的亮光。'},
   {id:'bed',name:'床铺',x:9,y:3,w:2,h:4,action:'整理了床铺。'},
-  {id:'plant',name:'盆栽',x:1,y:9,w:1,h:2,action:'给盆栽浇了水。'}
+  {id:'plant',name:'盆栽',x:1,y:9,w:1,h:2,action:'给盆栽浇了水。'},
+  {id:'window',name:'窗帘',x:7,y:1,w:3,h:2,action:'拉动了窗帘。'}
 ]);
 export function collision(positions={},except='user'){
   const cells=Array.from({length:ROOM.width*ROOM.height},(_,i)=>{

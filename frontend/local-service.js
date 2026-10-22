@@ -14,6 +14,7 @@ import {validateProactiveMessages} from './proactive-messages.js';
 import {ResidentLifeService} from './resident-life-service.js';
 import {validateLife} from './resident-life-core.js';
 import {validateWorld,sceneSnapshot,completeWorldDialogue} from './world-core.js';
+import {CharacterLooksModule,validateLooks} from './character-looks.js';
 // Preserve the existing import path for callers while the implementation moves.
 export {buildContext} from './local-queries.js';
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -40,7 +41,7 @@ export function validateBackup(raw){
   for(const g of d.api_groups)if(typeof g.id!=='string'||!g.name||g.name.length>80)throw Error('分组格式错误');
   d.api_profiles=d.api_profiles.map(p=>{if(typeof p.id!=='string'||!/^[\w-]{1,100}$/.test(p.id))throw Error('连接标识错误');return {id:p.id,...validateConnection(p)};});
   validateHistoryLimit(d.settings.history_limit);for(const s of d.sessions){s.chat_style=normalizeChatStyle(s.chat_style);if(s.history_limit!=null)validateHistoryLimit(s.history_limit);}
-  validateWorld(d);validateProactiveMessages(d);if(d.world.life)validateLife(d);validateMemory(d);
+  validateWorld(d);validateLooks(d);validateProactiveMessages(d);if(d.world.life)validateLife(d);validateMemory(d);
   d.memory.external.enabled=false; // Restoring a backup never opts into remote disclosure.
   return d;
 }
@@ -102,7 +103,7 @@ export class LocalService {
 
   connection(){const p=this.data.api_profiles.find(p=>p.id===this.data.active_profile_id);return {...this.data.settings,...(p||{base_url:'',model:''}),profile_id:p?.id||''};}
   async publicSettings(){return {...this.connection(),active_profile_id:this.data.active_profile_id,has_api_key:await this.storage.hasKey(this.data.active_profile_id)};}
-  message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
+  message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,world_action:m.role==='assistant'?t?.world_action:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
   async api(path,method='GET',body){
     if(this.storage.plugin?.beginWrite&&!this.active){await this.queue.catch(()=>{});const current=await this.storage.load();ensureProfiles(current);validateWorld(current);validateMemory(current);this.data=current;}
     const url=new URL(path,'https://local'),pathname=url.pathname,route=pathname.split('/').filter(Boolean)[0];
@@ -116,6 +117,7 @@ export class LocalService {
       if(this.storage.plugin?.lifeSchedule&&pathname.endsWith('/settings'))await this.storage.plugin.lifeSchedule();
       return result;
     }
+    if(route==='character-looks')return new CharacterLooksModule(this).api(pathname,method,body);
     if(route==='world')return new WorldModule(this).api(path,method,body);
     if(pathname==='/memory-engine'&&method==='GET')return this.embeddedMemory?.status()||{provider:'browser-local',installed:false};
     if(pathname==='/external-memory'||pathname==='/external-memory/test'){

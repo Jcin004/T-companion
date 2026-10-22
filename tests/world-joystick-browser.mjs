@@ -28,7 +28,7 @@ try{
   await hold(40,0);await sleep(650);await release();
   let w=await read();assert.ok(w.positions.user.x>=7,'hold repeats saved steps');assert.equal(w.positions.user.y,8);
   const stopped=w.events.length;await sleep(450);assert.equal((await read()).events.length,stopped,'release stops');
-  await hold(40,0);await sleep(1200);await release();w=await read();assert.deepEqual(w.positions.user,{x:10,y:8});
+  await hold(40,0);await sleep(1800);await release();w=await read();assert.deepEqual(w.positions.user,{x:10,y:8});
   const edge=w.events.length;await hold(40,0);await sleep(500);await release();assert.equal((await read()).events.length,edge,'wall generates no event');
   await hold(-40,0);await sleep(230);await turn(0,40);await sleep(300);await release();w=await read();assert.ok(w.positions.user.x<10);assert.ok(w.positions.user.y>8);
   // A canceled touch and navigation while holding must also stop the repeat timer.
@@ -37,7 +37,7 @@ try{
   await hold(-40,0);await sleep(80);await page.evaluate(()=>document.querySelector('#home-button').click());await release();
   const left=(await read()).events.length;await sleep(400);assert.equal((await read()).events.length,left);
   await page.locator('[data-app="world"]').tap();await sleep(150);
-  const walk=async(x,y)=>{const r=await page.locator('#world-canvas').boundingBox();await page.touchscreen.tap(r.x+(x+.5)/12*r.width,r.y+(y+.5)/13*r.height);await sleep(1000);};
+  const walk=async(x,y)=>{const r=await page.locator('#world-canvas').boundingBox();await page.touchscreen.tap(r.x+(x+.5)/12*r.width,r.y+(.4+(y-3)*.065)*r.height);await sleep(1700);};
   await walk(5,6);let blocked=(await read()).events.length;
   await hold(-40,0);await sleep(400);await release();assert.equal((await read()).events.length,blocked,'resident blocks the adjacent tile');
   await walk(5,4);blocked=(await read()).events.length;
