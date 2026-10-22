@@ -354,6 +354,7 @@
 | proactive-messages.js | 聊天拥有的主动投递和来源验证 |
 | world-memory.js | MemoryModule 与无界面宿主共用的世界候选接受规则 |
 | TDocumentStore.java | 唯一 SQLite 文档、版本和写入租约 |
+| TLookAssets.java | 同一 SQLite 的图片资源去重、引用还原与同事务清理 |
 | TResidentEngine.java / TResidentWorker.java | QuickJS 原生 I/O 宿主及 WorkManager 有限唤醒 |
 | TSecrets.java / TMemoryEngine.java | 从旧插件收口的原凭据读取和共用 OB 锁 |
 | build-resident.mjs | 仅构建纯规则；生成脚本留在忽略目录 |

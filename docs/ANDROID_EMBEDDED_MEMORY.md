@@ -71,3 +71,9 @@ android/gradlew -p android :app:assembleDebug :app:assembleDebugAndroidTest '-Pu
 ## 0.12.0 无界面宿主
 
 世界经历仍经逐字 world_event 证据与人物知情校验接受为原 memory.events 卡片。前台和 Worker 共用 TMemoryEngine 的 Python/OB 锁及缓存目录；TDocumentStore 管 SQLite 版本 CAS 与租约。居民任务按已预留请求与已保存响应恢复，不自动重发不确定请求。详见 RESIDENT_LIFE.md。
+
+## 0.13.0 人物图片与场景动作
+
+多立绘和自定义行走图集由 `TLookAssets` 按内容哈希存在同一个 SQLite 的 `look_assets` 表，业务文档仅保存引用；插件读写和备份接口仍返回完整图片。资源写入、清理、文档 CAS 和租约在同一事务内处理。图片不进入模型或 OB 的文本上下文，不建立第二个人物库。
+
+专用 Android 11 模拟器已验证超过 2 MB 的有效 PNG 总量读取、备份形状还原、过期版本拒绝、保存失败回滚与原签名覆盖保留数据；原居民前台和无 Activity Worker 验收也通过。新增画面与台词回放的验证边界见 [世界画面与对话](WORLD_VISUAL_DIALOGUE.md)。

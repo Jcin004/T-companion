@@ -10,6 +10,7 @@ const read=()=>page.evaluate(async()=>{const {BrowserPersistence}=await import('
 const sleep=ms=>page.waitForTimeout(ms);
 let touch;
 async function hold(dx,dy){
+  await page.locator('#world-joystick').waitFor({state:'visible'});
   const r=await page.locator('#world-joystick').boundingBox();
   touch={x:r.x+r.width/2,y:r.y+r.height/2};
   await input.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...touch,id:1}]});
@@ -36,7 +37,7 @@ try{
   const cancelled=(await read()).events.length;await sleep(400);assert.equal((await read()).events.length,cancelled);
   await hold(-40,0);await sleep(80);await page.evaluate(()=>document.querySelector('#home-button').click());await release();
   const left=(await read()).events.length;await sleep(400);assert.equal((await read()).events.length,left);
-  await page.locator('[data-app="world"]').tap();await sleep(150);
+  await page.locator('[data-app="world"]').tap();await page.locator('#world-canvas[data-drawn="yes"]').waitFor();
   const walk=async(x,y)=>{const r=await page.locator('#world-canvas').boundingBox();await page.touchscreen.tap(r.x+(x+.5)/12*r.width,r.y+(.4+(y-3)*.065)*r.height);await sleep(1700);};
   await walk(5,6);let blocked=(await read()).events.length;
   await hold(-40,0);await sleep(400);await release();assert.equal((await read()).events.length,blocked,'resident blocks the adjacent tile');

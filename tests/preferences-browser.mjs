@@ -12,7 +12,7 @@ await page.route('**/v1/chat/completions',async route=>{
 });
 const ready=()=>page.waitForFunction(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
 try{
-  await page.goto('http://127.0.0.1:8012/');await ready();await page.locator('.app-grid [data-app="appearance"]').click();
+  await page.goto(process.env.T_TEST_URL||'http://127.0.0.1:8012/');await ready();await page.locator('.app-grid [data-app="appearance"]').click();
   await page.locator('#wallpaper').selectOption('dusk');await page.locator('#icon-style').selectOption('glass');await page.locator('#font-family').selectOption('serif');await page.locator('#bubble-user').fill('#badcfa');await page.locator('#appearance-form button.primary').click();
   await page.waitForFunction(()=>document.querySelector('.phone').dataset.icons==='glass');
   await page.screenshot({path:'artifacts/appearance-0.4.png'});

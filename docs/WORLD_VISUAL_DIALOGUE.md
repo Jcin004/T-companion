@@ -44,3 +44,20 @@
 手机浏览器：`tests/world-visual-browser.mjs` 为合成模型与 TTS 替身；原世界、摇杆、居民生活脚本随新菜单和坐标投影调整，保留原交互、来源编辑与未读分享验收。
 
 Android 使用专用合成数据模拟器、原签名覆盖安装、原生 input tap/swipe 和 screencap；旧业务文档字段与新增默认字段分别比对。前台模型只用测试替身。真实 TTS 可用性与回放逻辑分开报告，不以模拟朗读等同于真机发声。
+
+### 2026-10-22 实测结果
+
+| 检查 | 结果 |
+|---|---|
+| Node / Python | 114 / 97 项通过，Python 警告按错误处理 |
+| 手机浏览器 | 原世界、摇杆、居民生活、外观偏好、API 切换、记忆与新视觉脚本全部通过；使用合成数据和模拟模型 |
+| Android 原生触屏 | API 30 专用模拟器上原生摇杆滑动、靠近浇水、底部对话、拉窗帘实际移动、历史/返回、形象保存与重启通过 |
+| Android 画面 | 原生 screencap 显示完整房间、家具、四方向人物、立绘和菜单；不是仅检查 DOM 或 CDP 截图 |
+| 原签名升级 | 原包名 `io.jcin.tcompanion`，0.12.1/code 17 覆盖至 0.13.0/code 18，原业务字段保留 |
+| SQLite 图片 | 六幅有效 PNG 合计超过 2 MB，文档行保持小体积、读取/备份还原原图、拒绝过期版本、文档保存失败时图片清理一并回滚 |
+| 前后台回归 | `ResidentLifeInstrumentation` 通过：同一 QuickJS 规则、真实 OB/SQLite、模拟模型，关闭 Activity 后主动触发 Worker，12 次请求；保留事件、分享和写入互斥 |
+| 台词回放 | 浏览器与 Android 验证读取已保存回复，不增加模型请求或消息/事件；模拟器列出 376 个 TTS 声音且无错误提示，未验证实际中文发声 |
+
+原生验收脚本 `tests/world-visual-android.mjs` 必须使用专用合成数据模拟器及 `artifacts/visual-upgrade-before.json` 基线，不能指向真实用户数据。截图与设备明细保存在忽略目录 `artifacts/visual-android-*.png`、`visual-android-validation.json`；浏览器截图为 `visual-browser-*.png`。
+
+未验证真机、真实模型服务、Android 原生文件选择器导入及自然定时调度。本轮图片导入在浏览器验证，Android 验证形象选择、预览、保存和进程重启。原居民生活阶段的自然调度证据不替代本轮主动 Worker 的验证范围。
