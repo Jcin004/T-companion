@@ -10,6 +10,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -22,6 +23,21 @@ API = f'https://api.github.com/repos/{REPOSITORY}'
 
 def sha256(data):
     return hashlib.sha256(data).hexdigest()
+
+
+class UploadStream(io.BytesIO):
+    def __init__(self, data):
+        super().__init__(data)
+        self.total = len(data)
+        self.last_report = time.monotonic()
+
+    def read(self, size=-1):
+        chunk = super().read(size)
+        now = time.monotonic()
+        if now - self.last_report >= 10:
+            print(f'Upload {self.tell() / 1048576:.1f} / {self.total / 1048576:.1f} MB', flush=True)
+            self.last_report = now
+        return chunk
 
 
 class GitHub:
@@ -43,8 +59,11 @@ class GitHub:
         headers = {'Authorization': 'Bearer ' + self.token, 'Accept': 'application/vnd.github+json',
                    'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'T-companion-release',
                    'Content-Type': 'application/octet-stream' if binary else 'application/json'}
+        if binary:
+            headers['Content-Length'] = str(len(body))
+            body = UploadStream(body)
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, data=body, headers=headers, method=method), timeout=180) as response:
+            with urllib.request.urlopen(urllib.request.Request(url, data=body, headers=headers, method=method), timeout=120 if binary else 30) as response:
                 data = response.read()
                 return json.loads(data) if data else None
         except urllib.error.HTTPError as error:
@@ -109,9 +128,15 @@ def publish_bundle(api, manifest, tag, assets):
         if previous['versionCode'] == manifest['versionCode'] and (previous['sha256'], previous.get('sourceCommit')) != (manifest['sha256'], manifest['sourceCommit']):
             raise ValueError('A published version code cannot identify a different build')
     release = api.request('GET', '/releases/tags/' + tag)
+    details = {'tag_name': tag, 'name': manifest['versionName'], 'prerelease': True,
+               'body': '\n'.join('- ' + note for note in manifest.get('releaseNotes', [])) + '\n\nSource commit: https://github.com/Jcin004/T-companion/commit/' + manifest['sourceCommit']}
     if not release:
-        release = api.request('POST', '/releases', {'tag_name': tag, 'name': manifest['versionName'], 'draft': True, 'prerelease': True,
-            'body': '\n'.join('- ' + note for note in manifest.get('releaseNotes', [])) + '\n\nSource commit: https://github.com/Jcin004/T-companion/commit/' + manifest['sourceCommit']})
+        # GitHub's tag endpoint does not resolve a draft whose tag is not public yet.
+        release = next((item for item in api.request('GET', '/releases?per_page=100') or [] if item['tag_name'] == tag), None)
+    if not release:
+        release = api.request('POST', '/releases', {**details, 'draft': True})
+    elif release['draft']:
+        api.request('PATCH', '/releases/' + str(release['id']), details)
     existing = {asset['name']: asset for asset in release['assets']}
     upload = release['upload_url'].split('{', 1)[0]
     for name, data in assets.items():
@@ -119,9 +144,12 @@ def publish_bundle(api, manifest, tag, assets):
         if name in existing:
             if existing[name].get('digest') == digest and existing[name]['size'] == len(data):
                 continue
-            raise ValueError('Release asset already exists with different content: ' + name)
+            if not release['draft']:
+                raise ValueError('Release asset already exists with different content: ' + name)
+            api.request('DELETE', '/releases/assets/' + str(existing[name]['id']))
         if not release['draft']:
             raise ValueError('Published release is incomplete; refusing to alter it')
+        print('Uploading', name, flush=True)
         asset = api.request('POST', upload + '?name=' + urllib.parse.quote(name), data, binary=True)
         if asset['size'] != len(data) or asset.get('digest') != digest:
             raise ValueError('Uploaded asset verification failed: ' + name)
