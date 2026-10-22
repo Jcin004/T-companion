@@ -56,3 +56,23 @@ Node 测试覆盖地址校验；浏览器测试覆盖配置、失败日志及原
 发布仓库已准备 [直接清单 PR #2](https://github.com/Jcin004/T-companion-updates/pull/2)，与现有 0.7.0 Release 附件的 SHA-256 完全一致；未自动合并。新增 `tests/update-ui-android.mjs` 在 Android 11 / WebView 83 实测模块导入、切页单任务、50% 进度和权限返回。
 
 真实网络抽查：独立模拟器把自定义清单临时指向上述 PR 分支，原生 HTTPS 检查一次成功，单次 275 ms、attempts 只有 raw.githubusercontent.com；随后恢复原配置。该结果只验证此网络和已发布 0.7.0 元数据的读取，不代表实体手机耗时或新版 APK 已发布。
+
+## 每个交付版本同步发布
+
+用户于 2026-10-23 确认，每个验证通过的交付版本都发布到手机试用渠道。源码提交/推送、设备验证和试用发布是同一次交付的完成条件。保留产品源码 PR 的人工合并规则；试用包可对应已推送开发提交，Release 正文和清单记录完整 sourceCommit。
+
+流程：完成相关测试 → 提交并推送 → 从该提交构建、用原试用密钥签名 → `git archive` 导出源码 → 准备清单 → 执行发布脚本 → 通过默认原生渠道验证。密钥仍保存在本机忽略目录，不上传到 GitHub Actions。
+
+`scripts/build-web.mjs` 把构建提交写入 APK 内的 source-commit.txt。`scripts/publish-trial.py` 默认只校验；显式 `--publish` 才操作渠道。它核对 APK 包名/版本/签名、大小/SHA-256、构建提交、完整 Git 源码归档及所有前端文件（文本仅忽略 CRLF），并确认源码提交已在 GitHub。发布时先上传完整草稿附件，核对上传摘要，再公开试用 Release，最后写入 main/t-update.json。上传失败不推进清单；重试复用相同附件；拒绝降级或用相同 versionCode 替换不同构建。
+
+以 0.13.2 为例，先设置 JAVA_HOME 指向本机 JDK 21，再运行：
+
+```powershell
+git archive --format=zip --output=artifacts/T-companion-0.13.2-source.zip HEAD
+node scripts/prepare-update.mjs artifacts/T-companion-0.13.2-trial.apk 20 0.13.2-trial android-v0.13.2
+python scripts/publish-trial.py --apk artifacts/T-companion-0.13.2-trial.apk --source artifacts/T-companion-0.13.2-source.zip --manifest artifacts/t-update.json --build-tools C:/path/to/Android/Sdk/build-tools/36.1.0
+```
+
+通过校验后，对同一命令增加 `--publish`。运行者负责已完成该版本的测试；脚本不会把本地测试结果上传为虚假的 CI 检查。发布附件同时包含 APK、匹配源码、LICENSE、THIRD_PARTY_NOTICES、构建说明、SHA256SUMS 和清单。源码正文、聊天备份、模型密钥及签名私钥不从运行目录递归收集。
+
+网络发布顺序、失败保留旧清单、重试幂等和版本冲突由 `backend/tests/test_trial_publication.py` 完全模拟验证。
