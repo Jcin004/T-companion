@@ -334,6 +334,7 @@
 | frontend/world-service.js | 世界读写接口与统一事务接入 |
 | frontend/world-renderer.js | 原创 Canvas 像素美术，只读取世界投影 |
 | frontend/world-ui.js、world.css | 桌面世界入口、触屏操作、场景对话与来源呈现 |
+| frontend/world-joystick.js | 摇杆指针、方向、连续单步与取消；不持有世界数据或存储 |
 | tests/world.test.mjs | 持久化/隔离/失败/去重/上下文/来源/复用测试 |
 | tests/world-browser.mjs | 模拟模型与手机触屏网页验收 |
 | tests/world-android.mjs | 专用模拟器原签名升级、真实 SQLite/OB 与触屏验收 |

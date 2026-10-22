@@ -50,3 +50,7 @@ AI 关联候选不参与召回；显式选材、两端原话、确认/拒绝、�
 ## 0.12.0 居民活动与主动消息
 
 保留原世界与聊天。两位居民独立上下文、合法移动/交互与定向交流；自主经历整理用原 MemoryModule 验证和 OB；主动消息是带事件来源的角色消息，无伪造用户轮次。未读保存到会话游标，原聊天失败重试保留。原生前后台共用 QuickJS 规则包、SQLite CAS/租约与 OB 锁；WorkManager 管网络/电量约束，安静时段/额度由规则管理。任务预留、响应和接受分开保存；不确定请求明确跳过，已返回结果保存失败可无额外模型调用恢复。回归入口：resident-life.test.mjs、resident-life-browser.mjs、ResidentLifeInstrumentation.java；实际平台验收见 RESIDENT_LIFE.md。
+
+## 0.12.1 世界摇杆
+
+房间左下新增触屏摇杆：拖住持续移动，按主方向走相邻一格，松手、取消触摸、离开世界或应用进入后台时停止。仍可点击地板、人物和地点，移动对象选择保留。碰撞不产生事件；实际走完的一格通过原世界命令和事务保存，失败停止，原请求标识可重试。地图、美术、事件与知情范围、手动记忆和居民生活均保留。回归入口：`world-joystick.test.mjs`、`world-joystick-browser.mjs`、`world-browser.mjs`、`world-joystick-android.mjs`。操作和交付记录见 [世界摇杆](WORLD_JOYSTICK.md)。
