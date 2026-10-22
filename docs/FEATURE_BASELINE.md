@@ -64,3 +64,5 @@ AI 关联候选不参与召回；显式选材、两端原话、确认/拒绝、�
 ## 0.13.1 人物图片与站立步态
 
 同一人物下分别上传立绘与像素小人，固定人物选择/关闭/保存，防止异步上传串入另一人物。预览有站立/行走开关和四帧顺序；小人停止用第一帧，步态按行进距离连续播放，修复保存后先跳到终点再倒回的问题。原图集、摇杆、碰撞、对话、事件与存档保持可用。回归入口：`world-motion-browser.mjs`、`world-motion-android.mjs` 及原视觉/摇杆脚本；旧 WebView 显式固定弹窗位置并查看原生截图。
+
+0.13.2 更新器保留原签名/包名/版本/哈希校验、权限引导和手动下载；清单优先直接读取，下载支持部分文件恢复和暂停，切换设置页不重复发起任务。回归见 `tests/app-update-browser.mjs`、`UpdateTransferInstrumentation.java` 和 `UpdateChannelInstrumentation.java`；发布状态与复用见 [更新渠道](UPDATE_CHANNEL.md)。

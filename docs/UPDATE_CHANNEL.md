@@ -6,7 +6,7 @@
 
 设置 → 关于与更新 → 更新渠道（高级）。最多三个公开 HTTPS JSON 清单，每行一个；不能放账号、口令、查询参数或模型 API 密钥。配置由 TUpdate 原生插件保存到设备独立 SharedPreferences，不属于人物、聊天或模型配置，也不随聊天备份导出。
 
-显式配置时，按填写顺序尝试，第一个有效清单为准，不再请求 GitHub。留空时先用原 GitHub Releases API（包括试用 prerelease，跳过 draft），失败后尝试同仓库 main 分支的静态 t-update.json。静态文件部署前可能返回 404，此时仍应显示检查失败，不得显示为已是最新。
+显式配置时，按填写顺序尝试，第一个有效清单为准，不再请求 GitHub。0.13.2 起留空时优先读取同仓库 main 分支的静态 t-update.json，有效时只发一次清单请求；失败后使用原 GitHub Releases API（包括试用 prerelease，跳过 draft）。静态文件部署前可能返回 404，此时仍应显示检查失败，不得显示为已是最新。
 
 接口：info 返回 manifestSources/configurableChannel；setSources 验证后同步持久化；check 使用同一后台工作锁查找清单；download/install 继续使用已有校验。配置、检查、下载、安装的错误带阶段、域名及尝试结果，日志不记录完整自定义 URL。修改配置不读取或修改模型密钥。
 
@@ -37,3 +37,22 @@ Node 测试覆盖地址校验；浏览器测试覆盖配置、失败日志及原
 - 已安装 APK 的真实原生 HTTPS 请求成功读取静态清单开发分支（仍指向已发布 0.7.0），返回无需升级。测试后恢复默认配置；不是对新版本发现或实体手机无 VPN 网络的验收。
 - 已安装 APK 的真实长按消息产生系统选字及 Copy 工具栏；桌面右键菜单未拦截 Android 长按。
 - APK 与对应源码一起准备；公开 Release、静态 main 分支入口合并和独立无 VPN 托管尚未执行。
+
+## 0.13.2 更新体验修复（2026-10-23）
+
+职责不变：TUpdate 拥有设备配置、HTTPS、缓存文件、校验和安装；app-update 每个原生插件只维护一个共享任务，页面订阅它的状态。人物、聊天、模型配置和业务数据库没有迁移。原权限引导、取消安装后重开、缓存恢复和手动下载入口保留。
+
+- 默认优先直接清单，失败才扫描 Releases。清单请求的连接/读取超时由 15/30 秒调整为 5/7 秒；所有清单请求共用 20 秒检查预算，避免多个入口逐个耗尽长超时。APK 下载继续用 15/30 秒，避免慢速传输被清单超时误伤。
+- 中断或暂停保留 update.part 及其完整清单标识。相同包名、版本、URL、SHA-256 和大小才能续传；206 的 Content-Range 必须与偏移及总大小完全一致；服务器返回 200 时重新写完整文件。换包、范围错误或最终校验失败不会安装。
+- 重新打开设置显示同一个任务、百分比、已下载 MB 和当前速度，单次下载只注册一个原生进度监听。校验阶段单独显示，不允许暂停校验。暂停后由用户点击继续；不会自动反复下载。
+- 进程重启后读取部分下载元数据，提示继续下载；完整缓存仍需通过原大小、SHA-256、包名、版本和签名检查才能进入系统安装器。
+
+本轮核对 SullyOS `utils/androidAppUpdate.ts`，文件最后修改提交 `4ed3c293af89acf89762a892e72e811017c1b9dc`，blob `15e88dabcb2e5bd36f3d56460eb1aba978b14ff9`。其现成封装依赖 Capacitor Filesystem，主要解决直接清单与跨页面单任务；不包含 HTTP Range 续传。T- 继续复用已有 Java 下载、校验和安装代码，并在该接口内补齐续传；未新增 Filesystem 依赖或导入 SullyOS 文件。个人非商业授权记录仍见上文，不扩展为公开再分发许可。
+
+发布端实查：公开更新仓库仅有 android-v0.7.0 Release，main/t-update.json 返回 404。静态入口需要与审核后的 Release 清单一起部署并持续更新，客户端才会走单请求路径。开发分支、PR 或本地 APK 不会自动更新线上渠道。旧安装包必须覆盖安装一次，才能取得新的原生逻辑。
+
+验证入口：`tests/app-update-browser.mjs` 覆盖导航期间单任务/进度、暂停、重启部分下载和原安装权限/重试；`UpdateTransferInstrumentation` 在独立 Android 11 模拟器用真实文件和模拟 HTTPS 流验证中断、Range、200 回退、范围拒绝、换包隔离与暂停；`UpdateChannelInstrumentation` 验证直接清单只请求一次和 prerelease 回退。没有调用模型服务；真机下载吞吐和免 VPN 可达性未验证。
+
+发布仓库已准备 [直接清单 PR #2](https://github.com/Jcin004/T-companion-updates/pull/2)，与现有 0.7.0 Release 附件的 SHA-256 完全一致；未自动合并。新增 `tests/update-ui-android.mjs` 在 Android 11 / WebView 83 实测模块导入、切页单任务、50% 进度和权限返回。
+
+真实网络抽查：独立模拟器把自定义清单临时指向上述 PR 分支，原生 HTTPS 检查一次成功，单次 275 ms、attempts 只有 raw.githubusercontent.com；随后恢复原配置。该结果只验证此网络和已发布 0.7.0 元数据的读取，不代表实体手机耗时或新版 APK 已发布。

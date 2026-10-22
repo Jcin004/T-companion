@@ -8,6 +8,6 @@ if(!apk||!/^\d+$/.test(versionCode)||!versionName||!tag)throw Error('Usage: node
 const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Number(versionCode),versionName,
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['AI 关联候选：只发送勾选材料，保留两端原话依据，确认后才参与召回','确认前可修改关系与说明；过期候选阻止确认，已拒绝版本不重复提议','候选沿用记忆专用模型、来源校验与事务，不自动改人物身份或分享记忆','保留上下文独立设置、子页返回、悬浮切换与原签名覆盖安装']};
+ releaseNotes:['检查更新优先读取直接清单，缩短超时并共用检查等待预算','下载中断或暂停后继续，切换设置页保留同一任务、进度和速度','保留包名、版本、大小、SHA-256、签名校验和原权限安装流程','覆盖安装保留人物、聊天、记忆、世界与模型配置']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');
