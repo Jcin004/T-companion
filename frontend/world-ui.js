@@ -3,13 +3,14 @@ import {drawWorld} from './world-renderer.js';
 import {ROOM,FURNITURE,collision,distance} from './world-map.js';
 import {findPath} from './world-pathfinding.js';
 import {mountResidentLifeUI} from './resident-life-ui.js';
+import {mountWorldJoystick} from './world-joystick.js';
 const el=id=>document.getElementById(id);
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
 const requestId=()=>globalThis.crypto?.randomUUID?.()||'op_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
 export function installWorldShell(){
   const b=node('button');b.dataset.app='world';b.innerHTML='<span class="app-icon world-icon">⌂</span>世界';document.querySelector('.app-grid').append(b);
   const screen=node('section');screen.id='world';screen.className='screen page';screen.hidden=true;
-  screen.innerHTML='<header><button class="icon" data-home aria-label="返回桌面">‹</button><h1>世界 · 暖木小屋</h1></header><div class="world-body"><p id="world-notice" role="status"></p><div id="world-setup"></div><div id="world-play" hidden><div class="world-meta"><span id="world-time"></span><span>点地板行走 · 点人物交谈</span></div><canvas id="world-canvas" width="288" height="312" aria-label="暖木小屋像素房间，点击地板移动，点击人物交谈"></canvas><label>移动对象<select id="world-actor"></select></label><div id="world-places" class="actions"></div><div class="actions"><button id="world-advance">推进一次世界</button><button id="world-retry" hidden>重试上次操作</button></div><details><summary>世界经历与知情范围</summary><div id="world-events"></div></details></div></div>';
+  screen.innerHTML='<header><button class="icon" data-home aria-label="返回桌面">‹</button><h1>世界 · 暖木小屋</h1></header><div class="world-body"><p id="world-notice" role="status"></p><div id="world-setup"></div><div id="world-play" hidden><div class="world-meta"><span id="world-time"></span><span>拖动摇杆行走 · 点人物交谈</span></div><div class="world-stage"><canvas id="world-canvas" width="288" height="312" aria-label="暖木小屋像素房间，可用左下摇杆或点击地板移动，点击人物交谈"></canvas><div class="world-controls"><div id="world-joystick" role="group" aria-label="移动摇杆，按住并拖向上下左右，松手停止"><span class="world-joystick-arrows" aria-hidden="true">✦</span><span class="world-joystick-thumb" aria-hidden="true"></span></div><span class="world-control-hint">按住移动 · 松手停下</span></div></div><label>移动对象<select id="world-actor"></select></label><div id="world-places" class="actions"></div><div class="actions"><button id="world-advance">推进一次世界</button><button id="world-retry" hidden>重试上次操作</button></div><details><summary>世界经历与知情范围</summary><div id="world-events"></div></details></div></div>';
   document.querySelector('.phone').insertBefore(screen,el('home-button'));
   const d=node('dialog');d.id='world-dialogue';d.className='world-dialogue';d.innerHTML='<header><h2>场景对话</h2><button id="world-close">返回房间</button></header><div class="world-portrait" id="world-portrait"></div><strong id="world-speaker"></strong><small>房间近处交流 · 仅交谈双方听到</small><div id="world-lines" aria-live="polite"></div><details><summary>上下文与记录</summary><label>历史消息条数（空白跟随全局）<input id="world-history-limit" type="number" min="0" max="2000"></label><button id="world-history-save">保存上下文设置</button><button id="world-preview">预览本轮上下文</button><button id="world-older">加载更早对话</button><pre id="world-preview-text"></pre></details><form id="world-composer"><textarea id="world-input" maxlength="20000" rows="2" placeholder="说些什么…" aria-label="场景对话输入"></textarea><div class="actions"><button id="world-send" class="primary">发送</button><button id="world-cancel" type="button">停止回复</button><button id="world-dialogue-retry" type="button" hidden>重试未完成消息</button></div></form><p id="world-dialogue-status" role="status"></p>';document.body.append(d);
 }
@@ -24,12 +25,27 @@ export function mountWorldUI({api,localReady,isLocal,toast,report}){
   const safe=fn=>async(...args)=>{try{await fn(...args);}catch(e){report(e);toast(e.message);el('world-dialogue-status').textContent=e.message;}};
   const button=(text,fn)=>{const b=node('button',text);b.type='button';b.onclick=safe(fn);return b;};
   const lifeUI=mountResidentLifeUI({api,toast,report,refreshWorld:refresh});
-  async function refresh(){
+  const joystick=mountWorldJoystick({
+    element:el('world-joystick'),
+    canStart:()=>!busy&&!pending&&!el('world').hidden&&!document.querySelector('dialog[open]')&&!!world?.state.positions.user,
+    step:async direction=>{
+      if(busy||el('world').hidden)return;
+      const actor=el('world-actor').value,p=world.state.positions[actor];
+      const target={x:p.x+direction.x,y:p.y+direction.y};
+      if(target.x<0||target.x>=ROOM.width||target.y<0||target.y>=ROOM.height||collision(world.state.positions,actor)[target.y*ROOM.width+target.x])return;
+      await command({request_id:requestId(),type:'move',actor_id:actor,target},true);
+    },
+    onRest:()=>{if(world&&!el('world').hidden)renderEvents();},
+    onError:e=>{report(e);toast(e.message);}
+  });
+  async function refresh({light=false}={}){
     cancelAnimationFrame(animation);
     if(!isLocal()){el('world-notice').textContent='世界使用本机数据，请在设置切换到本机模式。';el('world-play').hidden=true;el('world-setup').replaceChildren();return;}
     world=await api('/world');el('world-notice').textContent='每次操作都会保存；居民生活和后台推进可在下方设置。';
-    await lifeUI.refresh();
+    if(!light)await lifeUI.refresh();
     const ready=world.state.residents.length===2;el('world-play').hidden=!ready;el('world-setup').replaceChildren();
+    el('world-time').textContent='第 '+world.state.tick+' 步 · '+(world.state.lamp?'灯亮':'灯灭');drawWorld(el('world-canvas'),world);
+    if(light)return;
     if(!ready){
       const chars=await api('/characters');el('world-setup').append(node('p','从人设名册选择两位居民。世界只保存人物标识，资料继续由名册管理。'));
       if(chars.length<2){el('world-setup').append(node('p','请先到名册创建至少两位人物。'));return;}
@@ -37,8 +53,10 @@ export function mountWorldUI({api,localReady,isLocal,toast,report}){
       el('world-setup').append(button('进入小屋',async()=>{await api('/world/setup','POST',{character_ids:selects.map(s=>s.value)});await refresh();}));return;
     }
     const actor=el('world-actor'),selected=actor.value;actor.replaceChildren();for(const [id,name] of [['user','我'],...world.residents.map(r=>[r.id,r.name])]){const o=node('option',name);o.value=id;actor.append(o);}if(world.state.positions[selected])actor.value=selected;
-    el('world-time').textContent='第 '+world.state.tick+' 步 · '+(world.state.lamp?'灯亮':'灯灭');drawWorld(el('world-canvas'),world);
     el('world-places').replaceChildren(...FURNITURE.map(f=>button(f.name,()=>interact(f))));
+    renderEvents();
+  }
+  function renderEvents(){
     const list=el('world-events');list.replaceChildren();
     for(const e of world.state.events.slice(-30).reverse()){
       const card=node('article');card.className='world-event';card.append(node('p',e.content.slice(0,500)),node('small',e.created_at+' · 知情者：'+(e.observations.map(o=>world.residents.find(r=>r.id===o.owner_id)?.name||o.owner_id).join('、')||'无居民')));
@@ -50,11 +68,11 @@ export function mountWorldUI({api,localReady,isLocal,toast,report}){
       list.append(card);
     }
   }
-  async function command(value){
+  async function command(value,light=false){
     if(busy)throw Error('请等待当前操作完成');busy=true;pending=value;el('world-retry').hidden=true;
     const previous=world;
     try{
-      const event=await api('/world/commands','POST',value);pending=null;await refresh();
+      const event=await api('/world/commands','POST',value);pending=null;await refresh({light});
       if(value.type==='move'){
         const actor=value.actor_id||'user',start=previous.state.positions[actor],path=findPath(collision(previous.state.positions,actor),12,13,start.x,start.y,value.target.x,value.target.y).path,started=performance.now(),duration=Math.min(900,path.length*90);
         const frame=now=>{if(el('world').hidden)return;const fraction=Math.min(1,(now-started)/duration),step=fraction*(path.length-1),i=Math.floor(step),a=path[i],b=path[Math.min(i+1,path.length-1)],positions={...world.state.positions,[actor]:{x:a.x+(b.x-a.x)*(step-i),y:a.y+(b.y-a.y)*(step-i)}};drawWorld(el('world-canvas'),world,positions);if(fraction<1)animation=requestAnimationFrame(frame);};animation=requestAnimationFrame(frame);
@@ -63,6 +81,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report}){
     }catch(e){el('world-retry').hidden=false;throw e;}finally{busy=false;}
   }
   async function interact(f){
+    joystick.stop();
     const actor=el('world-actor').value,p=world.state.positions[actor];
     const spots=[];for(let y=3;y<12;y++)for(let x=1;x<11;x++){const d=Math.min(...Array.from({length:f.w*f.h},(_,i)=>distance({x,y},{x:f.x+i%f.w,y:f.y+Math.floor(i/f.w)})));if(d<=2&&!collision(world.state.positions,actor)[y*12+x]){const path=findPath(collision(world.state.positions,actor),12,13,p.x,p.y,x,y);if(path.reachable)spots.push({x,y,length:path.path.length});}}
     spots.sort((a,b)=>a.length-b.length);if(!spots.length)throw Error('这个地点暂时无法到达');
@@ -80,6 +99,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report}){
     failedTurn=failed?{text:failed.content,id:failed.request_id}:null;el('world-dialogue-retry').hidden=!failedTurn;
   }
   async function talk(id){
+    joystick.stop();
     if(busy)throw Error('请等待操作完成');
     const target=world.state.positions[id],p=world.state.positions.user;
     if(distance(p,target)>3){
@@ -98,8 +118,9 @@ export function mountWorldUI({api,localReady,isLocal,toast,report}){
       failedTurn=null;el('world-input').value='';await api('/contacts/'+session.id+'/draft','PATCH',{text:''});el('world-dialogue-status').textContent='已保存对话与世界事件';
     }catch(e){el('world-dialogue-status').textContent=e.message;report(e);}finally{busy=false;el('world-send').disabled=false;await lines();await refresh();el('world-dialogue-retry').hidden=!failedTurn;}
   }
-  el('world-canvas').onclick=safe(async e=>{const r=e.currentTarget.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*12),y=Math.floor((e.clientY-r.top)/r.height*13),id=world.state.residents.find(id=>world.state.positions[id].x===x&&Math.abs(world.state.positions[id].y-y)<=1);if(id)return talk(id);const f=FURNITURE.find(f=>x>=f.x&&x<f.x+f.w&&y>=f.y&&y<f.y+f.h);if(f)return interact(f);await command({request_id:requestId(),type:'move',actor_id:el('world-actor').value,target:{x,y}});});
-  el('world-advance').onclick=safe(()=>command({request_id:requestId(),type:'advance',actor_id:el('world-actor').value}));
+  el('world-canvas').onclick=safe(async e=>{joystick.stop();const r=e.currentTarget.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*12),y=Math.floor((e.clientY-r.top)/r.height*13),id=world.state.residents.find(id=>world.state.positions[id].x===x&&Math.abs(world.state.positions[id].y-y)<=1);if(id)return talk(id);const f=FURNITURE.find(f=>x>=f.x&&x<f.x+f.w&&y>=f.y&&y<f.y+f.h);if(f)return interact(f);await command({request_id:requestId(),type:'move',actor_id:el('world-actor').value,target:{x,y}});});
+  el('world-actor').onchange=()=>joystick.stop();
+  el('world-advance').onclick=safe(()=>{joystick.stop();return command({request_id:requestId(),type:'advance',actor_id:el('world-actor').value});});
   el('world-retry').onclick=safe(()=>pending&&command(pending));
   el('world-close').onclick=()=>el('world-dialogue').close();el('world-dialogue').addEventListener('close',()=>{localReady.then(s=>s.cancel());});
   el('world-composer').onsubmit=safe(async e=>{e.preventDefault();await send(el('world-input').value);});
@@ -109,5 +130,5 @@ export function mountWorldUI({api,localReady,isLocal,toast,report}){
   el('world-older').onclick=safe(()=>lines(older));
   el('world-history-save').onclick=safe(async()=>{const raw=el('world-history-limit').value;session=await api('/contacts/'+session.id,'PATCH',{history_limit:raw===''?null:Number(raw)});toast('场景上下文设置已保存');});
   el('world-preview').onclick=safe(async()=>{const value=await api('/contacts/'+session.id+'/context-preview','POST',{message:el('world-input').value});el('world-preview-text').textContent=JSON.stringify(value.messages,null,2);});
-  return {refresh,leave(){cancelAnimationFrame(animation);}};
+  return {refresh,leave(){joystick.stop();cancelAnimationFrame(animation);}};
 }
