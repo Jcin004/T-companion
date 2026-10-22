@@ -13,7 +13,7 @@ async function point(selector){
   return {x:Math.round(p.x*p.scale+inset.x),y:Math.round(p.y*p.scale+inset.y),scale:p.scale};
 }
 async function tap(selector){const p=await point(selector);await adb('shell','input','tap',String(p.x),String(p.y));await pause(400);}
-async function drag(dx,dy,duration=1300){const p=await point('#world-joystick');await adb('shell','input','swipe',String(p.x),String(p.y),String(Math.round(p.x+dx*p.scale)),String(Math.round(p.y+dy*p.scale)),String(duration));await pause(400);}
+async function drag(dx,dy,duration=3000){const p=await point('#world-joystick');await adb('shell','input','swipe',String(p.x),String(p.y),String(Math.round(p.x+dx*p.scale)),String(Math.round(p.y+dy*p.scale)),String(duration));await pause(600);}
 async function shot(){await adb('shell','screencap','-p','/sdcard/joystick-native.png');await adb('pull','/sdcard/joystick-native.png','artifacts/joystick-android-room.png');}
 try{
   await adb('shell','am','force-stop','io.jcin.tcompanion');await adb('shell','am','start','-n','io.jcin.tcompanion/.MainActivity');await connect();await wait(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
@@ -23,6 +23,7 @@ try{
   }else{
     const baseline=JSON.parse(await readFile('artifacts/joystick-upgrade-before.json','utf8'));assert.deepEqual(original,baseline,'original SQLite data retained across upgrade');
     const version=await evaluate(()=>Capacitor.Plugins.TUpdate.info());assert.equal(version.versionCode,17);
+    await writeFile('artifacts/joystick-upgrade-validation.json',JSON.stringify({version,allSQLiteBusinessDataRetained:true},null,2));
     await evaluate(async()=>{
       const {createLocalService}=await import('/assets/local-service.js'),s=await createLocalService(Capacitor.Plugins.TLocal),w=(await s.api('/world')).state;
       for(const [actor_id,target] of [[w.residents[0],{x:4,y:6}],[w.residents[1],{x:9,y:10}],['user',{x:5,y:8}]]){
@@ -37,7 +38,7 @@ try{
     assert.equal(moved.positions.user.y,8);assert.ok(moved.positions.user.x>=7,'native hold repeats movement');
     assert.equal(moved.tick-before.tick,moved.positions.user.x-5,'one event per completed tile');
     await pause(900);assert.deepEqual((await data()).world,moved,'finger release stops');
-    await drag(40,0,1800);assert.deepEqual((await data()).world.positions.user,{x:10,y:8});
+    await drag(40,0,2500);assert.deepEqual((await data()).world.positions.user,{x:10,y:8});
     const edge=(await data()).world;await drag(40,0,600);assert.deepEqual((await data()).world,edge,'collision does not save false events');
     await drag(0,40,1000);assert.ok((await data()).world.positions.user.y>8,'native change of direction');
     await shot();

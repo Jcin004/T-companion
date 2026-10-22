@@ -13,12 +13,12 @@ export function createJoystickMotion({step,onError,onRest=()=>{},interval=180,sc
   async function pump(){
     timer=null;
     if(!active||!direction||inFlight)return;
-    inFlight=true;
+    inFlight=true;const started=Date.now();
     try{await step({...direction});}
     catch(e){stop();onError(e);}
     finally{
       inFlight=false;
-      if(active&&direction)timer=schedule(pump,interval);
+      if(active&&direction)timer=schedule(pump,Math.max(0,interval-(Date.now()-started)));
       rest();
     }
   }
