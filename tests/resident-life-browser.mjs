@@ -19,9 +19,9 @@ try{
  await page.goto('http://127.0.0.1:8014/');await page.waitForFunction(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
  await page.evaluate(async()=>{const {BrowserPersistence,emptyData}=await import('/assets/local-service.js'),store=new BrowserPersistence(),d=emptyData();d.characters=[{id:'a',name:'林',identity:'',style:'',avatar:''},{id:'b',name:'雨',identity:'',style:'',avatar:''}];d.settings.model='mock';d.settings.base_url='https://fixture.example/v1';await store.load();await store.save(d);});
  await page.reload();await page.waitForFunction(()=>document.querySelector('#status')?.textContent==='记录保存在本机');await app('world');await page.getByRole('button',{name:'进入小屋',exact:true}).tap();await page.locator('#world-canvas[data-drawn="yes"]').waitFor();
- await page.locator('#resident-life summary').tap();await page.locator('#life-enabled').check();await page.locator('#life-quiet_start').fill('0');await page.locator('#life-quiet_end').fill('0');await page.locator('#life-save').tap();await page.waitForTimeout(150);
+ await page.locator('#world-menu-open').tap();await page.locator('#world-menu').getByRole('button',{name:'居民生活',exact:true}).tap();await page.locator('#life-enabled').check();await page.locator('#life-quiet_start').fill('0');await page.locator('#life-quiet_end').fill('0');await page.locator('#life-save').tap();await page.waitForTimeout(150);
  await page.locator('#life-run').tap();await page.waitForFunction(()=>document.querySelector('#life-status')?.textContent.includes('complete'));
- await page.screenshot({path:'artifacts/life-browser-run.png'});await home();await app('chat');
+ await page.screenshot({path:'artifacts/life-browser-run.png'});await page.locator('#world-life-panel header button').tap();await home();await app('chat');
  await page.locator('#contacts .contact').first().tap();await page.getByText('主动分享',{exact:true}).first().waitFor();
  await page.getByRole('button',{name:'事件来源',exact:true}).first().tap();await page.locator('#world-source-dialog[open]').waitFor();await page.locator('#world-source-dialog').getByRole('button',{name:'关闭'}).tap();
  await page.locator('#input').fill('你刚才停留了片刻？');await page.locator('#send').tap();await page.waitForFunction(()=>!document.querySelector('#send').disabled);

@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-22",
+  "source": "Original assets generated for T-companion using the built-in image_gen tool",
+  "license": "AGPL-3.0-only, distributed with this project",
+  "external_asset_files_copied": [],
+  "private_reference_images_included": false,
+  "notes": "Production images generated independently from text briefs after approval of the concept. No user character identity or chat supplied. Prompts here are concise briefs, not verbatim generation logs. Pixel animation and portrait atlas bounds are handled by world-art.js. Default appearances are replaceable examples, not roster identity.",
+  "files": {
+    "warm-room.png": {
+      "sha256": "80c734afafaf922fc45a9b02da94e9f681ff19531ff202a4dba0720fed24827e",
+      "width": 1205,
+      "height": 1305,
+      "prompt_brief": "Original cozy front-facing pixel room, 12:13 aspect. Bookcase left, desk and window on rear wall, bed right, plant lower left, rug center, open floor. Warm walnut/cream/rose/moss palette. No UI, people or lettering."
+    },
+    "residents.png": {
+      "sha256": "3f2fcafe8e92cfa6320279d9a5347f9d4ba42c5776e042003e3c2f32ddd18207",
+      "width": 2172,
+      "height": 724,
+      "prompt_brief": "Original transparent character atlas: 12 columns x 4 rows. Three character groups, four walk frames each. Rows down/left/right/up. Rose cardigan, moss sweater, blue-gray coat. Full body, consistent feet and silhouette."
+    },
+    "portraits.png": {
+      "sha256": "703780bc00779bda235807bd779855839ebc6231227e86b7923a6caa49358bb2",
+      "width": 1536,
+      "height": 1024,
+      "prompt_brief": "Original three-column pixel-anime half-body portrait atlas matching the three default outfit examples. Rose cardigan woman, moss sweater man, blue-gray coat man. No text or UI."
+    },
+    "menu-icons.png": {
+      "sha256": "0c18a64f0f0536c71dba90831d335e080cf963bda57ad45e71a7646a0ef39cf2",
+      "width": 1374,
+      "height": 1145,
+      "prompt_brief": "Original transparent 3x3 warm pixel menu icon atlas: character, resident life, history, messages, memory, appearance, model connection, settings, home. No lettering."
+    }
+  }
+}

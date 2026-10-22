@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {ensureWorld,validateWorld,applyWorldCommand,worldSource,sceneSnapshot,copy} from './world-core.js';
 import {ROOM,FURNITURE} from './world-map.js';
+import {lookFor} from './character-looks.js';
 export class WorldModule {
   constructor(host){this.host=host;}
   async api(path,method,body={}){
@@ -14,7 +15,7 @@ export class WorldModule {
       }
       if(parts[1]==='sources'&&parts[2])return worldSource(d,decodeURIComponent(parts[2]),url.searchParams.get('owner'));
       if(parts.length!==1)throw Error('不支持的世界查询');
-      return copy({state:w,room:ROOM,furniture:FURNITURE,residents:w.residents.map(id=>d.characters.find(c=>c.id===id))});
+      return copy({state:w,room:ROOM,furniture:FURNITURE,residents:w.residents.map(id=>d.characters.find(c=>c.id===id)),looks:Object.fromEntries(['user',...w.residents].map(id=>[id,lookFor(d,id)]))});
     }
     if(method!=='POST')throw Error('世界操作需要 POST');
     if(this.host.active)throw Error('请等待当前对话完成再操作世界');

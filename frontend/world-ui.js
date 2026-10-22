@@ -1,134 +1,130 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {drawWorld} from './world-renderer.js';
+import {loadWorldArt,actorPoint,floorPoint,visualPlaces,portraitImage} from './world-art.js';
 import {ROOM,FURNITURE,collision,distance} from './world-map.js';
 import {findPath} from './world-pathfinding.js';
+import {sceneActionSteps} from './world-scene-actions.js';
 import {mountResidentLifeUI} from './resident-life-ui.js';
 import {mountWorldJoystick} from './world-joystick.js';
-const el=id=>document.getElementById(id);
-const node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
-const requestId=()=>globalThis.crypto?.randomUUID?.()||'op_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
+import {installSceneDialogue,mountSceneDialogue} from './world-dialogue-ui.js';
+import {mountCharacterLooksUI} from './character-looks-ui.js';
+const el=id=>document.getElementById(id),node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
+const uid=()=>globalThis.crypto?.randomUUID?.()||'op_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
+function panel(id,title,html){const d=node('dialog');d.id=id;d.className='world-panel';d.innerHTML='<header><h2>'+title+'</h2><button aria-label="关闭">×</button></header>'+html;d.querySelector('header button').onclick=()=>d.close();document.body.append(d);return d;}
 export function installWorldShell(){
   const b=node('button');b.dataset.app='world';b.innerHTML='<span class="app-icon world-icon">⌂</span>世界';document.querySelector('.app-grid').append(b);
   const screen=node('section');screen.id='world';screen.className='screen page';screen.hidden=true;
-  screen.innerHTML='<header><button class="icon" data-home aria-label="返回桌面">‹</button><h1>世界 · 暖木小屋</h1></header><div class="world-body"><p id="world-notice" role="status"></p><div id="world-setup"></div><div id="world-play" hidden><div class="world-meta"><span id="world-time"></span><span>拖动摇杆行走 · 点人物交谈</span></div><div class="world-stage"><canvas id="world-canvas" width="288" height="312" aria-label="暖木小屋像素房间，可用左下摇杆或点击地板移动，点击人物交谈"></canvas><div class="world-controls"><div id="world-joystick" role="group" aria-label="移动摇杆，按住并拖向上下左右，松手停止"><span class="world-joystick-arrows" aria-hidden="true">✦</span><span class="world-joystick-thumb" aria-hidden="true"></span></div><span class="world-control-hint">按住移动 · 松手停下</span></div></div><label>移动对象<select id="world-actor"></select></label><div id="world-places" class="actions"></div><div class="actions"><button id="world-advance">推进一次世界</button><button id="world-retry" hidden>重试上次操作</button></div><details><summary>世界经历与知情范围</summary><div id="world-events"></div></details></div></div>';
+  screen.innerHTML='<div class="world-body"><p id="world-notice" role="status"></p><div id="world-setup"></div><div id="world-play" hidden><div class="world-stage"><canvas id="world-canvas" width="576" height="960" aria-label="暖木小屋，左下摇杆移动，靠近物品交互，点击人物交谈"></canvas><div class="world-hud"><div class="world-room-label">暖木小屋<small id="world-time"></small></div><button id="world-menu-open" aria-label="打开用户菜单"><img id="world-user-avatar" alt="用户头像"></button></div><div class="world-controls"><div id="world-joystick" role="group" aria-label="移动摇杆，按住并拖向上下左右，松手停止"><span class="world-joystick-arrows" aria-hidden="true">✦</span><span class="world-joystick-thumb" aria-hidden="true"></span></div></div><div id="world-places" class="world-context-actions"></div><button id="world-retry" hidden>重试上次操作</button><p id="world-action-status" role="status"></p></div></div></div>';
   document.querySelector('.phone').insertBefore(screen,el('home-button'));
-  const d=node('dialog');d.id='world-dialogue';d.className='world-dialogue';d.innerHTML='<header><h2>场景对话</h2><button id="world-close">返回房间</button></header><div class="world-portrait" id="world-portrait"></div><strong id="world-speaker"></strong><small>房间近处交流 · 仅交谈双方听到</small><div id="world-lines" aria-live="polite"></div><details><summary>上下文与记录</summary><label>历史消息条数（空白跟随全局）<input id="world-history-limit" type="number" min="0" max="2000"></label><button id="world-history-save">保存上下文设置</button><button id="world-preview">预览本轮上下文</button><button id="world-older">加载更早对话</button><pre id="world-preview-text"></pre></details><form id="world-composer"><textarea id="world-input" maxlength="20000" rows="2" placeholder="说些什么…" aria-label="场景对话输入"></textarea><div class="actions"><button id="world-send" class="primary">发送</button><button id="world-cancel" type="button">停止回复</button><button id="world-dialogue-retry" type="button" hidden>重试未完成消息</button></div></form><p id="world-dialogue-status" role="status"></p>';document.body.append(d);
+  panel('world-menu','我的世界','<div class="world-menu-grid"></div>');
+  panel('world-events-panel','世界经历与知情范围','<div id="world-events"></div>');
+  panel('world-life-panel','居民生活','<div id="world-life-container"></div>');
+  panel('world-settings-panel','世界设置','<label>移动对象<select id="world-actor"></select></label><button id="world-advance">推进一次世界</button><p>移动与交互自动保存；点击物品可走近，靠近后按操作按钮。人物形象与居民生活从用户菜单进入。</p>');
+  installSceneDialogue();
 }
 export async function showWorldSource(api,ref,owner){
   const e=await api('/world/sources/'+encodeURIComponent(ref.event_id)+'?owner='+encodeURIComponent(owner));
-  let d=el('world-source-dialog');if(!d){d=node('dialog');d.id='world-source-dialog';document.body.append(d);}
-  d.replaceChildren();const close=node('button','关闭');close.onclick=()=>d.close();d.append(node('h2','世界事件来源'),close,node('p',e.id+' · '+e.created_at+' · '+e.location),node('pre',e.content),node('p','来源：'+e.source.type),node('p','知情依据：'+e.observations.filter(o=>o.owner_id===owner).map(o=>o.kind==='witness'?'在场观察':'听到对话').join('、')));
-  if(!d.open)d.showModal();
+  let d=el('world-source-dialog');if(!d)d=panel('world-source-dialog','世界事件来源','');
+  const close=node('button','关闭');close.onclick=()=>d.close();d.replaceChildren(node('h2','世界事件来源'),close,node('p',e.id+' · '+e.created_at+' · '+e.location),node('pre',e.content),node('p','来源：'+e.source.type),node('p','知情依据：'+e.observations.filter(o=>o.owner_id===owner).map(o=>o.kind==='witness'?'在场观察':'听到对话').join('、')));if(!d.open)d.showModal();
 }
-export function mountWorldUI({api,localReady,isLocal,toast,report}){
-  let world,session,person,busy=false,pending=null,failedTurn=null,animation=0,older=0;
-  const safe=fn=>async(...args)=>{try{await fn(...args);}catch(e){report(e);toast(e.message);el('world-dialogue-status').textContent=e.message;}};
+export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak,stopSpeech}){
+  let world,busy=false,pending=null,animation=0,resolveAnimation=null;
+  const safe=fn=>async(...args)=>{try{await fn(...args);}catch(e){report(e);toast(e.message);el('world-action-status').textContent=e.message;}};
   const button=(text,fn)=>{const b=node('button',text);b.type='button';b.onclick=safe(fn);return b;};
-  const lifeUI=mountResidentLifeUI({api,toast,report,refreshWorld:refresh});
-  const joystick=mountWorldJoystick({
-    element:el('world-joystick'),
-    canStart:()=>!busy&&!pending&&!el('world').hidden&&!document.querySelector('dialog[open]')&&!!world?.state.positions.user,
-    step:async direction=>{
-      if(busy||el('world').hidden)return;
-      const actor=el('world-actor').value,p=world.state.positions[actor];
-      const target={x:p.x+direction.x,y:p.y+direction.y};
-      if(target.x<0||target.x>=ROOM.width||target.y<0||target.y>=ROOM.height||collision(world.state.positions,actor)[target.y*ROOM.width+target.x])return;
-      await command({request_id:requestId(),type:'move',actor_id:actor,target},true);
-    },
-    onRest:()=>{if(world&&!el('world').hidden)renderEvents();},
-    onError:e=>{report(e);toast(e.message);}
-  });
+  const lifeUI=mountResidentLifeUI({api,toast,report,refreshWorld:refresh});el('world-life-container').append(el('resident-life'));el('resident-life').open=true;
+  const looks=mountCharacterLooksUI({api,getWorld:()=>world,refresh,toast,report});
+  const dialogue=mountSceneDialogue({api,localReady,getWorld:()=>world,refresh,animate:animateEvents,speak,stopSpeech,toast,report,editLook:id=>looks.open(id)});
+  const joystick=mountWorldJoystick({element:el('world-joystick'),canStart:()=>!busy&&!dialogue.isBusy()&&!pending&&!el('world').hidden&&!document.querySelector('dialog[open]')&&!!world?.state.residents.length,
+    step:async d=>{if(busy||el('world').hidden)return;const actor=el('world-actor').value,p=world.state.positions[actor],target={x:p.x+d.x,y:p.y+d.y};if(target.x<1||target.x>10||target.y<3||target.y>11||collision(world.state.positions,actor)[target.y*12+target.x])return;await command({request_id:uid(),type:'move',actor_id:actor,target});},
+    onRest:()=>{if(world&&!el('world').hidden)renderEvents();},onError:e=>{report(e);toast(e.message);}});
+  const menu=el('world-menu').querySelector('.world-menu-grid');
+  for(const [label,icon,fn] of [
+    ['人物','♙',()=>looks.open('user')],['居民生活','☀',async()=>{await lifeUI.refresh();el('world-life-panel').showModal();}],['世界记录','▤',()=>{renderEvents();el('world-events-panel').showModal();}],
+    ['消息','✉',()=>navigate('chat')],['记忆','▣',()=>navigate('memory')],['外观','✿',()=>navigate('appearance')],['模型连接','⌘',()=>{navigate('settings');}],['设置','⚙',()=>el('world-settings-panel').showModal()],['返回桌面','⌂',()=>navigate('home')]
+  ]){const b=button('',async()=>{el('world-menu').close();await fn();}),i=node('span',icon);i.setAttribute('aria-hidden','true');i.className='world-menu-icon';i.textContent='';const n=menu.children.length;i.style.backgroundPosition=(n%3*50)+'% '+(Math.floor(n/3)*50)+'%';b.append(i,node('span',label));menu.append(b);}
+  el('world-menu-open').onclick=safe(async()=>{joystick.stop();dialogue.close();el('world-menu').showModal();});
+  function stopAnimation(){cancelAnimationFrame(animation);resolveAnimation?.();resolveAnimation=null;}
   async function refresh({light=false}={}){
-    cancelAnimationFrame(animation);
-    if(!isLocal()){el('world-notice').textContent='世界使用本机数据，请在设置切换到本机模式。';el('world-play').hidden=true;el('world-setup').replaceChildren();return;}
-    world=await api('/world');el('world-notice').textContent='每次操作都会保存；居民生活和后台推进可在下方设置。';
-    if(!light)await lifeUI.refresh();
-    const ready=world.state.residents.length===2;el('world-play').hidden=!ready;el('world-setup').replaceChildren();
-    el('world-time').textContent='第 '+world.state.tick+' 步 · '+(world.state.lamp?'灯亮':'灯灭');drawWorld(el('world-canvas'),world);
-    if(light)return;
+    stopAnimation();
+    if(!isLocal()){el('world-notice').textContent='世界使用本机数据，请在设置切换到本机模式。';el('world-notice').hidden=false;el('world-play').hidden=true;return;}
+    world=await api('/world');await loadWorldArt(world);document.body.classList.add('world-active');
+    const ready=world.state.residents.length===2;el('world-play').hidden=!ready;el('world-notice').hidden=ready;el('world-setup').replaceChildren();
     if(!ready){
-      const chars=await api('/characters');el('world-setup').append(node('p','从人设名册选择两位居民。世界只保存人物标识，资料继续由名册管理。'));
-      if(chars.length<2){el('world-setup').append(node('p','请先到名册创建至少两位人物。'));return;}
-      const selects=[0,1].map(i=>{const label=node('label','居民 '+(i+1)),select=node('select');select.id='world-resident-'+i;for(const c of chars){const o=node('option',c.name);o.value=c.id;select.append(o);}select.selectedIndex=i;label.append(select);el('world-setup').append(label);return select;});
+      el('world-notice').textContent='从名册选择两位居民，进入暖木小屋。';const people=await api('/characters');
+      if(people.length<2){el('world-setup').append(button('打开人设名册',()=>navigate('roster')));return;}
+      const selects=[0,1].map(i=>{const s=node('select');s.id='world-resident-'+i;people.forEach(p=>s.append(new Option(p.name,p.id)));s.selectedIndex=i;const label=node('label','居民 '+(i+1));label.append(s);el('world-setup').append(label);return s;});
       el('world-setup').append(button('进入小屋',async()=>{await api('/world/setup','POST',{character_ids:selects.map(s=>s.value)});await refresh();}));return;
     }
-    const actor=el('world-actor'),selected=actor.value;actor.replaceChildren();for(const [id,name] of [['user','我'],...world.residents.map(r=>[r.id,r.name])]){const o=node('option',name);o.value=id;actor.append(o);}if(world.state.positions[selected])actor.value=selected;
-    el('world-places').replaceChildren(...FURNITURE.map(f=>button(f.name,()=>interact(f))));
-    renderEvents();
+    if(!light){const actor=el('world-actor'),chosen=actor.value;actor.replaceChildren(...[['user','我'],...world.residents.map(r=>[r.id,r.name])].map(([id,name])=>new Option(name,id)));if(world.state.positions[chosen])actor.value=chosen;await lifeUI.refresh();}
+    el('world-time').textContent=(world.state.lamp?'暖灯亮着':'灯已熄灭')+' · '+world.state.residents.length+' 位居民';
+    el('world-user-avatar').src=await portraitImage(world.looks.user);
+    drawWorld(el('world-canvas'),world);renderPlaces();if(!light)renderEvents();
+  }
+  function renderPlaces(){
+    const actor=el('world-actor').value||'user',p=world.state.positions[actor],list=el('world-places');list.replaceChildren();
+    const actionNames={books:'翻阅书架',desk:'读书',lamp:world.state.lamp?'关灯':'开灯',bed:'整理床铺',plant:'浇水',window:world.state.curtain?'拉开窗帘':'合上窗帘'};
+    for(const f of FURNITURE){const d=Math.min(...Array.from({length:f.w*f.h},(_,i)=>distance(p,{x:f.x+i%f.w,y:f.y+Math.floor(i/f.w)})));if(d<=2){const b=button(actionNames[f.id],()=>command({request_id:uid(),type:'interact',actor_id:actor,target_id:f.id}));b.dataset.place=f.id;b.disabled=busy;list.append(b);}}
   }
   function renderEvents(){
     const list=el('world-events');list.replaceChildren();
-    for(const e of world.state.events.slice(-30).reverse()){
-      const card=node('article');card.className='world-event';card.append(node('p',e.content.slice(0,500)),node('small',e.created_at+' · 知情者：'+(e.observations.map(o=>world.residents.find(r=>r.id===o.owner_id)?.name||o.owner_id).join('、')||'无居民')));
-      for(const o of e.observations){const name=world.residents.find(r=>r.id===o.owner_id)?.name||o.owner_id;card.append(button('保存为'+name+'的经历',async()=>{
-        const rows=await api('/memories?owner='+encodeURIComponent(o.owner_id));
-        if(rows.some(m=>m.evidence.some(ref=>ref.source_type==='world_event'&&ref.event_id===e.id))){toast('此事件已保存为该人物的记忆');return;}
-        await api('/memories','POST',{owner_id:o.owner_id,title:e.content.slice(0,35),content:e.content.slice(0,3900),kind:e.source.type==='completed_dialogue'?'statement':'experience',evidence:[{source_type:'world_event',event_id:e.id,quote:e.content.slice(0,3900)}],participants:e.participants.filter(id=>id!=='user')});toast('已保存；可在记忆中编辑、召回并查看事件来源');
-      }),button(name+'的事件来源',()=>showWorldSource(api,{event_id:e.id},o.owner_id)));}
+    for(const e of world.state.events.slice(-50).reverse()){
+      const card=node('article');card.className='world-event';card.append(node('p',e.content.slice(0,1000)),node('small',new Date(e.created_at).toLocaleString()+' · 知情者：'+(e.observations.map(o=>world.residents.find(r=>r.id===o.owner_id)?.name||o.owner_id).join('、')||'无居民')));
+      for(const o of e.observations){const name=world.residents.find(r=>r.id===o.owner_id)?.name||o.owner_id;
+        card.append(button('保存为'+name+'的经历',async()=>{const rows=await api('/memories?owner='+encodeURIComponent(o.owner_id));if(rows.some(m=>m.evidence.some(ref=>ref.source_type==='world_event'&&ref.event_id===e.id))){toast('此事件已保存为该人物的记忆');return;}await api('/memories','POST',{owner_id:o.owner_id,title:e.content.slice(0,35),content:e.content.slice(0,3900),kind:e.source.type==='completed_dialogue'?'statement':'experience',evidence:[{source_type:'world_event',event_id:e.id,quote:e.content.slice(0,3900)}],participants:e.participants.filter(id=>id!=='user')});toast('已保存；可在记忆中查看事件来源');}),button(name+'的事件来源',()=>showWorldSource(api,{event_id:e.id},o.owner_id)));
+      }
       list.append(card);
     }
   }
-  async function command(value,light=false){
-    if(busy)throw Error('请等待当前操作完成');busy=true;pending=value;el('world-retry').hidden=true;
-    const previous=world;
-    try{
-      const event=await api('/world/commands','POST',value);pending=null;await refresh({light});
-      if(value.type==='move'){
-        const actor=value.actor_id||'user',start=previous.state.positions[actor],path=findPath(collision(previous.state.positions,actor),12,13,start.x,start.y,value.target.x,value.target.y).path,started=performance.now(),duration=Math.min(900,path.length*90);
-        const frame=now=>{if(el('world').hidden)return;const fraction=Math.min(1,(now-started)/duration),step=fraction*(path.length-1),i=Math.floor(step),a=path[i],b=path[Math.min(i+1,path.length-1)],positions={...world.state.positions,[actor]:{x:a.x+(b.x-a.x)*(step-i),y:a.y+(b.y-a.y)*(step-i)}};drawWorld(el('world-canvas'),world,positions);if(fraction<1)animation=requestAnimationFrame(frame);};animation=requestAnimationFrame(frame);
+  function animatePath(actor,path){
+    stopAnimation();const start=performance.now(),duration=Math.max(140,Math.min(1600,(path.length-1)*150));
+    return new Promise((resolve,reject)=>{
+      resolveAnimation=resolve;
+      const frame=now=>{try{
+        if(el('world').hidden){resolveAnimation=null;resolve();return;}
+        const fraction=Math.max(0,Math.min(1,(now-start)/duration)),step=fraction*(path.length-1),i=Math.floor(step),a=path[i],b=path[Math.min(i+1,path.length-1)];
+        const direction=b.x>a.x?'right':b.x<a.x?'left':b.y>a.y?'down':b.y<a.y?'up':world.state.facing[actor];
+        drawWorld(el('world-canvas'),world,{...world.state.positions,[actor]:{x:a.x+(b.x-a.x)*(step-i),y:a.y+(b.y-a.y)*(step-i)}},{[actor]:{walking:fraction<1,direction}});
+        if(fraction<1)animation=requestAnimationFrame(frame);else{resolveAnimation=null;resolve();}
+      }catch(e){resolveAnimation=null;reject(e);}};animation=requestAnimationFrame(frame);
+    });
+  }
+  async function animateEvents(previous,current){
+    const known=new Set(previous.state.events.map(e=>e.id)),positions=JSON.parse(JSON.stringify(previous.state.positions));
+    for(const e of current.state.events.filter(e=>!known.has(e.id))){
+      const c=e.source.command,actor=c?.actor_id||'user';if(!c||!positions[actor])continue;
+      if(c.type==='move'){
+        const p=positions[actor],path=findPath(collision(positions,actor),12,13,p.x,p.y,c.target.x,c.target.y).path;
+        if(path.length>1)await animatePath(actor,path);positions[actor]=c.target;
+      }else if(c.type==='interact'){
+        const started=performance.now();await new Promise(resolve=>{resolveAnimation=resolve;const frame=now=>{if(el('world').hidden||now-started>420){resolveAnimation=null;drawWorld(el('world-canvas'),world);resolve();return;}drawWorld(el('world-canvas'),world,world.state.positions,{[actor]:{using:true,action:c.target_id}});animation=requestAnimationFrame(frame);};animation=requestAnimationFrame(frame);});
       }
-      return event;
-    }catch(e){el('world-retry').hidden=false;throw e;}finally{busy=false;}
+      if(el('world').hidden)break;
+    }
   }
-  async function interact(f){
-    joystick.stop();
-    const actor=el('world-actor').value,p=world.state.positions[actor];
-    const spots=[];for(let y=3;y<12;y++)for(let x=1;x<11;x++){const d=Math.min(...Array.from({length:f.w*f.h},(_,i)=>distance({x,y},{x:f.x+i%f.w,y:f.y+Math.floor(i/f.w)})));if(d<=2&&!collision(world.state.positions,actor)[y*12+x]){const path=findPath(collision(world.state.positions,actor),12,13,p.x,p.y,x,y);if(path.reachable)spots.push({x,y,length:path.path.length});}}
-    spots.sort((a,b)=>a.length-b.length);if(!spots.length)throw Error('这个地点暂时无法到达');
-    if(spots[0].length>1)await command({request_id:requestId(),type:'move',actor_id:actor,target:{x:spots[0].x,y:spots[0].y}});
-    await command({request_id:requestId(),type:'interact',actor_id:actor,target_id:f.id});
+  async function command(value){
+    if(busy||dialogue.isBusy())throw Error('请等待当前操作完成');busy=true;pending=value;el('world-retry').hidden=true;const previous=world;
+    try{await api('/world/commands','POST',value);pending=null;await refresh({light:true});await animateEvents(previous,world);el('world-action-status').textContent=value.type==='interact'?world.state.events[world.state.events.length-1].content:'';}
+    catch(e){el('world-retry').hidden=false;throw e;}finally{busy=false;renderPlaces();}
   }
-  async function lines(before){
-    const page=await api('/contacts/'+session.id+'/messages'+(before?'?before='+before:''));
-    const list=el('world-lines');if(!before)list.replaceChildren();
-    const nodes=page.items.map(m=>{const p=node('p',(m.role==='user'?'我':person.name)+'：'+m.content+(m.state==='complete'?'':' ['+m.state+']'));p.className=m.role;p.dataset.id=m.id;return p;});
-    if(before)list.prepend(...nodes);else list.append(...nodes);
-    older=Number(list.firstChild?.dataset.id)||0;el('world-older').hidden=!page.has_before;
-    if(!before)list.scrollTop=list.scrollHeight;
-    const failed=page.items.filter(m=>m.role==='user'&&['failed','cancelled','interrupted'].includes(m.state)).pop();
-    failedTurn=failed?{text:failed.content,id:failed.request_id}:null;el('world-dialogue-retry').hidden=!failedTurn;
+  async function approach(f){
+    const actor=el('world-actor').value,{target}=sceneActionSteps({world:world.state},actor,{target_id:f.id});
+    if(target.route.length>1)await command({request_id:uid(),type:'move',actor_id:actor,target:{x:target.x,y:target.y}});
+    renderPlaces();el('world-action-status').textContent='已走近'+f.name+'，点击操作按钮。';
   }
   async function talk(id){
-    joystick.stop();
-    if(busy)throw Error('请等待操作完成');
-    const target=world.state.positions[id],p=world.state.positions.user;
-    if(distance(p,target)>3){
-      const cells=collision(world.state.positions,'user'),spots=[];for(let y=3;y<12;y++)for(let x=1;x<11;x++)if(!cells[y*12+x]&&distance({x,y},target)<=2){const result=findPath(cells,12,13,p.x,p.y,x,y);if(result.reachable)spots.push({x,y,length:result.path.length});}
-      spots.sort((a,b)=>a.length-b.length);if(!spots.length)throw Error('暂时无法走近人物');await command({request_id:requestId(),type:'move',target:{x:spots[0].x,y:spots[0].y}});
-    }
-    session=await api('/world/dialogue','POST',{character_id:id});person=world.residents.find(r=>r.id===id);
-    el('world-speaker').textContent=person.name;el('world-portrait').replaceChildren();if(person.avatar){const img=node('img');img.src=person.avatar;img.alt=person.name;el('world-portrait').append(img);}else el('world-portrait').textContent=person.name.slice(0,1);
-    el('world-history-limit').value=session.history_limit??'';el('world-preview-text').textContent='';el('world-dialogue-status').textContent='';el('world-input').value=(await api('/contacts/'+session.id+'/draft')).text;await lines();el('world-dialogue').showModal();
+    joystick.stop();if(busy||dialogue.isBusy())throw Error('请等待操作完成');
+    const p=world.state.positions.user,target=world.state.positions[id];
+    if(distance(p,target)>3){const cells=collision(world.state.positions),spots=[];for(let y=3;y<12;y++)for(let x=1;x<11;x++)if(!cells[y*12+x]&&distance({x,y},target)<=2){const route=findPath(cells,12,13,p.x,p.y,x,y);if(route.reachable)spots.push({x,y,n:route.path.length});}spots.sort((a,b)=>a.n-b.n);if(!spots.length)throw Error('目前无法走近人物');await command({request_id:uid(),type:'move',target:{x:spots[0].x,y:spots[0].y}});}
+    await dialogue.open(id);
   }
-  async function send(text,id=requestId()){
-    if(busy||!text.trim())return;busy=true;el('world-send').disabled=true;failedTurn={text,id};el('world-dialogue-status').textContent='正在回复…';
-    const list=el('world-lines'),u=node('p','我：'+text),reply=node('p',person.name+'：');list.append(u,reply);
-    try{
-      await (await localReady).stream(session.id,text,id,(type,event)=>{if(type==='delta'){reply.textContent+=event.text;list.scrollTop=list.scrollHeight;}});
-      failedTurn=null;el('world-input').value='';await api('/contacts/'+session.id+'/draft','PATCH',{text:''});el('world-dialogue-status').textContent='已保存对话与世界事件';
-    }catch(e){el('world-dialogue-status').textContent=e.message;report(e);}finally{busy=false;el('world-send').disabled=false;await lines();await refresh();el('world-dialogue-retry').hidden=!failedTurn;}
-  }
-  el('world-canvas').onclick=safe(async e=>{joystick.stop();const r=e.currentTarget.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*12),y=Math.floor((e.clientY-r.top)/r.height*13),id=world.state.residents.find(id=>world.state.positions[id].x===x&&Math.abs(world.state.positions[id].y-y)<=1);if(id)return talk(id);const f=FURNITURE.find(f=>x>=f.x&&x<f.x+f.w&&y>=f.y&&y<f.y+f.h);if(f)return interact(f);await command({request_id:requestId(),type:'move',actor_id:el('world-actor').value,target:{x,y}});});
-  el('world-actor').onchange=()=>joystick.stop();
-  el('world-advance').onclick=safe(()=>{joystick.stop();return command({request_id:requestId(),type:'advance',actor_id:el('world-actor').value});});
+  el('world-canvas').onclick=safe(async e=>{
+    joystick.stop();if(el('world-dialogue').open)return;const r=e.currentTarget.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+    const id=world.state.residents.find(id=>{const p=actorPoint(world.state.positions[id],1,1);return Math.abs(p.x-x)<.06&&y>p.y-.16&&y<p.y+.02;});if(id)return talk(id);
+    const f=FURNITURE.find(f=>{const v=visualPlaces[f.id];return x>=v.x&&x<v.x+v.w&&y>=v.y&&y<v.y+v.h;});if(f)return approach(f);
+    await command({request_id:uid(),type:'move',actor_id:el('world-actor').value,target:floorPoint(x,y)});
+  });
+  el('world-actor').onchange=()=>{joystick.stop();renderPlaces();};
+  el('world-advance').onclick=safe(()=>command({request_id:uid(),type:'advance',actor_id:el('world-actor').value}));
   el('world-retry').onclick=safe(()=>pending&&command(pending));
-  el('world-close').onclick=()=>el('world-dialogue').close();el('world-dialogue').addEventListener('close',()=>{localReady.then(s=>s.cancel());});
-  el('world-composer').onsubmit=safe(async e=>{e.preventDefault();await send(el('world-input').value);});
-  el('world-input').oninput=safe(()=>api('/contacts/'+session.id+'/draft','PATCH',{text:el('world-input').value}));
-  el('world-cancel').onclick=safe(async()=>{(await localReady).cancel();});
-  el('world-dialogue-retry').onclick=safe(()=>failedTurn&&send(failedTurn.text,failedTurn.id));
-  el('world-older').onclick=safe(()=>lines(older));
-  el('world-history-save').onclick=safe(async()=>{const raw=el('world-history-limit').value;session=await api('/contacts/'+session.id,'PATCH',{history_limit:raw===''?null:Number(raw)});toast('场景上下文设置已保存');});
-  el('world-preview').onclick=safe(async()=>{const value=await api('/contacts/'+session.id+'/context-preview','POST',{message:el('world-input').value});el('world-preview-text').textContent=JSON.stringify(value.messages,null,2);});
-  return {refresh,leave(){joystick.stop();cancelAnimationFrame(animation);}};
+  return {refresh,leave(){joystick.stop();stopAnimation();dialogue.close();document.body.classList.remove('world-active');}};
 }

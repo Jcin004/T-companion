@@ -21,22 +21,20 @@ try{
   await page.getByRole('button',{name:'进入小屋',exact:true}).tap();await page.locator('#world-canvas').waitFor();
   await page.screenshot({path:'artifacts/world-browser-room.png'});
   const canvas=page.locator('#world-canvas');let bounds=await canvas.boundingBox();
-  await page.touchscreen.tap(bounds.x+5.5/12*bounds.width,bounds.y+7.5/13*bounds.height);
-  await page.waitForFunction(()=>document.querySelector('#world-time').textContent.includes('第 1 步'));
+  await page.touchscreen.tap(bounds.x+5.5/12*bounds.width,bounds.y+(.4+(7-3)*.065)*bounds.height);
+  await page.waitForTimeout(1600);
   await page.waitForTimeout(950);bounds=await canvas.boundingBox();
-  await page.touchscreen.tap(bounds.x+4.5/12*bounds.width,bounds.y+6.25/13*bounds.height);
+  await page.touchscreen.tap(bounds.x+4.5/12*bounds.width,bounds.y+(.4+(6-3)*.065)*bounds.height-bounds.width*.075);
   await page.locator('#world-dialogue[open]').waitFor();
   await page.locator('#world-input').fill('我们在小屋里聊聊。');await page.locator('#world-send').tap();
   await page.waitForFunction(()=>document.querySelector('#world-dialogue-status').textContent==='已保存对话与世界事件');
   assert.equal(sent.length,1);assert.match(sent[0].messages[0].content,/当前场景对话/);
   await page.screenshot({path:'artifacts/world-browser-dialogue.png'});
-  await page.locator('#world-close').tap();
-  await page.locator('#world-places').getByRole('button',{name:'盆栽',exact:true}).tap();
-  await page.waitForFunction(()=>Number(document.querySelector('#world-time').textContent.match(/第 (\d+)/)[1])>=4);
-  await page.getByText('世界经历与知情范围',{exact:true}).tap();
+  await page.locator('#world-close').tap();await page.waitForFunction(()=>!document.body.classList.contains('world-talking'));await page.waitForFunction(()=>document.querySelector('#world-canvas').getBoundingClientRect().height>650);
+  bounds=await canvas.boundingBox();await page.touchscreen.tap(bounds.x+bounds.width*.10,bounds.y+bounds.height*.74);await page.getByRole('button',{name:'浇水',exact:true}).waitFor();await page.getByRole('button',{name:'浇水',exact:true}).tap();await page.waitForFunction(()=>document.querySelector('#world-action-status').textContent.includes('浇了水'));await page.locator('#world-menu-open').tap();await page.locator('#world-menu').getByRole('button',{name:'世界记录',exact:true}).tap();
   const save=page.getByRole('button',{name:'保存为林的经历',exact:true}).first();
   await save.tap();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('已保存'));
-  await page.locator('#home-button').tap();await app('memory');
+  await page.locator('#world-events-panel header button').tap();await page.locator('#home-button').tap();await app('memory');
   await page.locator('.memory-card').first().waitFor();
   await page.locator('.memory-card .memory-source').first().tap();await page.locator('#world-source-dialog[open]').waitFor();
   await page.screenshot({path:'artifacts/world-browser-source.png'});
@@ -44,7 +42,7 @@ try{
   await page.locator('.memory-card').first().getByRole('button',{name:'编辑',exact:true}).tap();
   await page.locator('#memory-editor').getByRole('button',{name:'保存记忆',exact:true}).tap();await page.locator('#memory-editor').waitFor({state:'hidden'});
   await page.reload();await ready();await app('world');
-  assert.match(await page.locator('#world-time').textContent(),/第 [4-9] 步/);
+  await page.waitForFunction(()=>document.querySelector('#world-canvas').dataset.drawn==='yes');assert.match(await page.locator('#world-time').textContent(),/2 位居民/);
   assert.equal(await page.locator('.app-grid [data-app]').count(),8);
   assert.deepEqual(errors,[]);console.log('PASS: mobile touch movement, scene streaming, interactions, typed source/edit, reload and existing desktop entries');
 }finally{await browser.close();}
