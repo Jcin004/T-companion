@@ -23,3 +23,14 @@
 构建网页后用 `http.server` 在本机 8014 提供 dist，运行 `node tests/world-joystick-browser.mjs` 和 `node tests/world-browser.mjs`。合成两居民，模拟触屏，覆盖持续/转向/松手/取消、墙/家具/人物阻挡、退出、保存失败与稳定请求重试、重启和原场景对话。
 
 Android：在专用合成数据模拟器先运行 `node tests/world-joystick-android.mjs <adb> emulator-5558 --snapshot`，原签名覆盖安装新版后不带 `--snapshot` 运行。使用 `adb input swipe/tap`、原生 `screencap` 和 SQLite 文档检查，验证升级保留、连续触屏、松手、碰撞、转向、对话/返回/重入及进程重启。所有截图和数据放忽略目录，不提交用户截图或真实资料。
+
+## 本轮结果
+
+- 107 项 Node、97 项 Python（`-W error`）通过；差异空白检查通过，新增提交与源码快照密钥/隐私扫描通过。
+- 手机尺寸浏览器摇杆验收通过，包括保存故障注入与重试；原场景流式对话、记忆来源及居民活动/未读分享完整流程回归通过，均为合成数据和模拟模型。
+- Android 11 API 30 专用模拟器：原包名、原签名 0.12.0 → 0.12.1 覆盖安装，开始操作前比对 SQLite 整份业务文档相同。最终移动节奏包又覆盖安装并通过相同比对。原生触屏持续移动、转向、松手、碰撞、人物对话、系统返回/重入、进程重启保留通过。本轮触屏验收不请求模型。
+- 原生截图 `artifacts/joystick-android-room.png` 已实际查看，房间、家具、两位居民和左下摇杆可见；结果在 `artifacts/joystick-android-validation.json`，升级比对在 `artifacts/joystick-upgrade-validation.json`。
+
+首次短时模拟器滑动只完成一格，延长原生拖动并校正连续提交节奏后通过。未验证实体手机手感；未重跑后台自然周期，本次不修改后台规则或调度。
+
+分发文件为 `artifacts/T-companion-0.12.1-trial.apk` 与匹配提交的 `artifacts/T-companion-0.12.1-source.zip`（含 LICENSE、第三方许可和构建说明）。直接覆盖安装，不卸载旧版。未发布新的在线更新。
