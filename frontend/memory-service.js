@@ -25,7 +25,7 @@ export class MemoryModule {
    return result??{ok:true};
   });}finally{this.saving=false;}
  }
- pending(owner,limit=40){const sessions=new Set(this.data.sessions.filter(s=>s.character_id===owner).map(s=>s.id)),watermark=this.memory.watermarks[owner]||0;const turns=this.data.turns.filter(t=>sessions.has(t.session_id)&&t.state==='complete'&&Math.max(t.user_id,t.assistant_id)>watermark).sort((a,b)=>Math.max(a.user_id,a.assistant_id)-Math.max(b.user_id,b.assistant_id)).slice(0,limit);const ids=new Set(turns.flatMap(t=>[t.user_id,t.assistant_id]));return sourceMessages(this.data,owner).filter(m=>ids.has(m.id));}
+ pending(owner,limit=40){const sessions=new Set(this.data.sessions.filter(s=>s.character_id===owner).map(s=>s.id)),watermark=this.memory.watermarks[owner]||0;const turns=this.data.turns.filter(t=>!t.deleted_at&&sessions.has(t.session_id)&&t.state==='complete'&&Math.max(t.user_id,t.assistant_id)>watermark).sort((a,b)=>Math.max(a.user_id,a.assistant_id)-Math.max(b.user_id,b.assistant_id)).slice(0,limit);const ids=new Set(turns.flatMap(t=>[t.user_id,t.assistant_id]));return sourceMessages(this.data,owner).filter(m=>ids.has(m.id));}
  async extract(owner,day,explicit){
   if(explicit&&(!Array.isArray(explicit)||!explicit.length))throw Error('请选择来源消息');
   this.owner(owner);const all=sourceMessages(this.data,owner,day);

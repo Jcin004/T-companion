@@ -13,7 +13,7 @@ export function deliverWorldShare(data,owner,eventId,quote,comment,at){
 }
 export function validateProactiveMessages(data){
   const ids=new Set();
-  for(const m of data.messages)if(m.origin==='world_share'){
+  for(const m of data.messages)if(m.origin==='world_share'&&!m.deleted_at){
     worldSource(data,m.source_event_id,m.source_owner_id);
     const s=data.sessions.find(s=>s.id===m.session_id);
     if(m.role!=='assistant'||s?.character_id!==m.source_owner_id||s?.mode==='world'||typeof m.delivery_id!=='string'||ids.has(m.delivery_id))throw Error('主动分享来源或投递标识错误');

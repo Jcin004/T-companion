@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import {ensureWorld,validateWorld,applyWorldCommand,worldSource,sceneSnapshot,copy} from './world-core.js';
+import {ensureWorld,validateWorld,applyWorldCommand,worldSource,sceneSnapshot,copy,faceEachOther} from './world-core.js';
 import {ROOM,FURNITURE} from './world-map.js';
 import {lookFor} from './character-looks.js';
 export class WorldModule {
@@ -11,7 +11,7 @@ export class WorldModule {
       if(parts[1]==='sources'&&!parts[2]){
         const owner=url.searchParams.get('owner');
         if(!d.characters.some(c=>c.id===owner))throw Error('请选择角色');
-        return copy(w.events.filter(e=>e.observations.some(o=>o.owner_id===owner)).slice(-300).map(e=>({...e,source_type:'world_event',event_id:e.id,role:'world'})));
+        return copy(w.events.filter(e=>!e.deleted_at&&e.observations.some(o=>o.owner_id===owner)).slice(-300).map(e=>({...e,source_type:'world_event',event_id:e.id,role:'world'})));
       }
       if(parts[1]==='sources'&&parts[2])return worldSource(d,decodeURIComponent(parts[2]),url.searchParams.get('owner'));
       if(parts.length!==1)throw Error('不支持的世界查询');
@@ -33,7 +33,7 @@ export class WorldModule {
         if(!w.residents.includes(body.character_id))throw Error('人物不在场景中');
         let s=d.sessions.find(s=>s.character_id===body.character_id&&s.mode==='world'&&s.room_id===ROOM.id);
         if(!s){const online=d.sessions.find(s=>s.character_id===body.character_id&&s.mode!=='world');s={id:'scene_'+body.character_id,character_id:body.character_id,mode:'world',room_id:ROOM.id,title:'暖木小屋',note:'',background:'#f5e4ce',voice:online?.voice||'',history_limit:online?.history_limit??null,chat_style:copy(online?.chat_style||{}),created_at:new Date().toISOString()};d.sessions.push(s);}
-        sceneSnapshot(d,s.id);result=copy(s);
+        sceneSnapshot(d,s.id);faceEachOther(w,'user',body.character_id);result=copy(s);
       }else throw Error('不支持的世界操作');
       validateWorld(d);return result;
     });

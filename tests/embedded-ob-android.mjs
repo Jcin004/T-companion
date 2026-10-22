@@ -6,6 +6,7 @@ import {writeFile,mkdir} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
 const [adbPath,serial]=process.argv.slice(2),run=promisify(execFile);
+const debugPort=Number(process.env.T_CDP_PORT||9224);
 if(!adbPath||!/^emulator-\d+$/.test(serial||''))throw Error('A dedicated emulator serial is required');
 const adb=(...args)=>run(adbPath,['-s',serial,...args]);
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
@@ -14,10 +15,10 @@ async function connect(embedded=true){
   let pid='';
   for(let i=0;i<100;i++){try{pid=(await adb('shell','pidof','io.jcin.tcompanion')).stdout.trim();if(pid)break;}catch{}await pause(200);}
   if(!pid)throw Error('App process unavailable');
-  await adb('forward','tcp:9224','localabstract:webview_devtools_remote_'+pid);
+  await adb('forward','tcp:'+debugPort,'localabstract:webview_devtools_remote_'+pid);
   let target;
   for(let i=0;i<150;i++){
-    try{target=(await(await fetch('http://127.0.0.1:9224/json')).json()).find(t=>t.type==='page');if(target)break;}catch{}
+    try{target=(await(await fetch('http://127.0.0.1:'+debugPort+'/json')).json()).find(t=>t.type==='page');if(target)break;}catch{}
     await pause(200);
   }
   if(!target)throw Error('WebView unavailable');

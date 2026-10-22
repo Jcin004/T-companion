@@ -34,7 +34,7 @@ try{
   await page.locator('#looks-tab-sprite').tap();await page.locator('#looks-sprite-file').setInputFiles({name:'林的小人.png',mimeType:'image/png',buffer:first});await page.waitForFunction(()=>document.querySelector('#looks-sprite-name').textContent.includes('已上传'));
   const pixels=()=>page.locator('#looks-sprite').evaluate(c=>c.getContext('2d').getImageData(10,10,1,1).data.slice(0,3).join(','));
   const idle=await pixels();await page.waitForTimeout(250);assert.equal(await pixels(),idle,'preview starts stationary');
-  await page.locator('#looks-preview-play').tap();await page.waitForFunction(()=>document.querySelector('#looks-pose').textContent.startsWith('左手右脚'));assert.notEqual(await pixels(),idle);
+  await page.locator('#looks-preview-play').tap();await page.waitForFunction(()=>document.querySelector('#looks-pose').textContent.includes('第 2 帧'));assert.notEqual(await pixels(),idle);
   await page.locator('#looks-preview-play').tap();assert.equal(await pixels(),idle,'stop restores first uploaded frame');
   await page.locator('#looks-save').tap();await waitSaved();const a=(await read()).character_looks.a;
   await page.locator('#looks-owner').selectOption('b');assert.equal(await page.locator('#looks-sprite-name').textContent(),'使用这个人物的默认小人');

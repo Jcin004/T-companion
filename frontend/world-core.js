@@ -3,6 +3,9 @@
 import {ROOM,FURNITURE,collision,distance} from './world-map.js';
 import {findPath} from './world-pathfinding.js';
 import {sceneActionCandidate,sceneActionSteps} from './world-scene-actions.js';
+import {selectSkin,lookFor} from './character-looks.js';
+import {sceneSkinCandidate,presentationText} from './scene-presentation.js';
+import {sceneText} from './world-scene-actions.js';
 export const copy=value=>JSON.parse(JSON.stringify(value));
 export function ensureWorld(data){
   if(data.world===undefined)data.world={version:1,room_id:ROOM.id,tick:0,lamp:true,residents:[],positions:{user:{x:5,y:8}},events:[]};
@@ -40,7 +43,7 @@ export function validateWorld(data){
 }
 export function worldSource(data,id,owner){
   const event=data.world?.events.find(e=>e.id===id);
-  if(!event||!event.observations.some(o=>o.owner_id===owner))throw Error('人物没有此事件的知情依据');
+  if(!event||event.deleted_at||!event.observations.some(o=>o.owner_id===owner))throw Error('人物没有此事件的知情依据');
   return copy(event);
 }
 export function sceneSnapshot(data,sid){
@@ -55,6 +58,11 @@ export function appendWorldEvent(w,command,content,position,participants,observa
   if(w.events.length>=20000)throw Error('世界事件已达容量，请先导出备份');
   const event={id:'world_'+command.request_id,request_id:command.request_id,fingerprint:JSON.stringify(command),created_at:at,tick:w.tick,location:ROOM.id,position:copy(position),participants,content,source,observations};
   w.events.push(event);return copy(event);
+}
+export function faceEachOther(w,a,b){
+  const p=w.positions[a],q=w.positions[b],dx=q.x-p.x,dy=q.y-p.y;
+  const direction=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
+  w.facing[a]=direction;w.facing[b]={right:'left',left:'right',up:'down',down:'up'}[direction];
 }
 export function applyWorldCommand(data,input,options={}){
   const w=ensureWorld(data),command=copy(input||{});
@@ -83,6 +91,8 @@ export function applyWorldCommand(data,input,options={}){
     if(f.id==='window')w.curtain=!w.curtain;
     const dx=f.x+f.w/2-p.x,dy=f.y+f.h/2-p.y;w.facing[actor]=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
     content=name+f.action+(f.id==='lamp'?(w.lamp?'现在灯亮着。':'现在灯熄灭。'):f.id==='window'?(w.curtain?'现在窗帘合上。':'现在窗帘拉开。'):'');
+  }else if(command.type==='change_skin'){
+    const skin=selectSkin(data,actor,command.skin_id,options.ai===true);observe(p);content=name+'换上了「'+skin+'」皮肤。';
   }else if(command.type==='advance'){
     observe(p);content=name+'在暖木小屋停留了片刻。';
   }else throw Error('不支持的世界命令');
@@ -96,7 +106,12 @@ export function completeWorldDialogue(data,turn){
   const command={request_id:'dialogue_'+turn.request_id,type:'dialogue'};
   w.tick++;
   const heard=turn.scene.heard_by||turn.scene.nearby.filter(c=>c.id===s.character_id);
-  appendWorldEvent(w,command,'用户说：'+u.content+'\n'+data.characters.find(c=>c.id===s.character_id).name+'说：'+a.content,turn.scene.position,['user',s.character_id],heard.map(c=>({owner_id:c.id,kind:'heard',position:copy(c.position)})),{type:'completed_dialogue',request_id:turn.request_id,message_ids:[u.id,a.id]});
+  appendWorldEvent(w,command,'用户说：'+u.content+'\n'+data.characters.find(c=>c.id===s.character_id).name+'说：'+presentationText(sceneText(a.content)),turn.scene.position,['user',s.character_id],heard.map(c=>({owner_id:c.id,kind:'heard',position:copy(c.position)})),{type:'completed_dialogue',request_id:turn.request_id,message_ids:[u.id,a.id]});
+  try{
+    const skin=sceneSkinCandidate(a.content);
+    if(skin){const name=selectSkin(data,s.character_id,skin,true);w.tick++;const event=appendWorldEvent(w,{request_id:'look_'+turn.request_id,type:'change_skin'},data.characters.find(c=>c.id===s.character_id).name+'换上了「'+name+'」皮肤。',w.positions[s.character_id],[s.character_id],heard.map(c=>({owner_id:c.id,kind:'witness',position:copy(c.position)})),{type:'scene_action',dialogue_request_id:turn.request_id,command:{actor_id:s.character_id,type:'change_skin',skin_id:skin}});turn.skin_event_id=event.id;}
+  }catch(e){turn.skin_error=e.message;}
+  turn.presentation={skin_id:lookFor(data,s.character_id).skin_id};
   try{
     const action=sceneActionCandidate(a.content);if(!action)return;
     let hash=2166136261;for(const c of turn.request_id)hash=Math.imul(hash^c.charCodeAt(0),16777619);

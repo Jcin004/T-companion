@@ -1,5 +1,9 @@
 # Third-party code and reference audit
 
+## 0.14.0 world presentation references
+
+`config/world-presentation-sources.json` records pinned SullyOS and float files inspected for expression portraits, skin sets and story parsing. These are design references only; no new third-party code or art is copied. SullyOS Source-Available License 1.0 is not an AGPL permission to redistribute its implementation. T-companion independently implements its own small interfaces and reuses its existing runtime modules and artwork. User-provided watermarked sprite examples are not bundled.
+
 Checked on 2026-10-16. T- application code in this distribution is licensed under
 AGPL-3.0-only; third-party components retain their own licenses. User-created
 identities, avatars, messages and credentials are data, not licensed by this notice.

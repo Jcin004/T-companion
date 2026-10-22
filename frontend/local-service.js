@@ -15,6 +15,7 @@ import {ResidentLifeService} from './resident-life-service.js';
 import {validateLife} from './resident-life-core.js';
 import {validateWorld,sceneSnapshot,completeWorldDialogue} from './world-core.js';
 import {CharacterLooksModule,validateLooks} from './character-looks.js';
+import {WorldHistoryModule} from './world-history.js';
 // Preserve the existing import path for callers while the implementation moves.
 export {buildContext} from './local-queries.js';
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -103,7 +104,7 @@ export class LocalService {
 
   connection(){const p=this.data.api_profiles.find(p=>p.id===this.data.active_profile_id);return {...this.data.settings,...(p||{base_url:'',model:''}),profile_id:p?.id||''};}
   async publicSettings(){return {...this.connection(),active_profile_id:this.data.active_profile_id,has_api_key:await this.storage.hasKey(this.data.active_profile_id)};}
-  message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,world_action:m.role==='assistant'?t?.world_action:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
+  message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,world_action:m.role==='assistant'?t?.world_action:undefined,presentation:m.role==='assistant'?t?.presentation:undefined,skin_error:m.role==='assistant'?t?.skin_error:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
   async api(path,method='GET',body){
     if(this.storage.plugin?.beginWrite&&!this.active){await this.queue.catch(()=>{});const current=await this.storage.load();ensureProfiles(current);validateWorld(current);validateMemory(current);this.data=current;}
     const url=new URL(path,'https://local'),pathname=url.pathname,route=pathname.split('/').filter(Boolean)[0];
@@ -118,6 +119,7 @@ export class LocalService {
       return result;
     }
     if(route==='character-looks')return new CharacterLooksModule(this).api(pathname,method,body);
+    if(route==='world-history')return new WorldHistoryModule(this).api(path,method);
     if(route==='world')return new WorldModule(this).api(path,method,body);
     if(pathname==='/memory-engine'&&method==='GET')return this.embeddedMemory?.status()||{provider:'browser-local',installed:false};
     if(pathname==='/external-memory'||pathname==='/external-memory/test'){
@@ -175,7 +177,7 @@ export class LocalService {
     if(parts[0]==='contacts'){
       if(parts.length===1){
         if(method==='POST'){if(!d.characters.some(c=>c.id===body.character_id))throw Error('角色不存在');let c=d.sessions.find(s=>s.character_id===body.character_id&&s.mode!=='world');if(!c){c={id:uid(),character_id:body.character_id,title:d.characters.find(c=>c.id===body.character_id).name,note:'',background:'#eef2f3',voice:'',created_at:now()};d.sessions.push(c);}return clone(c);}
-        return d.sessions.filter(s=>s.mode!=='world').map(s=>{const ms=d.messages.filter(m=>m.session_id===s.id),last=ms[ms.length-1];return {...s,unread_shares:ms.filter(m=>m.origin==='world_share'&&m.id>(s.read_message_id||0)).length,last_message:last?.content||'',last_time:last?.created_at,last_assistant_id:ms.filter(m=>m.role==='assistant'&&this.message(m).state==='complete').pop()?.id||0};}).reverse();
+        return d.sessions.filter(s=>s.mode!=='world').map(s=>{const ms=d.messages.filter(m=>!m.deleted_at&&m.session_id===s.id),last=ms[ms.length-1];return {...s,unread_shares:ms.filter(m=>m.origin==='world_share'&&m.id>(s.read_message_id||0)).length,last_message:last?.content||'',last_time:last?.created_at,last_assistant_id:ms.filter(m=>m.role==='assistant'&&this.message(m).state==='complete').pop()?.id||0};}).reverse();
       }
       const s=d.sessions.find(s=>s.id===parts[1]);if(!s)throw Error('会话不存在');
       if(parts[2]==='read'&&method==='POST'){if(!Number.isSafeInteger(body.message_id)||body.message_id<0)throw Error('已读消息标识无效');s.read_message_id=Math.max(s.read_message_id||0,body.message_id);return {ok:true};}
@@ -184,7 +186,7 @@ export class LocalService {
         if(method==='PATCH'){if(typeof body?.text!=='string'||body.text.length>100000)throw Error('草稿格式或长度不正确');d.drafts[s.id]=body.text;}
         return {text:d.drafts[s.id]||''};
       }
-      const ms=d.messages.filter(m=>m.session_id===s.id).sort((a,b)=>a.id-b.id);
+      const ms=d.messages.filter(m=>!m.deleted_at&&m.session_id===s.id).sort((a,b)=>a.id-b.id);
       if(parts[2]==='messages'){
         let result;if(q.has('before'))result=ms.filter(m=>m.id<Number(q.get('before'))).slice(-40);else if(q.has('after'))result=ms.filter(m=>m.id>Number(q.get('after'))).slice(0,40);else if(q.has('anchor')){const i=ms.findIndex(m=>m.id===Number(q.get('anchor')));if(i<0)throw Error('消息不存在');result=ms.slice(Math.max(0,i-20),i+21);}else result=ms.slice(-40);
         return {items:result.map(m=>this.message(m)),has_before:!!result.length&&ms[0].id<result[0].id,has_after:!!result.length&&ms[ms.length-1].id>result[result.length-1].id};
@@ -238,6 +240,7 @@ export class LocalService {
       const accepted=await this.transact(d=>{
         if(!d.sessions.some(s=>s.id===sid))throw Error('会话不存在');
         let turn=d.turns.find(t=>t.request_id===rid);
+        if(turn?.deleted_at)throw Error('这轮对话已删除，不能重新执行');
         if(turn&&(turn.session_id!==sid||d.messages.find(m=>m.id===turn.user_id)?.content!==text))throw Error('请求标识与原消息不匹配');
         if(turn?.state==='complete')return {complete:true};
         const scene=turn?.scene||sceneSnapshot(d,sid);

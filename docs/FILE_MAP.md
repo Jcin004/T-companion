@@ -339,6 +339,9 @@
 | frontend/world-dialogue-ui.js | 底部立绘、台词分页、原场景聊天历史与设备朗读 |
 | frontend/character-looks.js、character-looks-ui.js | 绑定原人物 ID 的形象验证/事务接口与导入预览界面 |
 | frontend/world-scene-actions.js | 已完成回复的受限动作候选与可达地点规划，无 DOM 或模型传输 |
+| frontend/scene-presentation.js | 明确表情/换装标记、显示文本与允许选项提示，无存储和请求 |
+| frontend/world-history.js、world-history-ui.js | 世界全局对话投影、筛选/游标/删除与记录界面 |
+| frontend/memory-source-deletion.js | 撤销来源后清理记忆、版本、总结和关联 |
 | tests/world.test.mjs | 持久化/隔离/失败/去重/上下文/来源/复用测试 |
 | tests/world-browser.mjs | 模拟模型与手机触屏网页验收 |
 | tests/world-android.mjs | 专用模拟器原签名升级、真实 SQLite/OB 与触屏验收 |
