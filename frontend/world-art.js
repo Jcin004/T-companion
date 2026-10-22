@@ -3,6 +3,8 @@
 const root=new URL('./assets/world/',import.meta.url).href;
 const images=new Map(),ready=new Map();
 export const art={room:root+'warm-room.png',sprites:root+'residents.png',portraits:root+'portraits.png'};
+// One cycle spans two tiles. The first frame is also the resting pose.
+export function walkFrame(distance,frames=4){return Math.floor(Math.max(0,distance)*frames/2)%frames;}
 async function load(src){
   if(!src)return;
   if(!images.has(src))images.set(src,new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>{images.delete(src);reject(Error('人物或房间图片加载失败'));};image.src=src;}));
@@ -26,7 +28,7 @@ export function drawActor(c,world,id,p,pose={},time=performance.now()){
   const image=ready.get(look.sprite?.image||art.sprites),frames=look.sprite?.frames||4;
   const row={down:0,left:1,right:2,up:3}[pose.direction||world.state.facing[id]||'down'];
   const cols=look.sprite?frames:12,fw=image.width/cols,fh=image.height/4;
-  const frame=pose.walking?Math.floor(time/140)%frames:0,col=look.sprite?frame:look.skin*4+frame;
+  const frame=pose.walking?walkFrame(pose.distance||0,frames):0,col=look.sprite?frame:look.skin*4+frame;
   const size=Math.round(width*.24),lift=pose.using?Math.sin(time/90)*2:0;
   c.fillStyle='#342b3340';c.beginPath();c.ellipse(point.x,point.y-2,size*.25,size*.07,0,0,Math.PI*2);c.fill();
   c.drawImage(image,col*fw,row*fh,fw,fh,Math.round(point.x-size/2),Math.round(point.y-size+lift),size,size);
@@ -44,8 +46,9 @@ export async function portraitImage(look,avatar){
   canvas.getContext('2d').drawImage(image,look.skin*image.width/3,0,image.width/3,image.height,0,0,256,512);
   return canvas.toDataURL('image/png');
 }
-export async function previewSprite(canvas,look,direction,frame){
+export async function previewSprite(canvas,look,direction,frame,valid=()=>true){
   const image=await load(look.sprite?.image||art.sprites),frames=look.sprite?.frames||4,cols=look.sprite?frames:12;
+  if(!valid())return;
   const col=(look.sprite?0:look.skin*4)+frame%frames,row={down:0,left:1,right:2,up:3}[direction],c=canvas.getContext('2d');
   c.clearRect(0,0,canvas.width,canvas.height);c.imageSmoothingEnabled=false;
   c.drawImage(image,col*image.width/cols,row*image.height/4,image.width/cols,image.height/4,0,0,canvas.width,canvas.height);

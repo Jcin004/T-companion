@@ -1,6 +1,6 @@
 # T- · 联系人式陪伴聊天
 
-当前 Android 试用版为 0.13.0，新增暖木像素画面、四方向人物、底部立绘对话与台词回放、附近交互和头像菜单，保留居民活动与主动分享。见 [世界画面与对话](docs/WORLD_VISUAL_DIALOGUE.md)、[摇杆操作](docs/WORLD_JOYSTICK.md)、[居民生活](docs/RESIDENT_LIFE.md) 和 [内置记忆数据流与验证](docs/ANDROID_EMBEDDED_MEMORY.md)。桌面保留聊天、人设名册、设置、外观、运行日志、记忆和自我入口。Android 默认本机独立运行，不依赖 Windows 或 T- 应用服务器；共同后端是另一种可选数据源，没有自动同步。
+当前 Android 试用版为 0.13.1，在暖木像素世界中修正站立/行走步态、人物立绘与小人的分别上传，以及滚动时的关闭入口，保留底部对话回放、居民活动与主动分享。见 [世界画面与对话](docs/WORLD_VISUAL_DIALOGUE.md)、[摇杆操作](docs/WORLD_JOYSTICK.md)、[居民生活](docs/RESIDENT_LIFE.md) 和 [内置记忆数据流与验证](docs/ANDROID_EMBEDDED_MEMORY.md)。桌面保留聊天、人设名册、设置、外观、运行日志、记忆和自我入口。Android 默认本机独立运行，不依赖 Windows 或 T- 应用服务器；共同后端是另一种可选数据源，没有自动同步。
 
 开始开发先读 [当前架构与数据流](docs/CURRENT_ARCHITECTURE.md)、[术语](GLOSSARY.md)、[维护规范](CONTRIBUTING.md) 和 [AGENTS.md](AGENTS.md)。公开前结论与候选方案见 [公开审计](docs/PUBLICATION_AUDIT.md)。
 
@@ -24,7 +24,7 @@ python -m venv .venv
 
 ## Android 试用
 
-网页资源内置 APK。打开桌面 → 人设名册创建角色 → 设置配置模型 API 并测试 → 发起聊天。无需填写共同后端地址或口令。包名 `io.jcin.tcompanion`，版本 `0.13.0-trial`，versionCode `18`，沿用旧版试用签名，覆盖安装保留本机数据。不要卸载旧版。
+网页资源内置 APK。打开桌面 → 人设名册创建角色 → 设置配置模型 API 并测试 → 发起聊天。无需填写共同后端地址或口令。包名 `io.jcin.tcompanion`，版本 `0.13.1-trial`，versionCode `19`，沿用旧版试用签名，覆盖安装保留本机数据。不要卸载旧版。
 
 架构、构建与数据迁移见 [本机客户端说明](docs/LOCAL-ANDROID.md)，当前记忆功能及验收见 [0.6.0 说明](docs/MEMORY-0.6.md)；早期独立聊天验收见 [0.3.0 交付记录](docs/DELIVERY_LOCAL.md)。旧版后端式 APK 说明保留作历史资料。
 

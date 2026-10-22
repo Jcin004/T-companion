@@ -24,7 +24,7 @@ export function createJoystickMotion({step,onError,onRest=()=>{},interval=180,sc
   }
   return {
     point(value){active=true;direction=value;needsRest=true;if(timer===null&&!inFlight&&direction)void pump();},
-    stop
+    stop,isMoving:()=>active&&!!direction
   };
 }
 
@@ -54,5 +54,5 @@ export function mountWorldJoystick({element,step,canStart,onError,onRest}){
   window.addEventListener('blur',release);
   window.addEventListener('pagehide',release);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)release();});
-  return {stop:release};
+  return {stop:release,isMoving:motion.isMoving};
 }

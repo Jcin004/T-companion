@@ -56,7 +56,7 @@ export function mountSceneDialogue({api,localReady,getWorld,refresh,animate,spea
     try{
       await (await localReady).stream(session.id,text,id,(type,e)=>{if(type==='delta'){streamText+=e.text;el('world-current-line').textContent=sceneText(streamText).replace(/\[世界行动:[\s\S]*$/,'');}});
       el('world-input').value='';await api('/contacts/'+session.id+'/draft','PATCH',{text:''});failedTurn=null;
-      await refresh({light:true});await animate(before,getWorld());
+      await refresh({light:true,paint:false});await animate(before,getWorld());
       const rows=await api('/contacts/'+session.id+'/messages'),last=rows.items.filter(m=>m.role==='assistant').pop();
       el('world-dialogue-status').textContent=last?.world_action?.state==='rejected'?'台词已保存；动作未执行：'+last.world_action.reason:'已保存对话与世界事件';
     }catch(e){report(e);el('world-dialogue-status').textContent=e.message;}

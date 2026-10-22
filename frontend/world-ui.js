@@ -28,7 +28,7 @@ export async function showWorldSource(api,ref,owner){
   const close=node('button','关闭');close.onclick=()=>d.close();d.replaceChildren(node('h2','世界事件来源'),close,node('p',e.id+' · '+e.created_at+' · '+e.location),node('pre',e.content),node('p','来源：'+e.source.type),node('p','知情依据：'+e.observations.filter(o=>o.owner_id===owner).map(o=>o.kind==='witness'?'在场观察':'听到对话').join('、')));if(!d.open)d.showModal();
 }
 export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak,stopSpeech}){
-  let world,busy=false,pending=null,animation=0,resolveAnimation=null;
+  let world,busy=false,pending=null,animation=0,resolveAnimation=null;const walkDistances=new Map();
   const safe=fn=>async(...args)=>{try{await fn(...args);}catch(e){report(e);toast(e.message);el('world-action-status').textContent=e.message;}};
   const button=(text,fn)=>{const b=node('button',text);b.type='button';b.onclick=safe(fn);return b;};
   const lifeUI=mountResidentLifeUI({api,toast,report,refreshWorld:refresh});el('world-life-container').append(el('resident-life'));el('resident-life').open=true;
@@ -36,7 +36,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
   const dialogue=mountSceneDialogue({api,localReady,getWorld:()=>world,refresh,animate:animateEvents,speak,stopSpeech,toast,report,editLook:id=>looks.open(id)});
   const joystick=mountWorldJoystick({element:el('world-joystick'),canStart:()=>!busy&&!dialogue.isBusy()&&!pending&&!el('world').hidden&&!document.querySelector('dialog[open]')&&!!world?.state.residents.length,
     step:async d=>{if(busy||el('world').hidden)return;const actor=el('world-actor').value,p=world.state.positions[actor],target={x:p.x+d.x,y:p.y+d.y};if(target.x<1||target.x>10||target.y<3||target.y>11||collision(world.state.positions,actor)[target.y*12+target.x])return;await command({request_id:uid(),type:'move',actor_id:actor,target});},
-    onRest:()=>{if(world&&!el('world').hidden)renderEvents();},onError:e=>{report(e);toast(e.message);}});
+    onRest:()=>{walkDistances.clear();if(world&&!el('world').hidden){drawWorld(el('world-canvas'),world);renderEvents();}},onError:e=>{report(e);toast(e.message);}});
   const menu=el('world-menu').querySelector('.world-menu-grid');
   for(const [label,icon,fn] of [
     ['人物','♙',()=>looks.open('user')],['居民生活','☀',async()=>{await lifeUI.refresh();el('world-life-panel').showModal();}],['世界记录','▤',()=>{renderEvents();el('world-events-panel').showModal();}],
@@ -44,7 +44,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
   ]){const b=button('',async()=>{el('world-menu').close();await fn();}),i=node('span',icon);i.setAttribute('aria-hidden','true');i.className='world-menu-icon';i.textContent='';const n=menu.children.length;i.style.backgroundPosition=(n%3*50)+'% '+(Math.floor(n/3)*50)+'%';b.append(i,node('span',label));menu.append(b);}
   el('world-menu-open').onclick=safe(async()=>{joystick.stop();dialogue.close();el('world-menu').showModal();});
   function stopAnimation(){cancelAnimationFrame(animation);resolveAnimation?.();resolveAnimation=null;}
-  async function refresh({light=false}={}){
+  async function refresh({light=false,paint=true}={}){
     stopAnimation();
     if(!isLocal()){el('world-notice').textContent='世界使用本机数据，请在设置切换到本机模式。';el('world-notice').hidden=false;el('world-play').hidden=true;return;}
     world=await api('/world');await loadWorldArt(world);document.body.classList.add('world-active');
@@ -58,7 +58,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
     if(!light){const actor=el('world-actor'),chosen=actor.value;actor.replaceChildren(...[['user','我'],...world.residents.map(r=>[r.id,r.name])].map(([id,name])=>new Option(name,id)));if(world.state.positions[chosen])actor.value=chosen;await lifeUI.refresh();}
     el('world-time').textContent=(world.state.lamp?'暖灯亮着':'灯已熄灭')+' · '+world.state.residents.length+' 位居民';
     el('world-user-avatar').src=await portraitImage(world.looks.user);
-    drawWorld(el('world-canvas'),world);renderPlaces();if(!light)renderEvents();
+    if(paint)drawWorld(el('world-canvas'),world);renderPlaces();if(!light)renderEvents();
   }
   function renderPlaces(){
     const actor=el('world-actor').value||'user',p=world.state.positions[actor],list=el('world-places');list.replaceChildren();
@@ -75,16 +75,16 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
       list.append(card);
     }
   }
-  function animatePath(actor,path){
-    stopAnimation();const start=performance.now(),duration=Math.max(140,Math.min(1600,(path.length-1)*150));
+  function animatePath(actor,path,positions){
+    stopAnimation();const start=performance.now(),duration=(path.length-1)*200,travelled=walkDistances.get(actor)||0;
     return new Promise((resolve,reject)=>{
       resolveAnimation=resolve;
       const frame=now=>{try{
         if(el('world').hidden){resolveAnimation=null;resolve();return;}
         const fraction=Math.max(0,Math.min(1,(now-start)/duration)),step=fraction*(path.length-1),i=Math.floor(step),a=path[i],b=path[Math.min(i+1,path.length-1)];
         const direction=b.x>a.x?'right':b.x<a.x?'left':b.y>a.y?'down':b.y<a.y?'up':world.state.facing[actor];
-        drawWorld(el('world-canvas'),world,{...world.state.positions,[actor]:{x:a.x+(b.x-a.x)*(step-i),y:a.y+(b.y-a.y)*(step-i)}},{[actor]:{walking:fraction<1,direction}});
-        if(fraction<1)animation=requestAnimationFrame(frame);else{resolveAnimation=null;resolve();}
+        drawWorld(el('world-canvas'),world,{...positions,[actor]:{x:a.x+(b.x-a.x)*(step-i),y:a.y+(b.y-a.y)*(step-i)}},{[actor]:{walking:fraction<1||joystick.isMoving(),direction,distance:travelled+step}});
+        if(fraction<1)animation=requestAnimationFrame(frame);else{walkDistances.set(actor,travelled+path.length-1);resolveAnimation=null;resolve();}
       }catch(e){resolveAnimation=null;reject(e);}};animation=requestAnimationFrame(frame);
     });
   }
@@ -94,7 +94,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
       const c=e.source.command,actor=c?.actor_id||'user';if(!c||!positions[actor])continue;
       if(c.type==='move'){
         const p=positions[actor],path=findPath(collision(positions,actor),12,13,p.x,p.y,c.target.x,c.target.y).path;
-        if(path.length>1)await animatePath(actor,path);positions[actor]=c.target;
+        if(path.length>1)await animatePath(actor,path,positions);positions[actor]=c.target;
       }else if(c.type==='interact'){
         const started=performance.now();await new Promise(resolve=>{resolveAnimation=resolve;const frame=now=>{if(el('world').hidden||now-started>420){resolveAnimation=null;drawWorld(el('world-canvas'),world);resolve();return;}drawWorld(el('world-canvas'),world,world.state.positions,{[actor]:{using:true,action:c.target_id}});animation=requestAnimationFrame(frame);};animation=requestAnimationFrame(frame);});
       }
@@ -103,7 +103,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
   }
   async function command(value){
     if(busy||dialogue.isBusy())throw Error('请等待当前操作完成');busy=true;pending=value;el('world-retry').hidden=true;const previous=world;
-    try{await api('/world/commands','POST',value);pending=null;await refresh({light:true});await animateEvents(previous,world);el('world-action-status').textContent=value.type==='interact'?world.state.events[world.state.events.length-1].content:'';}
+    try{await api('/world/commands','POST',value);pending=null;await refresh({light:true,paint:false});await animateEvents(previous,world);el('world-action-status').textContent=value.type==='interact'?world.state.events[world.state.events.length-1].content:'';}
     catch(e){el('world-retry').hidden=false;throw e;}finally{busy=false;renderPlaces();}
   }
   async function approach(f){
