@@ -26,10 +26,16 @@ public class WorldVisualInstrumentation extends Instrumentation {
                 String image="data:image/png;base64,"+Base64.encodeToString(out.toByteArray(),Base64.NO_WRAP);check(image.length()<1200000,"bounded asset row");portraits.put(new JSONObject().put("name","合成测试图"+n).put("image",image));
             }
             looks.put(owner,new JSONObject().put("skin",1).put("portrait",0).put("portraits",portraits).put("sprite",JSONObject.NULL));
+            JSONObject outfit=new JSONObject().put("id","night").put("name","合成夜间服").put("skin",1).put("portrait",0).put("portraits",new JSONArray().put(new JSONObject(portraits.getJSONObject(0).toString()).put("emotion","happy"))).put("sprite",new JSONObject().put("image",portraits.getJSONObject(1).getString("image")).put("frames",4)).put("actions",new JSONObject().put("plant",new JSONObject().put("image",portraits.getJSONObject(2).getString("image")).put("frames",4).put("row_count",1)));
+            looks.getJSONObject(owner).put("skins",new JSONArray().put(outfit)).put("active_skin_id","default").put("auto_skin",true);
             check(data.toString().length()>2000000,"payload exceeds document CursorWindow");check(store.acquire("visual-assets-test"),"lease");store.save(data.toString(),snap.getLong("revision"),"visual-assets-test");
             SQLiteDatabase db=store.getWritableDatabase();long rawSize;try(Cursor c=db.rawQuery("SELECT LENGTH(data) FROM documents WHERE id=1",null)){c.moveToFirst();rawSize=c.getLong(0);}check(rawSize<2000000,"document remains bounded");
             JSONObject hydrated=new JSONObject(store.read().getString("data"));JSONArray restored=hydrated.getJSONObject("character_looks").getJSONObject(owner).getJSONArray("portraits");
             for(int n=0;n<6;n++)check(restored.getJSONObject(n).getString("image").equals(portraits.getJSONObject(n).getString("image")),"hydrated source image "+n);
+            JSONObject loadedSkin=hydrated.getJSONObject("character_looks").getJSONObject(owner).getJSONArray("skins").getJSONObject(0);
+            check(loadedSkin.getJSONArray("portraits").getJSONObject(0).getString("image").equals(portraits.getJSONObject(0).getString("image")),"nested expression portrait restored");
+            check(loadedSkin.getJSONObject("sprite").getString("image").equals(portraits.getJSONObject(1).getString("image")),"nested walking sprite restored");
+            check(loadedSkin.getJSONObject("actions").getJSONObject("plant").getString("image").equals(portraits.getJSONObject(2).getString("image")),"nested interaction sprite restored");
             long revision=store.read().getLong("revision");boolean stale=false;try{store.save(data.toString(),snap.getLong("revision"),"visual-assets-test");}catch(IllegalStateException e){stale=true;}check(stale,"CAS refuses stale asset writes");
             String before=store.read().getString("data");db.execSQL("CREATE TEMP TRIGGER fail_visual_document BEFORE INSERT ON documents BEGIN SELECT RAISE(ABORT,'synthetic document save failure'); END");
             boolean failed=false;try{JSONObject changed=new JSONObject(before);changed.getJSONObject("character_looks").getJSONObject(owner).getJSONArray("portraits").remove(5);store.save(changed.toString(),revision,"visual-assets-test");}catch(Exception e){failed=true;}finally{db.execSQL("DROP TRIGGER IF EXISTS fail_visual_document");}

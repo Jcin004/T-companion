@@ -31,13 +31,13 @@ try{
   assert.equal((await read()).world.events.filter(e=>e.source.command?.target_id==='plant').length,1);
   await page.screenshot({path:'artifacts/visual-browser-explore.png'});
   await actor('a');await page.locator('#world-dialogue[open]').waitFor();
-  const room=await page.locator('#world-canvas').boundingBox(),dialog=await page.locator('#world-dialogue').boundingBox();assert.ok(room.height<600);assert.ok(dialog.y>=room.height-10,'bottom dialogue keeps room visible');
+  const room=await page.locator('#world-canvas').boundingBox(),dialog=await page.locator('#world-dialogue').boundingBox();assert.equal(Math.round(room.height),Math.round(bounds.height),'dialogue cannot compress room');assert.ok(dialog.y>room.y,'bottom dialogue overlays the room');
   await page.locator('#world-input').fill('房间里还有谁？去试试窗帘。');await page.locator('#world-send').tap();await page.waitForFunction(()=>document.querySelector('#world-dialogue-status').textContent==='已保存对话与世界事件');
   assert.equal(sent.length,1);assert.match(sent[0].messages[0].content,/room_occupants/);assert.match(sent[0].messages[0].content,/雨/);assert.doesNotMatch(sent[0].messages[0].content,/另一份合成身份/);
   d=await read();assert.equal(d.world.curtain,true);assert.equal(d.turns[0].world_action.state,'complete');assert.ok(d.world.events.filter(e=>e.source.type==='scene_action').length>=1);
   const before=JSON.stringify(d);await page.locator('#world-next').tap();assert.match(await page.locator('#world-current-line').textContent(),/拉一下窗帘/);
   await page.locator('#world-replay').tap();await page.locator('#world-replay').tap();assert.equal(sent.length,1);assert.equal(await page.evaluate(()=>spoken.length),2);assert.doesNotMatch(await page.evaluate(()=>spoken[0]),/世界行动/);assert.equal(JSON.stringify(await read()),before,'replay reads saved text only');
-  await page.locator('#world-records').tap();await page.locator('#world-history-dialog[open]').waitFor();await page.getByRole('button',{name:'回看这几句',exact:true}).tap();assert.match(await page.locator('#world-current-line').textContent(),/雨也在窗边/);
+  await page.locator('#world-records').tap();await page.locator('#world-history-dialog[open]').waitFor();assert.match(await page.locator('#world-lines').textContent(),/雨也在窗边/);assert.equal(await page.getByRole('button',{name:'回看这几句',exact:true}).count(),0);await page.locator('#world-history-close').tap();
   await page.screenshot({path:'artifacts/visual-browser-dialogue.png'});
   await page.locator('#world-close').tap();await tapMenu('人物');await page.locator('#world-looks-dialog[open]').waitFor();
   await page.locator('#looks-owner').selectOption('a');await page.locator('.looks-default summary').tap();await page.locator('#looks-skin').selectOption('2');
@@ -45,7 +45,7 @@ try{
   for(const name of ['表情甲','表情乙']){await page.locator('#looks-portrait-file').setInputFiles({name:name+'.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await page.waitForFunction(n=>document.querySelector('#looks-portrait-choice').options.length===n,name==='表情甲'?1:2);}
   await page.locator('#looks-tab-sprite').tap();await page.locator('#looks-sprite-file').setInputFiles({name:'walk.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await page.locator('#looks-direction').selectOption('up');await page.locator('#looks-save').tap();await page.waitForFunction(()=>document.querySelector('#looks-status').textContent==='人物形象已保存');
   d=await read();assert.equal(d.character_looks.a.skin,2);assert.equal(d.character_looks.a.portraits.length,2);assert.equal(d.character_looks.a.sprite.frames,4);assert.equal(d.characters[0].identity,'合成身份');await page.screenshot({path:'artifacts/visual-browser-looks.png'});
-  await page.locator('#looks-close').tap();await page.locator('#world-menu-open').tap();await page.screenshot({path:'artifacts/visual-browser-menu.png'});assert.equal(await page.locator('.world-menu-grid button').count(),9);
+  await page.locator('#looks-close').tap();await page.locator('#world-menu-open').tap();await page.screenshot({path:'artifacts/visual-browser-menu.png'});assert.equal(await page.locator('.world-menu-grid button').count(),10);
   await page.reload();await ready();await page.locator('[data-app="world"]').tap();assert.deepEqual((await read()).character_looks,d.character_looks);
   assert.deepEqual(errors,[]);console.log('PASS: near-only touch interaction, bottom portrait dialogue, room perception, executed curtain action, saved-text/TTS replay, history, appearance import/preview/save/reload, menu and original API access');
 }catch(e){console.log('UI diagnostics',errors,await page.locator('#world-dialogue-status').textContent(),await page.locator('#toast').textContent());await page.screenshot({path:'artifacts/visual-browser-failure.png'});throw e;}finally{await browser.close();}

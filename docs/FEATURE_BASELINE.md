@@ -1,5 +1,7 @@
 # 已有行为与回归检查
 
+0.14.0：世界记录覆盖全部场景人物及居民交流，可筛选、搜索、重播语音、删除整轮或居民发言并清理对应来源记忆。人物独立皮肤库、表情分类与方向/站立/动作图配置，AI 仅选择允许的现有资源；前后台规则一致。旧记录、旧图集和无关记忆保留。使用、接口与验证范围见 [世界记录与人物呈现](WORLD_EXPRESSION_HISTORY.md)。
+
 Android 内置 OB：自动为旧卡片建索引；同一事务处理人工/模型写入，保留原文、证据、版本、总结、核心标签和关联。编辑、停用、删除、备份恢复及失败回滚影响后续召回。Android 不调用旧外接网关；网页保留原行为。验证：`tests/embedded-memory.test.mjs`、`tests/test_embedded_ob.py`、`tests/embedded-ob-android.mjs`、`EmbeddedMemoryInstrumentation.java`。迁移细节和平台限制见 `ANDROID_EMBEDDED_MEMORY.md`。
 
 可选 OB 接入：默认关闭；取消时不调用模型；超时/授权/格式失败回退本地；人物/分区响应核对、整条预算与凭据 origin 绑定。普通备份不含口令，恢复后关闭外部查询。验证：`tests/external-memory.test.mjs`、`backend/tests/test_ob_gateway.py`、`scripts/verify-ob-gateway.py`、`tests/external-memory-browser.mjs`。仅本机模式，无自动同步或模型写入。

@@ -15,10 +15,15 @@ final class TLookAssets {
     private static void visit(JSONObject document,Visitor visitor) throws Exception {
         JSONObject looks=document.optJSONObject("character_looks");if(looks==null)return;
         for(Iterator<String> keys=looks.keys();keys.hasNext();){
-            JSONObject look=looks.getJSONObject(keys.next());JSONArray portraits=look.optJSONArray("portraits");
+            JSONObject look=looks.getJSONObject(keys.next());visitSkin(look,visitor);
+            JSONArray skins=look.optJSONArray("skins");if(skins!=null)for(int i=0;i<skins.length();i++)visitSkin(skins.getJSONObject(i),visitor);
+        }
+    }
+    private static void visitSkin(JSONObject look,Visitor visitor) throws Exception {
+            JSONArray portraits=look.optJSONArray("portraits");
             if(portraits!=null)for(int i=0;i<portraits.length();i++){JSONObject portrait=portraits.getJSONObject(i);portrait.put("image",visitor.image(portrait.getString("image")));}
             JSONObject sprite=look.optJSONObject("sprite");if(sprite!=null)sprite.put("image",visitor.image(sprite.getString("image")));
-        }
+            JSONObject actions=look.optJSONObject("actions");if(actions!=null)for(Iterator<String> keys=actions.keys();keys.hasNext();){JSONObject animation=actions.getJSONObject(keys.next());animation.put("image",visitor.image(animation.getString("image")));}
     }
     static String encode(SQLiteDatabase db,String value) throws Exception {
         JSONObject document=new JSONObject(value);Set<String> keep=new HashSet<>();

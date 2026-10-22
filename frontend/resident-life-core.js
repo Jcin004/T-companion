@@ -7,6 +7,7 @@ import {ensureMemory} from './memory-core.js';
 import {acceptWorldMemories} from './world-memory.js';
 import {deliverWorldShare} from './proactive-messages.js';
 import {nearbyResidents} from './resident-perception.js';
+import {presentationOptions} from './character-looks.js';
 export const LIFE_DEFAULTS={enabled:false,background:false,interval_minutes:30,max_actions:2,max_dialogue_turns:2,max_requests:6,daily_requests:24,quiet_start:23,quiet_end:8,share:true,share_minutes:120,auto_memory:true,memory_threshold:1,memory_budget:4000};
 export function ensureLife(data){
   const world=ensureWorld(data);
@@ -37,7 +38,7 @@ export function beginLifeRun(data,id,time,origin='foreground'){
   if(l.jobs.length>9900||l.runs.length>=5000)throw Error('居民任务记录已达容量');
   const r={id,state:'running',origin,started_at:time.iso,actual_executed_at:time.iso,actions:0,dialogue_turns:0,requests:0,queue:[],limits:copy(s)};l.runs.push(r);return copy(r);
 }
-function known(data,owner){return data.world.events.filter(e=>e.observations.some(o=>o.owner_id===owner));}
+function known(data,owner){return data.world.events.filter(e=>!e.deleted_at&&e.observations.some(o=>o.owner_id===owner));}
 function queueJob(data,run,kind,owner,extra={}){
   const l=ensureLife(data),j={id:'life_'+(++l.sequence),run_id:run.id,kind,owner_id:owner,state:'prepared',...copy(extra)};l.jobs.push(j);return j;
 }
@@ -55,7 +56,7 @@ export function nextLifeJob(data,id,time){
 export function lifePrompt(data,job,memories=[]){
   const l=ensureLife(data),owner=job.owner_id,w=data.world,p=w.positions[owner],c=data.characters.find(c=>c.id===owner);
   if(!c||!p)throw Error('居民已不存在');
-  const legal=known(data,owner).slice(-12),rawEvents=job.event_ids?job.event_ids.map(id=>worldSource(data,id,owner)):legal;
+  const legal=known(data,owner).filter(e=>!e.deleted_at).slice(-12),rawEvents=job.event_ids?job.event_ids.map(id=>worldSource(data,id,owner)):legal;
   const events=[];let observedChars=0;
   for(const e of [...rawEvents].reverse()){
     const projection={id:e.id,created_at:e.created_at,content:e.content.slice(0,1000),source:e.source,excerpt:e.content.length>1000};
@@ -71,6 +72,7 @@ export function lifePrompt(data,job,memories=[]){
   if(job.kind==='memory')schema='按已知事件整理至多3条个人记忆，可有主观理解但保留说话者与不确定性；不得改身份。只输出 {"memories":[{"title":"...","content":"...","kind":"experience|statement|interpretation","evidence":[{"source_type":"world_event","event_id":"提供的ID","quote":"事件连续原文"}]}]}';
   else if(job.kind==='share')schema='决定是否主动分享指定事件。允许不分享，不能编造新事实。只输出 {"share":false} 或 {"share":true,"event_id":"提供的ID","quote":"事件连续原文，最多500字","comment":"明确属于你的主观想法，最多300字"}。quote 是事实依据，comment 不视为客观事件。';
   else schema='只输出 JSON 候选 {"actor_id":"当前ID","type":"move|interact|say|wait","target":{"x":4,"y":7},"target_id":"地点ID","to_id":"近处居民ID","text":"要说的话","event_ids":["你已知且谈及的事件ID"],"plan":"简短当前计划"}。只保留此动作需要的字段。move 只到可走网格，interact 必须走近地点。say 只能对附近居民发言，不代写对方回复。收到对方发言时可 say 回答或 wait 结束。';
+  if(job.kind==='action'){payload.appearance=presentationOptions(data,owner);schema+=' 若 appearance.skins 有已授权皮肤，可以选择 type:"change_skin", skin_id:"候选ID" 换装，不可替其他人换装。';}
   return [{role:'system',content:rules+'\n任务：'+job.kind+'\n'+schema},{role:'user',content:JSON.stringify(payload)}];
 }
 export function reserveLifeRequest(data,jobId,time,prompt){
@@ -121,7 +123,7 @@ export function applyLifeResponse(data,id,time){
     }
     l.share_checked[owner]=[...new Set([...(l.share_checked[owner]||[]),...j.event_ids])];
   }else{
-    if(a.actor_id!==owner||!['move','interact','say','wait'].includes(a.type))throw Error('行动者或动作类型错误');
+    if(a.actor_id!==owner||!['move','interact','say','wait','change_skin'].includes(a.type))throw Error('行动者或动作类型错误');
     if(j.kind==='reply'&&!['say','wait'].includes(a.type))throw Error('回复轮只允许交谈或结束');
     if(a.plan!==undefined&&(typeof a.plan!=='string'||a.plan.length>200))throw Error('计划文字过长');
     if(a.event_ids!==undefined&&(!Array.isArray(a.event_ids)||a.event_ids.length>4))throw Error('行动来源格式错误');
@@ -135,7 +137,7 @@ export function applyLifeResponse(data,id,time){
       if(r.dialogue_turns<r.limits.max_dialogue_turns)r.queue.unshift({kind:'reply',owner_id:a.to_id,received_id:event.id,conversation_id:conversation,dialogue_turn:turn});
       enqueueAfter(data,r,a.to_id,event);
     }else{
-      event=applyWorldCommand(data,{request_id:j.id,actor_id:owner,type:a.type==='wait'?'advance':a.type,...(a.type==='move'?{target:a.target}:{}),...(a.type==='interact'?{target_id:a.target_id}:{})},{sourceType:'resident_action',jobId:j.id,at:time.iso});
+      event=applyWorldCommand(data,{request_id:j.id,actor_id:owner,type:a.type==='wait'?'advance':a.type,...(a.type==='move'?{target:a.target}:{}),...(a.type==='interact'?{target_id:a.target_id}:{}),...(a.type==='change_skin'?{skin_id:a.skin_id}:{})},{sourceType:'resident_action',jobId:j.id,at:time.iso,ai:true});
     }
     if(a.plan!==undefined)l.plans[owner]=a.plan;
     if(j.kind==='action')r.actions++;

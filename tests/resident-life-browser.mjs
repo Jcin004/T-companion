@@ -16,7 +16,7 @@ await page.route('**/chat/completions',async route=>{
 });
 const home=()=>page.locator('#home-button').tap(),app=id=>page.locator('.app-grid [data-app="'+id+'"]').tap();
 try{
- await page.goto('http://127.0.0.1:8014/');await page.waitForFunction(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
+ await page.goto(process.env.T_TEST_URL||'http://127.0.0.1:8014/');await page.waitForFunction(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
  await page.evaluate(async()=>{const {BrowserPersistence,emptyData}=await import('/assets/local-service.js'),store=new BrowserPersistence(),d=emptyData();d.characters=[{id:'a',name:'林',identity:'',style:'',avatar:''},{id:'b',name:'雨',identity:'',style:'',avatar:''}];d.settings.model='mock';d.settings.base_url='https://fixture.example/v1';await store.load();await store.save(d);});
  await page.reload();await page.waitForFunction(()=>document.querySelector('#status')?.textContent==='记录保存在本机');await app('world');await page.getByRole('button',{name:'进入小屋',exact:true}).tap();await page.locator('#world-canvas[data-drawn="yes"]').waitFor();
  await page.locator('#world-menu-open').tap();await page.locator('#world-menu').getByRole('button',{name:'居民生活',exact:true}).tap();await page.locator('#life-enabled').check();await page.locator('#life-quiet_start').fill('0');await page.locator('#life-quiet_end').fill('0');await page.locator('#life-save').tap();await page.waitForTimeout(150);

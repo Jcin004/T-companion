@@ -1,0 +1,64 @@
+{
+  "reviewed_on": "2026-10-23",
+  "scope": "World history, character-owned skins, expression portraits and action atlases",
+  "sources": [
+    {
+      "repository": "https://github.com/Jcin004/SullyOS",
+      "commit": "da33732253fbf3174bf068a237375155a8d1a846",
+      "license": "SullyOS Source-Available License 1.0",
+      "use": "Design reference only; no source code, art, backend or character identity copied",
+      "files": [
+        {
+          "path": "types.ts",
+          "blob": "594c07a19c43201cf6f35e70f7de8c66d17a1330"
+        },
+        {
+          "path": "utils/dateSprites.ts",
+          "blob": "b425c12df14ba86726290a50c6a38c0d4717938f"
+        },
+        {
+          "path": "components/date/DateSession.tsx",
+          "blob": "4d0239463d92a36ef54d18c1dc1df7254ab774fc"
+        },
+        {
+          "path": "components/date/MeetingAppearanceControl.tsx",
+          "blob": "3d2ade86a446286e8c7d0fa807ca1f9839b3870d"
+        },
+        {
+          "path": "LICENSE",
+          "blob": "f9c4d42a3af04c42cb011baaa963327faf88b7f3"
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/Jcin004/float",
+      "commit": "c1b0ea74d7690beae31bc7c9e2a8c382fa4b151b",
+      "license": "AGPL-3.0-only for code; separate art/font terms remain excluded",
+      "use": "Reviewed story parser, engine and entry. No corresponding expression-portrait switching found in these files; no new code imported",
+      "files": [
+        {
+          "path": "lib/story-parser.ts",
+          "blob": "7b817e37fb9895e75b8cb2d68f590e9642ded5e9"
+        },
+        {
+          "path": "lib/story-engine.ts",
+          "blob": "ab51e546f3abefcda1b95bc42e7db0f527f50082"
+        },
+        {
+          "path": "components/story/story-app.tsx",
+          "blob": "a786594f1aee9a4073d45747e4731aa0e8ba7273"
+        },
+        {
+          "path": "LICENSE",
+          "blob": "be3f7b28e564e7dd05eaf59d64adba1a4065ac0e"
+        },
+        {
+          "path": "NOTICE",
+          "blob": "0571aae8d98185de439daf91ac6af1b32016b378"
+        }
+      ]
+    }
+  ],
+  "implementation": "Reuse T-companion LocalService transactions, MemoryModule evidence, original Canvas/artwork, SQLite/OB, model presets and headless rules. New code independently implements the project's own IDs and interfaces; no new runtime dependency.",
+  "user_images": "Three supplied direction/action examples are visual references only, with no copied asset or redistribution authorization assumed."
+}
