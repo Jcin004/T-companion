@@ -28,17 +28,23 @@ public class UpdateChannelInstrumentation extends Instrumentation {
                 .put("versionCode",11).put("versionName","fixture-only").put("sizeBytes",1024)
                 .put("sha256",new String(new char[64]).replace('\0','a')).put("apkUrl","https://download.example/test.apk");
             List<String> calls = new ArrayList<>();
+            final boolean[] staticOffline = {false};
             TUpdatePlugin plugin = new TUpdatePlugin() {
                 @Override public Context getContext() { return context; }
                 @Override protected String getJson(String address) throws Exception {
                     calls.add(address);
-                    if (address.contains("api.github.com") || address.contains("offline.example")) throw new UnknownHostException("fixture DNS");
+                    if (address.contains("offline.example") || staticOffline[0] && address.contains("raw.githubusercontent.com")) throw new UnknownHostException("fixture DNS");
+                    if (address.contains("api.github.com")) return new JSONArray().put(new JSONObject().put("prerelease",true).put("assets",new JSONArray().put(new JSONObject().put("name","t-update.json").put("browser_download_url","https://release.example/t-update.json")))).toString();
                     if (address.contains("broken.example")) return "not JSON";
                     return good.toString();
                 }
             };
-            require(plugin.discover(new JSONArray()).getLong("versionCode")==11,"static fallback after GitHub DNS failure");
-            require(calls.size()==2 && calls.get(1).contains("raw.githubusercontent.com"),"default fallback order");
+            require(plugin.discover(new JSONArray()).getLong("versionCode")==11,"direct static manifest");
+            require(calls.size()==1 && calls.get(0).contains("raw.githubusercontent.com"),"valid direct manifest avoids all release requests");
+            calls.clear(); staticOffline[0]=true;
+            require(plugin.discover(new JSONArray()).getLong("versionCode")==11,"prerelease fallback after static DNS failure");
+            require(calls.size()==3 && calls.get(1).contains("api.github.com"),"static then release fallback order");
+            staticOffline[0]=false;
             calls.clear();
             require(plugin.discover(new JSONArray().put("https://own.example/update.json")).getLong("versionCode")==11,"custom source");
             require(calls.size()==1 && !calls.get(0).contains("github"),"custom channel must not depend on GitHub");
