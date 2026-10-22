@@ -73,6 +73,8 @@ node scripts/prepare-update.mjs artifacts/T-companion-0.13.2-trial.apk 20 0.13.2
 python scripts/publish-trial.py --apk artifacts/T-companion-0.13.2-trial.apk --source artifacts/T-companion-0.13.2-source.zip --manifest artifacts/t-update.json --build-tools C:/path/to/Android/Sdk/build-tools/36.1.0
 ```
 
-通过校验后，对同一命令增加 `--publish`。运行者负责已完成该版本的测试；脚本不会把本地测试结果上传为虚假的 CI 检查。发布附件同时包含 APK、匹配源码、LICENSE、THIRD_PARTY_NOTICES、构建说明、SHA256SUMS 和清单。源码正文、聊天备份、模型密钥及签名私钥不从运行目录递归收集。
+通过校验后，对同一命令增加 `--publish`。运行者负责先完成该版本的测试。发布附件同时包含 APK、匹配源码、LICENSE、THIRD_PARTY_NOTICES、构建说明、SHA256SUMS 和清单。发布只读取 Git 归档和明确指定的安装包、清单，不递归收集运行目录。
+
+从无 .git 的源码包构建时仍可运行 npm build；可通过 T_SOURCE_COMMIT 指定其 Release 记录的提交，否则标记为 unversioned。正式渠道发布仍要求从已提交、已推送的 Git 检出生成并验证。
 
 网络发布顺序、失败保留旧清单、重试幂等和版本冲突由 `backend/tests/test_trial_publication.py` 完全模拟验证。
