@@ -49,11 +49,11 @@ Node 测试覆盖地址校验；浏览器测试覆盖配置、失败日志及原
 
 本轮核对 SullyOS `utils/androidAppUpdate.ts`，文件最后修改提交 `4ed3c293af89acf89762a892e72e811017c1b9dc`，blob `15e88dabcb2e5bd36f3d56460eb1aba978b14ff9`。其现成封装依赖 Capacitor Filesystem，主要解决直接清单与跨页面单任务；不包含 HTTP Range 续传。T- 继续复用已有 Java 下载、校验和安装代码，并在该接口内补齐续传；未新增 Filesystem 依赖或导入 SullyOS 文件。个人非商业授权记录仍见上文，不扩展为公开再分发许可。
 
-发布端实查：公开更新仓库仅有 android-v0.7.0 Release，main/t-update.json 返回 404。静态入口需要与审核后的 Release 清单一起部署并持续更新，客户端才会走单请求路径。开发分支、PR 或本地 APK 不会自动更新线上渠道。旧安装包必须覆盖安装一次，才能取得新的原生逻辑。
+修复前发布端快照：公开更新仓库仅有 android-v0.7.0 Release，main/t-update.json 返回 404。静态入口需要与审核后的 Release 清单一起部署并持续更新，客户端才会走单请求路径。开发分支、PR 或本地 APK 不会自动更新线上渠道。旧安装包必须覆盖安装一次，才能取得新的原生逻辑。
 
 验证入口：`tests/app-update-browser.mjs` 覆盖导航期间单任务/进度、暂停、重启部分下载和原安装权限/重试；`UpdateTransferInstrumentation` 在独立 Android 11 模拟器用真实文件和模拟 HTTPS 流验证中断、Range、200 回退、范围拒绝、换包隔离与暂停；`UpdateChannelInstrumentation` 验证直接清单只请求一次和 prerelease 回退。没有调用模型服务；真机下载吞吐和免 VPN 可达性未验证。
 
-发布仓库已准备 [直接清单 PR #2](https://github.com/Jcin004/T-companion-updates/pull/2)，与现有 0.7.0 Release 附件的 SHA-256 完全一致；未自动合并。新增 `tests/update-ui-android.mjs` 在 Android 11 / WebView 83 实测模块导入、切页单任务、50% 进度和权限返回。
+早期 [直接清单 PR #2](https://github.com/Jcin004/T-companion-updates/pull/2) 只补旧 0.7.0 元数据，现已关闭，由下文完整 0.13.2 同步发布流程替代。新增 `tests/update-ui-android.mjs` 在 Android 11 / WebView 83 实测模块导入、切页单任务、50% 进度和权限返回。
 
 真实网络抽查：独立模拟器把自定义清单临时指向上述 PR 分支，原生 HTTPS 检查一次成功，单次 275 ms、attempts 只有 raw.githubusercontent.com；随后恢复原配置。该结果只验证此网络和已发布 0.7.0 元数据的读取，不代表实体手机耗时或新版 APK 已发布。
 
@@ -78,3 +78,12 @@ python scripts/publish-trial.py --apk artifacts/T-companion-0.13.2-trial.apk --s
 从无 .git 的源码包构建时仍可运行 npm build；可通过 T_SOURCE_COMMIT 指定其 Release 记录的提交，否则标记为 unversioned。正式渠道发布仍要求从已提交、已推送的 Git 检出生成并验证。
 
 网络发布顺序、失败保留旧清单、重试幂等和版本冲突由 `backend/tests/test_trial_publication.py` 完全模拟验证。
+
+## 0.13.2 已发布验收（2026-10-23）
+
+- [公开试用 Release](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.13.2) 已发布，非草稿。APK、完整源码、许可/署名、构建说明、校验和及清单共七项附件全部完成摘要核对。
+- 构建源码提交 `c1ce5395c1b91ca48039ee18c62601f864dec538`，versionCode 20。APK SHA-256 为 `f9cdf7bba344a12093476a4d832fc21b494812aac3f2b21605bd467738974c4e`，80,049,849 字节；源码归档 SHA-256 为 `8c8a96400d2fd7e68752d4bb1e98599862b78513da2ca1a05338e2476a476435`。
+- main/t-update.json 已指向该原签名安装包，并记录同一 sourceCommit。匿名 APK HEAD 返回 200，大小正确；Android 默认原生检查一次请求成功，单次 1,287 ms。补齐静态入口前，同一模拟器抽查默认检查为 9,914 ms；这是单次网络样本，不代表真机耗时。
+- 原签名旧 0.13.1/code 19 的真实原生更新检查发现 0.13.2/code 20；旧流程该次仍需 12,785 ms。覆盖到新版后，完整合成业务文档（人物、完成聊天、草稿、设置等）及加密凭据保留。未使用实体手机或真实模型。
+- 114 Node、103 Python（警告按错误）、专用浏览器和 Android 更新验收通过；[构建提交 CI](https://github.com/Jcin004/T-companion/actions/runs/39833854060) 的测试、密钥扫描、Android 构建全部通过。完整源码包在无 .git 目录中重新构建通过。
+- 公开 Release 和清单为本轮交付，后续文档提交只记录实际发布结果；安装包对应的源码始终以清单 sourceCommit 和匹配归档为准。原有未提交的 world-motion-android 测试修改保留在本机，未纳入本轮提交。
