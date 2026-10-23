@@ -15,57 +15,111 @@ export function normalizeUpdateSources(text='') {
     return url.href;
   }))];
 }
+// Each native plugin has one task owner across all Settings mounts.
+const sessions = new WeakMap();
+function sessionFor(plugin) {
+  if (sessions.has(plugin)) return sessions.get(plugin);
+  const state = {phase:'check', manifest:null, locked:true, channelPublished:true,
+    message:'正在读取更新状态…', sources:[], configurable:false, bytes:0, total:0,
+    progressPhase:'', speed:0, lastBytes:0, lastTime:0, views:new Set()};
+  state.emit = () => { for (const paint of state.views) paint(); };
+  sessions.set(plugin,state);
+  Promise.resolve(plugin.addListener('progress',event => {
+    if (!Number.isFinite(event.bytes) || !(event.total > 0)) return;
+    const now = performance.now();
+    if (state.lastTime && event.bytes >= state.lastBytes && now > state.lastTime)
+      state.speed = (event.bytes-state.lastBytes)*1000/(now-state.lastTime);
+    state.bytes = Math.max(0,Math.min(event.total,event.bytes)); state.total = event.total;
+    state.lastBytes = state.bytes; state.lastTime = now;
+    state.progressPhase = event.phase || 'downloading'; state.emit();
+  })).catch(()=>{});
+  plugin.info().then(info => {
+    state.channelPublished = info.channelPublished !== false;
+    state.sources = info.manifestSources || []; state.configurable = info.configurableChannel === true;
+    state.message = state.channelPublished ? '' : '当前为私有手动更新，在线渠道尚未发布。收到新版 APK 后直接覆盖安装；不要卸载旧版。';
+    if (info.ready) {
+      state.manifest=info.ready; state.phase='ready'; state.message='已恢复校验通过的安装包，可继续安装。';
+    } else if (info.resumable) {
+      state.manifest=info.resumable; state.phase='available';
+      state.bytes=info.downloadedBytes || 0; state.total=info.resumable.sizeBytes;
+      state.message='已恢复未完成的下载，点击继续下载。';
+    }
+  }).catch(error=>{state.message=updateError(error.message);}).finally(()=>{state.locked=false;state.emit();});
+  return state;
+}
 export function mountAppUpdate(container, plugin, isBusy=()=>false, record=()=>{}) {
-  const button=document.createElement('button'), message=document.createElement('p'), notes=document.createElement('p'), progress=document.createElement('progress');
-  message.style.whiteSpace='pre-line';
-  button.type='button';button.id='check-update'; button.textContent='检查更新'; message.setAttribute('role','status'); progress.max=1; progress.hidden=true;
-  container.append(button,progress,message,notes);
-  const manual=document.createElement('a');manual.href='https://github.com/Jcin004/T-companion-updates/releases';manual.target='_blank';manual.rel='noopener noreferrer';manual.textContent='在浏览器打开下载页，手动覆盖安装';container.append(manual);
-  if(!plugin){button.disabled=true;button.textContent='在线更新未启用';message.textContent='浏览器不能安装 APK 更新。请在 Android 应用内检查更新，或从公开下载渠道获取安装包。';return;}
-  let phase='check', manifest=null, locked=true, channelPublished=true;
-  const manualMessage='当前为私有手动更新，在线渠道尚未发布。收到新版 APK 后直接覆盖安装；不要卸载旧版。';
-  const labels={check:'检查更新',available:'下载并安装新版',ready:'继续安装',installer:'再次打开安装器'};
-  const paint=()=>{button.disabled=locked||(!channelPublished&&phase==='check');button.textContent=!channelPublished&&phase==='check'?'在线更新未启用':labels[phase]||'检查更新';};
-  const channels=document.createElement('details'),summary=document.createElement('summary'),form=document.createElement('form'),label=document.createElement('label'),sources=document.createElement('textarea'),help=document.createElement('small'),save=document.createElement('button');
-  channels.className='update-channels';summary.textContent='更新渠道（高级）';sources.id='update-manifest-sources';sources.rows=3;sources.maxLength=6150;sources.placeholder='每行一个 HTTPS 清单地址，最多 3 个；留空使用默认渠道';
-  label.textContent='备用／自建更新清单';label.append(sources);save.type='submit';save.textContent='保存更新渠道';save.id='save-update-sources';save.disabled=true;
-  help.textContent='填写你信任的更新清单地址，不是模型 API 地址。自定义地址按顺序尝试；首个有效清单生效。留空时使用 GitHub Releases，失败后尝试静态清单。清单与 APK 下载地址都必须可达；本应用仍会验证包名、版本、SHA-256 和安装签名。渠道配置仅保存在当前设备。';
-  form.append(label,help,save);channels.append(summary,form);container.append(channels);
+  const button=document.createElement('button'), message=document.createElement('p'), notes=document.createElement('p'), progress=document.createElement('progress'), pause=document.createElement('button');
+  message.style.whiteSpace='pre-line'; message.setAttribute('role','status');
+  button.type='button'; button.id='check-update'; button.textContent='检查更新';
+  progress.max=1; progress.hidden=true; pause.type='button'; pause.textContent='暂停下载'; pause.hidden=true; pause.id='pause-update';
+  container.append(button,pause,progress,message,notes);
+  const manual=document.createElement('a'); manual.href='https://github.com/Jcin004/T-companion-updates/releases'; manual.target='_blank'; manual.rel='noopener noreferrer'; manual.textContent='在浏览器打开下载页，手动覆盖安装'; container.append(manual);
+  if (!plugin) {button.disabled=true;button.textContent='在线更新未启用';message.textContent='浏览器不能安装 APK 更新。请在 Android 应用内检查更新，或从公开下载渠道获取安装包。';return;}
+  const state=sessionFor(plugin);
+  const channels=document.createElement('details'), summary=document.createElement('summary'), form=document.createElement('form'), label=document.createElement('label'), sources=document.createElement('textarea'), help=document.createElement('small'), save=document.createElement('button');
+  channels.className='update-channels'; summary.textContent='更新渠道（高级）'; sources.id='update-manifest-sources'; sources.rows=3; sources.maxLength=6150; sources.placeholder='每行一个 HTTPS 清单地址，最多 3 个；留空使用默认渠道';
+  label.textContent='备用／自建更新清单'; label.append(sources); save.type='submit'; save.textContent='保存更新渠道'; save.id='save-update-sources';
+  help.textContent='填写你信任的更新清单地址。自定义地址按顺序尝试；留空优先直接读取静态清单，失败才查询 GitHub Releases。清单和 APK 都需要可达。下载中断后可继续，安装前校验包名、版本、SHA-256 和签名。配置仅保存在当前设备。';
+  form.append(label,help,save); channels.append(summary,form); container.append(channels);
+  let previousSources=null, wasConnected=container.isConnected;
+  const paint=()=>{
+    if(wasConnected&&!container.isConnected){state.views.delete(paint);return;}
+    wasConnected = wasConnected || container.isConnected;
+    const downloading=state.locked&&state.phase==='available';
+    const labels={check:'检查更新',available:state.bytes?'继续下载并安装':'下载并安装新版',ready:'继续安装',installer:'再次打开安装器'};
+    button.disabled=state.locked||(!state.channelPublished&&state.phase==='check');
+    button.textContent=state.locked?(state.phase==='check'?'正在检查…':downloading?(state.progressPhase==='verifying'?'正在校验安装包…':'正在下载…'):'正在处理…'):(!state.channelPublished&&state.phase==='check'?'在线更新未启用':labels[state.phase]);
+    progress.hidden=!downloading; progress.value=state.total?state.bytes/state.total:0;
+    pause.hidden=!downloading||state.progressPhase==='verifying'||typeof plugin.pause!=='function';
+    pause.disabled=state.pausing===true;
+    message.textContent=downloading?`${(progress.value*100).toFixed(0)}% · ${(state.bytes/1048576).toFixed(1)} / ${(state.total/1048576).toFixed(1)} MB${state.speed>0?' · '+(state.speed/1048576).toFixed(2)+' MB/s':''}`:state.message;
+    notes.textContent=(state.manifest?.releaseNotes||[]).join('\n');
+    save.disabled=state.locked||!state.configurable; sources.disabled=state.locked;
+    const text=state.sources.join('\n'); if(previousSources!==text){sources.value=text;previousSources=text;}
+  };
+  state.views.add(paint); state.emit();
   form.onsubmit=async event=>{
-    event.preventDefault();if(locked)return;
-    if(isBusy()){message.textContent='请先等待聊天生成结束，再修改更新渠道。';return;}
+    event.preventDefault(); if(state.locked)return;
+    if(isBusy()){state.message='请先等待聊天生成结束，再修改更新渠道。';state.emit();return;}
     try {
-      const values=normalizeUpdateSources(sources.value);locked=true;paint();save.disabled=true;
-      const result=await plugin.setSources({sources:values});sources.value=(result.manifestSources||values).join('\n');
-      manifest=null;phase='check';notes.textContent='';message.textContent=values.length?'更新渠道已保存，点击检查更新验证连通性。':'已恢复默认渠道；访问 GitHub 仍取决于当前网络与 VPN 分流。';
+      const values=normalizeUpdateSources(sources.value); state.locked=true; state.emit();
+      const result=await plugin.setSources({sources:values}); state.sources=result.manifestSources||values;
+      state.manifest=null; state.phase='check'; state.bytes=0; state.total=0;
+      state.message=values.length?'更新渠道已保存，点击检查更新验证连通性。':'已恢复默认渠道；访问 GitHub 仍取决于当前网络与 VPN 分流。';
       record('更新渠道已保存',{custom_sources:values.map(value=>new URL(value).hostname)});
-    }catch(e){message.textContent=updateError(e.message);record('更新渠道保存失败',{state:'failed',error:message.textContent});}
-    finally{locked=false;paint();save.disabled=false;}
+    }catch(e){state.message=updateError(e.message);record('更新渠道保存失败',{state:'failed',error:state.message});}
+    finally{state.locked=false;state.emit();}
   };
-  paint();
-  Promise.resolve(plugin.addListener('progress',e=>{progress.value=Math.min(1,e.bytes/e.total);})).catch(()=>{});
-  plugin.info().then(info=>{channelPublished=info.channelPublished!==false;sources.value=(info.manifestSources||[]).join('\n');save.disabled=info.configurableChannel!==true;if(!channelPublished)message.textContent=manualMessage;if(info.ready){manifest=info.ready;phase='ready';message.textContent='已恢复校验通过的安装包，可继续安装。';}}).catch(e=>{message.textContent=updateError(e.message);}).finally(()=>{locked=false;paint();});
+  pause.onclick=async()=>{
+    if(state.pausing)return; state.pausing=true;state.emit();
+    try {await plugin.pause();} catch(e){state.message=updateError(e.message);}
+    finally{state.pausing=false;state.emit();}
+  };
   button.onclick=async()=>{
-    if(locked)return;
-    if(!channelPublished&&phase==='check'){message.textContent=manualMessage;return;}
-    if(isBusy()){message.textContent='请先等待聊天生成结束，再进行更新。';return;}
-    locked=true;paint();
+    if(state.locked)return;
+    if(!state.channelPublished&&state.phase==='check')return;
+    if(isBusy()){state.message='请先等待聊天生成结束，再进行更新。';state.emit();return;}
+    state.locked=true; state.emit();
     try {
-      if(phase==='check'){
-        button.textContent='正在检查…';record('检查更新',{});const result=await plugin.check();manifest=result.available||null;record('更新检查结果',{version:manifest?.versionName,message:result.message,host:result.host,attempts:result.attempts});
-        if(manifest){phase='available';message.textContent=`发现 ${manifest.versionName}（${(manifest.sizeBytes/1048576).toFixed(1)} MB）`;notes.textContent=(manifest.releaseNotes||[]).join('\n');}
-        else message.textContent=result.message;
+      if(state.phase==='check'){
+        record('检查更新',{}); const result=await plugin.check(); state.manifest=result.available||null;
+        record('更新检查结果',{version:state.manifest?.versionName,message:result.message,host:result.host,attempts:result.attempts});
+        if(state.manifest){state.phase='available';state.bytes=0;state.total=state.manifest.sizeBytes;state.message=`发现 ${state.manifest.versionName}（${(state.total/1048576).toFixed(1)} MB）`;}
+        else state.message=result.message;
       }else{
-        if(phase==='available'){
-          button.textContent='正在下载并校验…';progress.value=0;progress.hidden=false;
-          await plugin.download({manifest});record('更新下载与校验完成',{version:manifest.versionName});phase='ready';progress.hidden=true;
+        if(state.phase==='available'){
+          state.progressPhase='downloading';state.speed=0;state.lastTime=0;state.emit();
+          await plugin.download({manifest:state.manifest});record('更新下载与校验完成',{version:state.manifest.versionName});state.phase='ready';state.emit();
         }
-        const result=await plugin.install();
-        record('更新安装步骤',{status:result.status});
-        phase=result.status==='permission'?'ready':'installer';
-        message.textContent=result.status==='permission'?'请允许 T- 安装应用，返回后点击“继续安装”。':'已打开系统安装器，请确认更新；取消后可再次打开。聊天记录会保留。';
+        const result=await plugin.install(); record('更新安装步骤',{status:result.status});
+        state.phase=result.status==='permission'?'ready':'installer';
+        state.message=result.status==='permission'?'请允许 T- 安装应用，返回后点击“继续安装”。':'已打开系统安装器，请确认更新；取消后可再次打开。聊天记录会保留。';
       }
-    }catch(e){const error=updateError(e.message);record('更新失败',{state:'failed',error,stage:e.data?.stage,host:e.data?.host,attempts:e.data?.attempts});const attempts=e.data?.attempts||[];message.textContent=error+(attempts.length?'\n已尝试：'+attempts.map(item=>item.host+'（'+({DNS:'域名解析失败',timeout:'超时',TLS:'安全连接失败',invalid_json:'清单不是有效 JSON',request_or_manifest:'请求或清单失败'}[item.reason]||item.status)+'）').join('、'):'');progress.hidden=true;}
-    finally{locked=false;paint();}
+    }catch(e){
+      const error=updateError(e.message); record('更新失败',{state:'failed',error,stage:e.data?.stage,host:e.data?.host,attempts:e.data?.attempts});
+      const attempts=e.data?.attempts||[];
+      state.message=error+(attempts.length?'\n已尝试：'+attempts.map(item=>item.host+'（'+({DNS:'域名解析失败',timeout:'超时',TLS:'安全连接失败',invalid_json:'清单不是有效 JSON',request_or_manifest:'请求或清单失败'}[item.reason]||item.status)+'）').join('、'):'');
+    }finally{state.locked=false;state.emit();}
   };
+  return ()=>state.views.delete(paint);
 }

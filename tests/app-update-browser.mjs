@@ -34,5 +34,27 @@ try{
  assert.equal(result.loaded,'https://old.example/update.json');assert.deepEqual(result.resultSaved,['https://own.example/update.json','https://backup.example/update.json']);assert.deepEqual(result.reset,[]);assert.equal(result.checked,1);
  assert.match(result.savedText,/已保存/);assert.match(result.failedText,/无法解析/);assert.match(result.rejectedText,/不能包含/);
  const failure=result.logs.find(log=>log.label==='更新失败');assert.equal(failure.data.host,'old.example');assert.equal(failure.data.attempts[0].reason,'DNS');assert.ok(!JSON.stringify(result.logs).includes('must-not-save'));
+ const navigation=await page.evaluate(async()=>{
+   const {mountAppUpdate}=await import('/assets/app-update.js');
+   let listener,finish,downloads=0,installs=0,infos=0,listeners=0;
+   const manifest={versionName:'resume-test',sizeBytes:1048576,releaseNotes:['navigation fixture']};
+   const plugin={info:async()=>{infos++;return {configurableChannel:true};},addListener:(_,fn)=>{listeners++;listener=fn;return {remove(){}};},check:async()=>({available:manifest}),download:async()=>{downloads++;await new Promise(r=>{finish=r;});},install:async()=>{installs++;return {status:'installer'};}};
+   const first=document.createElement('div');document.body.append(first);mountAppUpdate(first,plugin);await new Promise(r=>setTimeout(r,0));
+   await first.querySelector('#check-update').onclick();const running=first.querySelector('#check-update').onclick();
+   listener({bytes:524288,total:1048576,phase:'downloading'});first.remove();
+   const second=document.createElement('div');document.body.append(second);mountAppUpdate(second,plugin);await second.querySelector('#check-update').onclick();
+   const during={disabled:second.querySelector('#check-update').disabled,text:second.textContent,progress:second.querySelector('progress').value};
+   listener({bytes:1048576,total:1048576,phase:'verifying'});const verifying=second.querySelector('#check-update').textContent;
+   finish();await running;
+   const resumed=document.createElement('div');document.body.append(resumed);mountAppUpdate(resumed,{...plugin,info:async()=>({resumable:manifest,downloadedBytes:262144})});await new Promise(r=>setTimeout(r,0));
+   let rejectTransfer,pauses=0;
+   const paused=document.createElement('div');document.body.append(paused);
+   mountAppUpdate(paused,{...plugin,info:async()=>({resumable:manifest,downloadedBytes:262144}),download:()=>new Promise((_,reject)=>{rejectTransfer=reject;}),pause:async()=>{pauses++;rejectTransfer(Error('下载已暂停，点击继续下载'));}});
+   await new Promise(r=>setTimeout(r,0));const pauseRun=paused.querySelector('#check-update').onclick();const pauseVisible=!paused.querySelector('#pause-update').hidden;await paused.querySelector('#pause-update').onclick();await pauseRun;
+   return {during,verifying,downloads,installs,infos,listeners,after:second.textContent,resumed:resumed.textContent,paused:paused.textContent,pauseVisible,pauses};
+ });
+ assert.equal(navigation.during.disabled,true);assert.equal(navigation.during.progress,.5);assert.match(navigation.during.text,/50%.*0.5 \/ 1.0 MB/);
+ assert.match(navigation.verifying,/校验/);assert.equal(navigation.downloads,1);assert.equal(navigation.installs,1);assert.equal(navigation.infos,1);assert.equal(navigation.listeners,3);
+ assert.match(navigation.after,/再次打开/);assert.match(navigation.resumed,/已恢复未完成/);assert.equal(navigation.pauseVisible,true);assert.equal(navigation.pauses,1);assert.match(navigation.paused,/下载已暂停/);
  console.log('Updater UI passed: check, interrupted download retry, permission return, installer cancellation, cache recovery, web fallback');
 }finally{await browser.close();}
