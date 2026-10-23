@@ -28,4 +28,15 @@
 
 character-frame-editor.test.mjs 覆盖居中／脚底定位、方向映射、参数验证、事务失败、备份和原生输入迟到结果／取消。single-frame-browser.mjs 用透明合成 PNG 检查选格替换、共同缩放、像素位置、保留其他格子、原图重编辑、保存失败重试、人物隔离、动作帧、重启，以及世界 Canvas 实际使用合成图片。原衣橱、整图、世界对话／历史／记忆、移动与聊天设置回归继续执行。
 
-single-frame-android.mjs 在专用 Android 11 / WebView 83 模拟器使用原生触屏打开编辑器和系统选图；DocumentsUI 文件列表点击不能稳定打开文件，测试用原生键盘焦点选中准确文件名并确认，未注入文件 URI 或伪造插件返回。返回 PNG 字节与测试文件逐字节相同，完成单格保存和真实进程重启。原生 SQLite 大图片、单格源图恢复、CAS 和失败回滚由 WorldVisualInstrumentation 验证。原 JSON 备份文档选择和图片取消也已通过；取消没有修改业务文档。实际发布与最终版本验收在交付后补记；实体手机未验证。
+single-frame-android.mjs 在专用 Android 11 / WebView 83 模拟器使用原生触屏打开编辑器和系统选图；DocumentsUI 文件列表点击不能稳定打开文件，测试用原生键盘焦点选中准确文件名并确认，未注入文件 URI 或伪造插件返回。返回 PNG 字节与测试文件逐字节相同，完成单格保存和真实进程重启。原生 SQLite 大图片、单格源图恢复、CAS 和失败回滚由 WorldVisualInstrumentation 验证。原 JSON 备份文档选择和图片取消也已通过；取消没有修改业务文档。实体手机未验证。
+
+
+## 交付验收（2026-10-23）
+
+127 Node、103 Python（-W error）及上述浏览器检查通过；[构建提交 CI](https://github.com/Jcin004/T-companion/actions/runs/39976729062) 测试、密钥扫描和 Android 构建全部通过。本机 Gitleaks 和已提交源码快照隐私检查通过。全部使用合成数据与模拟模型。
+
+最终原签名 0.15.0/code23 → 0.16.0/code24 覆盖安装后完整合成业务文档和加密凭据指纹保留。最终 APK 重测原生 PNG 选择返回、字节一致、保存／进程重启、JSON 文档选择和图片取消通过；文件选择使用原生键盘确认，仍不等于实体手机或纯触屏文件列表操作验收。
+
+[公开 0.16.0 试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.16.0) 已发布七项匹配附件。构建和源码提交 `14e87b92e6b1f75b0c6104320f28ddeb93ad6462`，APK 80,091,429 字节，SHA-256 `f31729310f41bbcfd63d733a26f4d1c27738b14121adb8bfd2678f924477fec9`；源码 ZIP SHA-256 `f7cb90b3db065a76802bd71e1cc21ea8c9ce94584af36a18088b213c686831f1`。匿名 APK HEAD 200、大小匹配，默认 main/t-update.json 指向同一构建。
+
+专用模拟器旧版默认原生检查发现 0.16.0，单次 1,149 ms；新版默认检查单次 1,431 ms，直接清单一次请求，报告已是最新。该网络使用本机既有代理，测试后恢复模拟器原代理设置；不是实体手机耗时或免代理可达性结论。后续文档提交不替换上述安装包的构建提交。
