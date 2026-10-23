@@ -9,13 +9,14 @@ async function tap(selector){const p=await evaluate(s=>{const e=document.querySe
 async function shot(name){await pause(1200);await adb('shell','screencap','-p','/sdcard/wardrobe-screen.png');await adb('pull','/sdcard/wardrobe-screen.png','artifacts/wardrobe-android-'+name+'.png');}
 async function pickPng(){
  await adb('push','artifacts/motion-upload.png','/sdcard/Download/wardrobe-fixture.png');await adb('shell','am','broadcast','-a','android.intent.action.MEDIA_SCANNER_SCAN_FILE','-d','file:///sdcard/Download/wardrobe-fixture.png');
- await tap('#looks-action-sprite-file');let openedRoots=false;
+ await tap('#looks-action-sprite-file');await pause(1000);let openedRoots=false;
  for(let i=0;i<12;i++){
-  await adb('shell','uiautomator','dump','/sdcard/wardrobe-picker.xml');const xml=(await adb('shell','cat','/sdcard/wardrobe-picker.xml')).stdout;
+  let xml;try{const path='/sdcard/wardrobe-picker-'+i+'.xml';await adb('shell','uiautomator','dump',path);xml=(await adb('shell','cat',path)).stdout;}catch{await pause(800);continue;}
   const nodes=xml.match(/<node\b[^>]*>/g)||[];
   const file=nodes.find(n=>/(?:text|content-desc)="[^"]*wardrobe-fixture\.png[^"]*"/.test(n));
-  const target=file||nodes.find(n=>/text="(?:Files|文件|Downloads|下载)"/.test(n))||(!openedRoots&&nodes.find(n=>/content-desc="(?:Show roots|显示根目录|Open navigation drawer)"/.test(n)));
-  if(target){const m=target.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);assert.ok(m);await adb('shell','input','tap',String((+m[1]+ +m[3])/2),String((+m[2]+ +m[4])/2));if(file)return;openedRoots=true;}
+  const list=nodes.find(n=>/content-desc="List view"/.test(n));
+  const target=list||file||nodes.find(n=>/text="(?:Files|文件|Downloads|下载)"/.test(n))||(!openedRoots&&nodes.find(n=>/content-desc="(?:Show roots|显示根目录|Open navigation drawer)"/.test(n)));
+  if(target){const m=target.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);assert.ok(m);await adb('shell','input','tap',String(Math.round((+m[1]+ +m[3])/2)),String(Math.round((+m[2]+ +m[4])/2)));if(file&&!list){await pause(1000);return;}openedRoots=true;}
   await pause(600);
  }
  throw Error('Native file picker fixture not found');
@@ -29,7 +30,7 @@ try{
  await tap('#looks-add-skin');await wait(()=>document.querySelector('#looks-name-dialog').open);await evaluate(()=>{const i=document.querySelector('#looks-name-input');i.value='原生测试睡衣';i.dispatchEvent(new Event('input',{bubbles:true}));});await tap('#looks-name-dialog button[type=submit]');await wait(()=>document.querySelector('#world-looks-dialog').dataset.view==='editor');
  await tap('#looks-tab-action');assert.equal(await evaluate(()=>document.querySelectorAll('[data-action]').length),6);assert.equal(await evaluate(()=>document.querySelector('#looks-portrait-panel').hidden&&document.querySelector('#looks-sprite-panel').hidden),true);await shot('actions');
  await tap('[data-action=plant]');await wait(()=>document.querySelector('#looks-action-title').textContent==='浇水');assert.equal(await evaluate(()=>document.querySelector('#looks-action-preview-play').textContent),'播放动作');
- let picker=false;if(process.argv.includes('--picker')){await pickPng();await wait(()=>document.querySelector('#looks-action-sprite-name').textContent.includes('已上传'));picker=true;}
+  let picker=false;if(process.argv.includes('--picker')){await pickPng();try{await wait(()=>document.querySelector('#looks-action-sprite-name').textContent.includes('已上传'));}catch(e){await shot('picker-failure');throw Error(e.message+'; '+await evaluate(()=>document.querySelector('#looks-status').textContent));}picker=true;}
  await shot('action-editor');await tap('#looks-save');await wait(()=>document.querySelector('#looks-status').textContent==='人物形象已保存');
  if(picker)assert.ok(await evaluate(async id=>JSON.parse((await Capacitor.Plugins.TLocal.load()).data).character_looks[id].skins.find(s=>s.name==='原生测试睡衣').actions.plant.image,before.characters[0].id));
  await evaluate(()=>document.querySelector('.looks-scroll').scrollTop=9999);assert.equal(await evaluate(()=>['looks-close','looks-save'].every(id=>{const r=document.getElementById(id).getBoundingClientRect();return r.y>=0&&r.bottom<innerHeight;})),true);

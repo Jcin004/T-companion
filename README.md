@@ -1,6 +1,6 @@
 # T- · 联系人式陪伴聊天
 
-当前 Android 试用版为 0.14.2，整合直接更新清单、断点续传/暂停与跨页面进度（见 [更新渠道](docs/UPDATE_CHANNEL.md)），新增世界全局对话搜索与记忆联动删除、人物皮肤库、表情立绘与可配置方向/站立/交互图集；AI 只选择已允许的资源。使用与边界见 [世界记录与人物呈现](docs/WORLD_EXPRESSION_HISTORY.md)。见 [世界画面与对话](docs/WORLD_VISUAL_DIALOGUE.md)、[摇杆操作](docs/WORLD_JOYSTICK.md)、[居民生活](docs/RESIDENT_LIFE.md) 和 [内置记忆数据流与验证](docs/ANDROID_EMBEDDED_MEMORY.md)。桌面保留聊天、人设名册、设置、外观、运行日志、记忆和自我入口。Android 默认本机独立运行，不依赖 Windows 或 T- 应用服务器；共同后端是另一种可选数据源，没有自动同步。
+当前 Android 试用版为 0.14.2，人物形象采用人物列表、皮肤卡片与三个独立编辑分页（见 [人物衣橱](docs/CHARACTER_WARDROBE_UI.md)），整合直接更新清单、断点续传/暂停与跨页面进度（见 [更新渠道](docs/UPDATE_CHANNEL.md)），新增世界全局对话搜索与记忆联动删除、人物皮肤库、表情立绘与可配置方向/站立/交互图集；AI 只选择已允许的资源。使用与边界见 [世界记录与人物呈现](docs/WORLD_EXPRESSION_HISTORY.md)。见 [世界画面与对话](docs/WORLD_VISUAL_DIALOGUE.md)、[摇杆操作](docs/WORLD_JOYSTICK.md)、[居民生活](docs/RESIDENT_LIFE.md) 和 [内置记忆数据流与验证](docs/ANDROID_EMBEDDED_MEMORY.md)。桌面保留聊天、人设名册、设置、外观、运行日志、记忆和自我入口。Android 默认本机独立运行，不依赖 Windows 或 T- 应用服务器；共同后端是另一种可选数据源，没有自动同步。
 
 开始开发先读 [当前架构与数据流](docs/CURRENT_ARCHITECTURE.md)、[术语](GLOSSARY.md)、[维护规范](CONTRIBUTING.md) 和 [AGENTS.md](AGENTS.md)。公开前结论与候选方案见 [公开审计](docs/PUBLICATION_AUDIT.md)。
 

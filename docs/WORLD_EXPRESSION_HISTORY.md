@@ -1,5 +1,7 @@
 # 世界对话记录、皮肤、表情与动作 · 0.14.0
 
+0.14.2 的编辑入口已改为人物列表 → 皮肤卡片 → 三个独立分页，具体操作以 [人物衣橱](CHARACTER_WARDROBE_UI.md) 为准；本页保留 0.14.0 的数据、来源、模型呈现协议和历史验收。
+
 基于 `fix/world-character-motion@d76cfe9`，在独立工作区、分支 `feat/world-expression-history` 开发。原工作区的 Android 更新恢复分支及未提交修改保留。
 
 ## 使用
