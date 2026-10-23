@@ -32,4 +32,21 @@
 - `CharacterArchiveInstrumentation.java`：原生 SQLite 图片去重、归档独有图片保留、投影读写及无引用回收。
 - `tests/character-archive-android.mjs`：专用 Android 模拟器的原生触屏、系统选图、SQLite 与重启；结合原升级脚本验证 code24→25 数据保留。
 
-验证结果和公开试用安装包在发布验收后记录。
+## 本机与设备验收（2026-10-24）
+
+132 项 Node、103 项 Python（警告按错误）通过；档案、衣橱、世界表情、单格小人、聊天设置浏览器流程通过。密钥与源码快照隐私扫描通过，493 个文件 blob 未发现密钥或隐私阻断。所有数据、图片与模型响应为合成材料。
+
+专用 Android 11 / WebView 83 模拟器验证系统 PNG 选择返回、档案上传/命名、自定义表情、固定关闭、SQLite 重启一致，以及模拟角色回复后世界实际使用该图片。`artifacts/archive-native-picture.png`、`archive-native-expressions.png`、`archive-native-world.png` 为原生 screencap，本机留存；模拟 PNG 是纯色占位，不是人物美术。原生 SQLite instrumentation 验证内容去重、档案独有图片保留、兼容投影和无引用回收。
+
+实测修复旧 WebView 的模块赋值语法与 dialog 的 inset 布局兼容；改用普通赋值与显式四边定位。系统选图使用真实 DocumentsUI，以原生键盘聚焦文件并确认，未注入返回 URI；尚未完成纯触屏文件列表选择或真机验收。Android 既有图片接口暂用「图片.png」等通用名，档案记录的是该接口提供的文件名，可在详情重命名。
+
+原签名 code24→25 覆盖安装后，合成聊天、名册、记忆、世界、皮肤、设置及加密凭据指纹全部保留；没有读取实体手机数据。构建采用本仓库应用目标 `:app:assembleDebug` / `:app:assembleDebugAndroidTest`，未改动 Capacitor 插件自身的测试依赖。
+
+
+## 已发布交付
+
+[0.17.0 公开试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.17.0) 已发布原包名、原签名 code25 APK、匹配源码和许可等七项附件，逐一验证上传摘要。构建提交为 `6a45b9e93e3d8df9cd675028d0c5637b71c1a64c`；[构建提交 CI](https://github.com/Jcin004/T-companion/actions/runs/39984990561) 的测试、密钥扫描、Android 构建全部通过。后续验收文档提交不替换该构建或源码。
+
+APK 为 80,103,972 字节，SHA-256 `8286036a00f19494d2c183838c34116248edfed2f197220e7557ce50b090a819`；完整源码归档 SHA-256 `14bd723abb8d779ada654174e029ea286cf48809f34cc3db696c1d1bc769dc1b`。匿名 APK HEAD 返回 200 且大小相符，main/t-update.json 已同步。
+
+专用模拟器上，旧 code24 的默认原生检查在本次样本中用时 1,708 ms，发现 code25；覆盖安装后，新版默认检查用时 1,208 ms、一次请求，报告已是最新。完整合成业务数据和加密凭据指纹保持一致。联网测试临时使用宿主机代理，测试后恢复原配置；此结果不代表真机无 VPN 可达性。新版完整下载与系统安装器点击流程本轮未重测，覆盖验证使用 adb install -r。

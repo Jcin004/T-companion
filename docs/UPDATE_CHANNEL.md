@@ -104,3 +104,8 @@ python scripts/publish-trial.py --apk artifacts/T-companion-0.13.2-trial.apk --s
 ## 0.16.0 单格小人图片版（2026-10-23）
 
 [公开试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.16.0) 发布 code24 原签名 APK、提交 `14e87b92e6b1f75b0c6104320f28ddeb93ad6462` 的匹配源码及许可等七项附件。默认清单同步、匿名 APK HEAD 200，旧 code23 原生检查发现新版，新版报告已是最新。覆盖升级保留完整合成业务数据及加密凭据指纹；系统 PNG 选择返回／保存／重启及 JSON 备份读取通过，模拟器选文件使用原生键盘确认。详细范围、校验和和设备限制见 [单格图片验收](SINGLE_FRAME_SPRITES.md)。
+
+
+## 0.17.0 人物图片档案版（2026-10-24）
+
+[公开试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.17.0) 已发布 code25 的原签名 APK、提交 `6a45b9e93e3d8df9cd675028d0c5637b71c1a64c` 的匹配源码及许可等七项附件；默认清单同步，匿名 APK HEAD 200 且大小相符。旧 code24 默认原生检查发现新版，新版报告已是最新；覆盖安装保留完整合成业务数据及加密凭据指纹。档案与世界共用表情、旧 WebView 修复、原生系统选图及验证限制见 [人物图片档案](CHARACTER_ARCHIVE.md)。
