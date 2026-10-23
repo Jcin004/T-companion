@@ -1,5 +1,7 @@
 # 已有行为与回归检查
 
+0.14.1：整合世界呈现与已发布更新修复，使用 versionCode 21，避免 0.13.2 与本地 0.14.0 的编号冲突。原包名、签名、形象、聊天、世界和记忆格式保留；直接清单、续传、暂停、页面进度和匹配源码发布共用原接口。升级验证见 `tests/trial-upgrade-android.mjs`，发布记录见 [更新渠道](UPDATE_CHANNEL.md)。
+
 0.14.0：世界记录覆盖全部场景人物及居民交流，可筛选、搜索、重播语音、删除整轮或居民发言并清理对应来源记忆。人物独立皮肤库、表情分类与方向/站立/动作图配置，AI 仅选择允许的现有资源；前后台规则一致。旧记录、旧图集和无关记忆保留。使用、接口与验证范围见 [世界记录与人物呈现](WORLD_EXPRESSION_HISTORY.md)。
 
 Android 内置 OB：自动为旧卡片建索引；同一事务处理人工/模型写入，保留原文、证据、版本、总结、核心标签和关联。编辑、停用、删除、备份恢复及失败回滚影响后续召回。Android 不调用旧外接网关；网页保留原行为。验证：`tests/embedded-memory.test.mjs`、`tests/test_embedded_ob.py`、`tests/embedded-ob-android.mjs`、`EmbeddedMemoryInstrumentation.java`。迁移细节和平台限制见 `ANDROID_EMBEDDED_MEMORY.md`。
@@ -66,3 +68,5 @@ AI 关联候选不参与召回；显式选材、两端原话、确认/拒绝、�
 ## 0.13.1 人物图片与站立步态
 
 同一人物下分别上传立绘与像素小人，固定人物选择/关闭/保存，防止异步上传串入另一人物。预览有站立/行走开关和四帧顺序；小人停止用第一帧，步态按行进距离连续播放，修复保存后先跳到终点再倒回的问题。原图集、摇杆、碰撞、对话、事件与存档保持可用。回归入口：`world-motion-browser.mjs`、`world-motion-android.mjs` 及原视觉/摇杆脚本；旧 WebView 显式固定弹窗位置并查看原生截图。
+
+0.13.2 更新器保留原签名/包名/版本/哈希校验、权限引导和手动下载；清单优先直接读取，下载支持部分文件恢复和暂停，切换设置页不重复发起任务。回归见 `tests/app-update-browser.mjs`、`UpdateTransferInstrumentation.java` 和 `UpdateChannelInstrumentation.java`；发布状态与复用见 [更新渠道](UPDATE_CHANNEL.md)。

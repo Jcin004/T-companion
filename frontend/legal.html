@@ -183,6 +183,10 @@ Canvas rendering, room geometry, command/observation persistence and UI are orig
 - `frontend/assets/world/`: four original production PNGs generated for this project with the built-in image_gen tool from text briefs, after approval of the visual direction. File hashes, dimensions, briefs and distribution license are recorded in `PROVENANCE.json`. No stock assets, upstream game artwork, private screenshot, real chat or user identity is bundled. These replaceable example appearances do not define roster Canon/Persona.
 - Existing Alicization Town imports above remain unchanged. `server/web/js/game.js` at the same pinned `1a33ba65d0af2134b369b1eb4eb68f45d2c817c4` was additionally reviewed for step animation (533–545) and facing/frame selection (875–883). The local renderer uses its own elapsed-time path animation and a different, generated atlas layout; the whole upstream page and art are not copied. No new third-party engine or runtime dependency.
 
+## Android updater comparison (2026-10-23)
+
+Reviewed qegj567-cloud/SullyOS `utils/androidAppUpdate.ts`, last modifying commit `4ed3c293af89acf89762a892e72e811017c1b9dc`, blob `15e88dabcb2e5bd36f3d56460eb1aba978b14ff9`, author qegj567-cloud / project copyright NMJ. The file uses Capacitor core and Filesystem; its repository license remains SullyOS Source-Available License 1.0. The previously recorded personal noncommercial authorization does not grant public redistribution. T- reuses its existing Java transport/verifier/installer and independently implements shared UI state and Range resume. No SullyOS source file, dependency, private configuration or hosted service is imported. Direct-manifest and page-independent task behavior are design references; see `docs/UPDATE_CHANNEL.md`.
+
 
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007

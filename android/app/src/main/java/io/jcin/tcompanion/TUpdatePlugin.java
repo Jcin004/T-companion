@@ -33,6 +33,9 @@ public class TUpdatePlugin extends Plugin {
     private static final long MAX_APK = 200L * 1024 * 1024;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final java.util.concurrent.atomic.AtomicBoolean working = new java.util.concurrent.atomic.AtomicBoolean();
+    private volatile HttpURLConnection transfer;
+    private volatile boolean paused;
+    private long metadataDeadline;
 
     private File directory() { return new File(getContext().getCacheDir(), "updates"); }
     private File apk() { return new File(directory(), "update.apk"); }
@@ -49,16 +52,18 @@ public class TUpdatePlugin extends Plugin {
     private void run(PluginCall call, Callable<JSObject> operation) {
         if (!working.compareAndSet(false, true)) { call.reject("更新操作正在进行，请稍候"); return; }
         worker.execute(() -> {
-            try { call.resolve(operation.call()); }
+            JSObject result = null, detail = null; String failure = null;
+            try { result = operation.call(); }
             catch (Exception e) {
                 String message = e.getMessage() == null ? "更新失败，请重试" : e.getMessage();
                 if (e instanceof UnknownHostException) message = "无法解析更新服务器地址；可检查 VPN 是否包含本应用，或设置可达的 HTTPS 更新清单。";
                 else if (e instanceof SocketTimeoutException) message = "连接更新服务器超时，请稍后重试；本次未完成更新检查。";
                 else if (e instanceof javax.net.ssl.SSLException) message = "更新服务器的安全连接验证失败，请检查网络和系统时间。";
-                JSObject detail = new JSObject(); detail.put("stage", stage); detail.put("host", requestHost); detail.put("attempts", attempts);
-                call.reject(stage + "失败：" + message, "UPDATE_FAILED", detail);
+                detail = new JSObject(); detail.put("stage", stage); detail.put("host", requestHost); detail.put("attempts", attempts);
+                failure = stage + "失败：" + message;
             }
             finally { working.set(false); }
+            if (failure == null) call.resolve(result); else call.reject(failure, "UPDATE_FAILED", detail);
         });
     }
     @PluginMethod public void info(PluginCall call) {
@@ -70,11 +75,21 @@ public class TUpdatePlugin extends Plugin {
             result.put("channelPublished", CHANNEL_PUBLISHED);
             result.put("configurableChannel", true);
             result.put("manifestSources", customSources());
-            result.put("defaultSource", FEED);
+            result.put("defaultSource", STATIC_MANIFEST);
+            result.put("releaseFallback", FEED);
             result.put("staticFallback", STATIC_MANIFEST);
             if (receipt().isFile() && apk().isFile()) {
                 try { JSONObject m = new JSONObject(readFile(receipt())); verify(m); result.put("ready", m); }
                 catch (Exception ignored) { receipt().delete(); apk().delete(); }
+            }
+            File partial = new File(directory(), "update.part"), metadata = new File(directory(), "partial.json");
+            if (!result.has("ready") && partial.isFile() && metadata.isFile()) {
+                try {
+                    JSONObject m = new JSONObject(readFile(metadata)); validate(m);
+                    if (m.getLong("versionCode") > code(p) && partial.length() <= m.getLong("sizeBytes")) {
+                        result.put("resumable", m); result.put("downloadedBytes", partial.length());
+                    }
+                } catch (Exception ignored) { metadata.delete(); partial.delete(); }
             }
             return result;
         });
@@ -86,27 +101,47 @@ public class TUpdatePlugin extends Plugin {
         return url;
     }
     protected HttpURLConnection open(String value) throws Exception {
+        return connect(value, -1, false);
+    }
+    protected HttpURLConnection openRange(String value, long offset) throws Exception {
+        return offset == 0 ? open(value) : connect(value, offset, false);
+    }
+    private int remainingMetadataTime() throws SocketTimeoutException {
+        if (metadataDeadline == 0) return Integer.MAX_VALUE;
+        long remaining = metadataDeadline - android.os.SystemClock.elapsedRealtime();
+        if (remaining <= 0) throw new SocketTimeoutException("更新检查超过等待时间，请重试或更换更新渠道");
+        return (int)Math.min(Integer.MAX_VALUE, remaining);
+    }
+    private HttpURLConnection connect(String value, long offset, boolean metadata) throws Exception {
         URL url = https(value);
         requestHost = url.getHost();
         for (int i = 0; i < 6; i++) {
+            int remaining = metadata ? remainingMetadataTime() : Integer.MAX_VALUE;
             HttpURLConnection c = (HttpURLConnection) url.openConnection();
-            c.setConnectTimeout(15000); c.setReadTimeout(30000); c.setInstanceFollowRedirects(false);
+            c.setConnectTimeout(Math.min(remaining, metadata ? 5000 : 15000)); c.setReadTimeout(Math.min(remaining, metadata ? 7000 : 30000)); c.setInstanceFollowRedirects(false);
             c.setRequestProperty("User-Agent", "TCompanion-Updater"); c.setRequestProperty("Cache-Control", "no-cache");
-            int status = c.getResponseCode();
+            c.setRequestProperty("Accept-Encoding", "identity");
+            if (offset > 0) c.setRequestProperty("Range", "bytes=" + offset + "-");
+            int status;
+            try { status = c.getResponseCode(); } catch (Exception e) { c.disconnect(); throw e; }
             if (status == 301 || status == 302 || status == 303 || status == 307 || status == 308) {
                 String next = c.getHeaderField("Location"); c.disconnect();
                 url = https(new URL(url, next).toString()); requestHost = url.getHost(); continue;
             }
-            if (status != 200) { c.disconnect(); throw new IOException(status == 403 || status == 429 ? "更新服务限流，请稍后再试" : status == 404 && value.equals(FEED) ? "更新渠道尚未公开发布，请使用提供的安装包覆盖更新" : "更新服务返回 HTTP " + status); }
+            if (status != 200 && !(offset > 0 && status == 206)) { c.disconnect(); throw new IOException(status == 403 || status == 429 ? "更新服务限流，请稍后再试" : status == 404 && value.equals(FEED) ? "更新渠道尚未公开发布，请使用提供的安装包覆盖更新" : "更新服务返回 HTTP " + status); }
             return c;
         }
         throw new IOException("更新下载重定向次数过多");
     }
     protected String getJson(String address) throws Exception {
-        HttpURLConnection c = open(address);
+        HttpURLConnection c = connect(address, -1, true);
         try (InputStream in = c.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[8192]; int n;
-            while ((n = in.read(buffer)) != -1) { if (out.size() + n > 2 * 1024 * 1024) throw new IOException("更新信息过大"); out.write(buffer, 0, n); }
+            while (true) {
+                c.setReadTimeout(Math.min(7000, remainingMetadataTime()));
+                n = in.read(buffer); if (n == -1) break;
+                if (out.size() + n > 2 * 1024 * 1024) throw new IOException("更新信息过大"); out.write(buffer, 0, n);
+            }
             return out.toString("UTF-8");
         } finally { c.disconnect(); }
     }
@@ -176,8 +211,10 @@ public class TUpdatePlugin extends Plugin {
     // Explicit channels are tried in order; a valid first response is authoritative.
     JSONObject discover(JSONArray custom) throws Exception {
         attempts = new JSONArray(); stage = "检查更新清单";
+        metadataDeadline = android.os.SystemClock.elapsedRealtime() + 20000;
+        try {
         JSONArray sources = validateSources(custom);
-        if (sources.length() == 0) sources = new JSONArray().put(FEED).put(STATIC_MANIFEST);
+        if (sources.length() == 0) sources = new JSONArray().put(STATIC_MANIFEST).put(FEED);
         Exception last = null;
         for (int i = 0; i < sources.length(); i++) {
             String source = sources.getString(i); requestHost = https(source).getHost();
@@ -188,6 +225,7 @@ public class TUpdatePlugin extends Plugin {
             } catch (Exception e) { last = e; attempt(source, e); }
         }
         throw last == null ? new IOException("没有可用的更新渠道") : last;
+        } finally { metadataDeadline = 0; }
     }
     @PluginMethod public void check(PluginCall call) {
         run(call, () -> {
@@ -217,29 +255,77 @@ public class TUpdatePlugin extends Plugin {
             throw new IOException("安装包签名与当前应用不同，已拒绝安装");
     }
     @PluginMethod public void download(PluginCall call) {
+        if (!working.get()) paused = false;
         run(call, () -> downloadManifest(call.getObject("manifest")));
+    }
+    @PluginMethod public void pause(PluginCall call) {
+        paused = true;
+        HttpURLConnection connection = transfer;
+        if (connection != null) connection.disconnect();
+        call.resolve();
+    }
+    private void progress(long bytes, long total, String phase) {
+        JSObject data = new JSObject(); data.put("bytes", bytes); data.put("total", total); data.put("phase", phase);
+        notifyListeners("progress", data);
+    }
+    // A partial file is bound to its complete manifest, never merely to its URL.
+    private boolean sameDownload(JSONObject a, JSONObject b) throws Exception {
+        for (String key : new String[]{"packageName", "versionCode", "versionName", "apkUrl", "sha256", "sizeBytes"})
+            if (!a.get(key).toString().equals(b.get(key).toString())) return false;
+        return true;
+    }
+    void transferManifest(JSONObject m) throws Exception {
+        validate(m);
+        if (!directory().isDirectory() && !directory().mkdirs()) throw new IOException("无法创建下载目录");
+        File partial = new File(directory(), "update.part"), metadata = new File(directory(), "partial.json");
+        boolean matches = false;
+        try { matches = sameDownload(m, new JSONObject(readFile(metadata))); } catch (Exception ignored) { }
+        if (!matches || partial.length() > m.getLong("sizeBytes")) {
+            if (partial.exists() && !partial.delete()) throw new IOException("无法清理旧下载");
+        }
+        try (OutputStream out = new FileOutputStream(metadata)) { out.write(m.toString().getBytes("UTF-8")); }
+        long expected = m.getLong("sizeBytes"), offset = partial.length();
+        progress(offset, expected, "downloading");
+        if (offset == expected) { progress(offset, expected, "verifying"); return; }
+        if (paused) throw new IOException("下载已暂停，点击继续下载");
+        HttpURLConnection c = openRange(m.getString("apkUrl"), offset); transfer = c;
+        try {
+            if (paused) throw new IOException("下载已暂停，点击继续下载");
+            boolean append = offset > 0 && c.getResponseCode() == 206;
+            if (append && !("bytes " + offset + "-" + (expected - 1) + "/" + expected).equals(c.getHeaderField("Content-Range"))) {
+                partial.delete(); metadata.delete(); throw new IOException("续传范围与清单不一致，请重新下载");
+            }
+            if (!append) offset = 0; // A server may ignore Range and return the entire APK.
+            try (InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(partial, append)) {
+                byte[] b = new byte[65536]; long total = offset, last = 0; int n;
+                while ((n = in.read(b)) != -1) {
+                    if (paused) throw new IOException("下载已暂停，点击继续下载");
+                    total += n;
+                    if (total > expected) { partial.delete(); metadata.delete(); throw new IOException("下载大小超出清单"); }
+                    out.write(b, 0, n);
+                    long now = android.os.SystemClock.elapsedRealtime();
+                    if (now - last > 250) { progress(total, expected, "downloading"); last = now; }
+                }
+                if (total != expected) throw new IOException("下载中断，已保留进度，点击继续下载");
+                progress(total, expected, "verifying");
+            }
+        } catch (Exception e) {
+            if (paused) throw new IOException("下载已暂停，点击继续下载");
+            throw e;
+        } finally { transfer = null; c.disconnect(); }
     }
     JSObject downloadManifest(JSONObject m) throws Exception {
             stage = "下载并校验安装包"; attempts = new JSONArray();
             if (m == null) throw new IOException("缺少更新清单"); validate(m);
             if (m.getLong("versionCode") <= code(installed())) throw new IOException("无需安装此版本");
-            if (!directory().isDirectory() && !directory().mkdirs()) throw new IOException("无法创建下载目录");
             receipt().delete(); apk().delete(); File partial = new File(directory(), "update.part");
-            HttpURLConnection c = open(m.getString("apkUrl"));
-            try (InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(partial)) {
-                byte[] b = new byte[65536]; long total = 0, last = 0; int n;
-                while ((n = in.read(b)) != -1) {
-                    total += n; if (total > m.getLong("sizeBytes")) throw new IOException("下载大小超出清单"); out.write(b, 0, n);
-                    long now = System.currentTimeMillis();
-                    if (now - last > 250) { JSObject progress = new JSObject(); progress.put("bytes", total); progress.put("total", m.getLong("sizeBytes")); notifyListeners("progress", progress); last = now; }
-                }
-            } catch (Exception e) { partial.delete(); throw e; }
-            finally { c.disconnect(); }
+            transferManifest(m);
             if (!partial.renameTo(apk())) { partial.delete(); throw new IOException("保存安装包失败"); }
             try {
                 verify(m);
                 try (OutputStream out = new FileOutputStream(receipt())) { out.write(m.toString().getBytes("UTF-8")); }
             } catch (Exception e) { receipt().delete(); apk().delete(); throw e; }
+            new File(directory(), "partial.json").delete();
             return new JSObject();
     }
     @PluginMethod public void install(PluginCall call) {
