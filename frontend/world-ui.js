@@ -37,7 +37,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
   const history=mountWorldHistory({api,speak,stopSpeech,toast,report,afterDelete:async()=>{await refresh({light:true});await dialogue.reload();}});
   const dialogue=mountSceneDialogue({api,localReady,getWorld:()=>world,refresh,animate:animateEvents,speak,stopSpeech,toast,report,history,editLook:id=>looks.open(id)});
   const joystick=mountWorldJoystick({element:el('world-joystick'),canStart:()=>!busy&&!dialogue.isBusy()&&!pending&&!el('world').hidden&&!document.querySelector('dialog[open]')&&!!world?.state.residents.length,
-    step:async d=>{if(busy||el('world').hidden)return;const actor=el('world-actor').value,p=world.state.positions[actor],target={x:p.x+d.x,y:p.y+d.y};if(target.x<1||target.x>10||target.y<3||target.y>11||collision(world.state.positions,actor)[target.y*12+target.x])return;await command({request_id:uid(),type:'move',actor_id:actor,target});},
+    step:async d=>{if(busy||el('world').hidden)return;const actor=el('world-actor').value,p=world.state.positions[actor],target={x:p.x+d.x,y:p.y+d.y};if(target.x<1||target.x>10||target.y<3||target.y>11||collision(world.state.positions,actor)[target.y*12+target.x])return;await command({request_id:uid(),type:'move',actor_id:actor,target},{preview:true});},
     onRest:()=>{walkDistances.clear();if(world&&!el('world').hidden){drawWorld(el('world-canvas'),world);renderEvents();}},onError:e=>{report(e);toast(e.message);}});
   const menu=el('world-menu').querySelector('.world-menu-grid');
   for(const [label,icon,fn] of [
@@ -46,8 +46,8 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
   ]){const b=button('',async()=>{el('world-menu').close();await fn();}),i=node('span',icon);i.setAttribute('aria-hidden','true');i.className='world-menu-icon';i.textContent='';const n=({'人物':0,'居民生活':1,'世界记录':2,'对话记录':2,'消息':3,'记忆':4,'外观':5,'模型连接':6,'设置':7,'返回桌面':8})[label];i.style.backgroundPosition=(n%3*50)+'% '+(Math.floor(n/3)*50)+'%';b.append(i,node('span',label));menu.append(b);}
   el('world-menu-open').onclick=safe(async()=>{joystick.stop();dialogue.close();el('world-menu').showModal();});
   function stopAnimation(){cancelAnimationFrame(animation);resolveAnimation?.();resolveAnimation=null;}
-  async function refresh({light=false,paint=true}={}){
-    stopAnimation();
+  async function refresh({light=false,paint=true,keepAnimation=false}={}){
+    if(!keepAnimation)stopAnimation();
     if(!isLocal()){el('world-notice').textContent='世界使用本机数据，请在设置切换到本机模式。';el('world-notice').hidden=false;el('world-play').hidden=true;return;}
     world=await api('/world');await loadWorldArt(world);document.body.classList.add('world-active');
     const ready=world.state.residents.length===2;el('world-play').hidden=!ready;el('world-notice').hidden=ready;el('world-setup').replaceChildren();
@@ -97,16 +97,26 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
       if(c.type==='move'){
         const p=positions[actor],path=findPath(collision(positions,actor),12,13,p.x,p.y,c.target.x,c.target.y).path;
         if(path.length>1)await animatePath(actor,path,positions);positions[actor]=c.target;
-      }else if(c.type==='interact'){
-        const started=performance.now();await new Promise(resolve=>{resolveAnimation=resolve;const frame=now=>{if(el('world').hidden||now-started>420){resolveAnimation=null;drawWorld(el('world-canvas'),world);resolve();return;}drawWorld(el('world-canvas'),world,world.state.positions,{[actor]:{using:true,action:c.target_id,progress:Math.max(0,(now-started)/420)}});animation=requestAnimationFrame(frame);};animation=requestAnimationFrame(frame);});
+      }else if(c.type==='interact'||c.type==='gesture'){
+        const started=performance.now(),duration=c.type==='gesture'?800:420;await new Promise(resolve=>{resolveAnimation=resolve;const frame=now=>{if(el('world').hidden||now-started>duration){resolveAnimation=null;drawWorld(el('world-canvas'),world);resolve();return;}drawWorld(el('world-canvas'),world,world.state.positions,{[actor]:{using:c.type==='interact',action:c.target_id,gesture:c.gesture_id,progress:Math.max(0,(now-started)/duration)}});animation=requestAnimationFrame(frame);};animation=requestAnimationFrame(frame);});
       }
       if(el('world').hidden)break;
     }
   }
-  async function command(value){
+  async function command(value,{preview=false}={}){
     if(busy||dialogue.isBusy())throw Error('请等待当前操作完成');busy=true;pending=value;el('world-retry').hidden=true;const previous=world;
-    try{await api('/world/commands','POST',value);pending=null;await refresh({light:true,paint:false});await animateEvents(previous,world);el('world-action-status').textContent=value.type==='interact'?world.state.events[world.state.events.length-1].content:'';}
-    catch(e){el('world-retry').hidden=false;throw e;}finally{busy=false;renderPlaces();}
+    try{
+      // A validated adjacent tile may be previewed while its single transaction
+      // saves. No next command is accepted until both save and animation finish.
+      // Slow saves stop at this endpoint; failed saves restore saved positions.
+      const positions=previous.state.positions,actor=value.actor_id||'user';
+      const movement=preview?animatePath(actor,[positions[actor],value.target],positions):null;
+      const saved=(async()=>{await api('/world/commands','POST',value);await refresh({light:true,paint:false,keepAnimation:preview});})();
+      await Promise.all([saved,movement]);pending=null;
+      if(!preview)await animateEvents(previous,world);
+      el('world-action-status').textContent=value.type==='interact'?world.state.events[world.state.events.length-1].content:'';
+    }
+    catch(e){stopAnimation();drawWorld(el('world-canvas'),world);el('world-retry').hidden=false;throw e;}finally{busy=false;renderPlaces();}
   }
   async function approach(f){
     const actor=el('world-actor').value,{target}=sceneActionSteps({world:world.state},actor,{target_id:f.id});

@@ -24,6 +24,7 @@ final class TLookAssets {
             if(portraits!=null)for(int i=0;i<portraits.length();i++){JSONObject portrait=portraits.getJSONObject(i);portrait.put("image",visitor.image(portrait.getString("image")));}
             JSONObject sprite=look.optJSONObject("sprite");if(sprite!=null)sprite.put("image",visitor.image(sprite.getString("image")));
             JSONObject actions=look.optJSONObject("actions");if(actions!=null)for(Iterator<String> keys=actions.keys();keys.hasNext();){JSONObject animation=actions.getJSONObject(keys.next());animation.put("image",visitor.image(animation.getString("image")));}
+            JSONObject gestures=look.optJSONObject("gestures");if(gestures!=null)for(Iterator<String> keys=gestures.keys();keys.hasNext();){JSONObject animation=gestures.getJSONObject(keys.next()).optJSONObject("atlas");if(animation!=null)animation.put("image",visitor.image(animation.getString("image")));}
     }
     static String encode(SQLiteDatabase db,String value) throws Exception {
         JSONObject document=new JSONObject(value);Set<String> keep=new HashSet<>();

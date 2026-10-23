@@ -10,6 +10,6 @@ const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Num
  sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['人物形象改为人物列表、皮肤衣橱与独立编辑页面','表情立绘、站立行走、交互动作各有独立分页，交互首屏显示动作卡片','皮肤使用与编辑保存分开，新建名称独立输入，图集参数折叠调整','保留旧皮肤和图片，保存失败可重试；切页、返回和未保存提示适配手机','原包名和原签名覆盖升级，保留聊天、记忆、世界、皮肤与模型配置']};
+ releaseNotes:['行走上传改为四方向切帧表，默认支持三列四行，中间站立；保留旧图集','移动动画与相邻格保存并行，减少持续移动时每格之间的停顿；失败恢复已保存位置','表情立绘可自行添加命名和上传；小人表情姿态与物品交互分开管理','小人动作支持自行添加上传，完成场景回复后仅执行已配置的本人姿态','沿用原包名与签名，保留聊天、记忆、世界、皮肤和模型配置']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');
