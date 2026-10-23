@@ -16,6 +16,7 @@ import {validateLife} from './resident-life-core.js';
 import {validateWorld,sceneSnapshot,completeWorldDialogue} from './world-core.js';
 import {CharacterLooksModule,validateLooks} from './character-looks.js';
 import {WorldHistoryModule} from './world-history.js';
+import {CharacterArchiveModule,validateArchive} from './character-archive.js';
 // Preserve the existing import path for callers while the implementation moves.
 export {buildContext} from './local-queries.js';
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -42,7 +43,7 @@ export function validateBackup(raw){
   for(const g of d.api_groups)if(typeof g.id!=='string'||!g.name||g.name.length>80)throw Error('分组格式错误');
   d.api_profiles=d.api_profiles.map(p=>{if(typeof p.id!=='string'||!/^[\w-]{1,100}$/.test(p.id))throw Error('连接标识错误');return {id:p.id,...validateConnection(p)};});
   validateHistoryLimit(d.settings.history_limit);for(const s of d.sessions){s.chat_style=normalizeChatStyle(s.chat_style);if(s.history_limit!=null)validateHistoryLimit(s.history_limit);}
-  validateWorld(d);validateLooks(d);validateProactiveMessages(d);if(d.world.life)validateLife(d);validateMemory(d);
+  validateWorld(d);validateLooks(d);validateArchive(d);validateProactiveMessages(d);if(d.world.life)validateLife(d);validateMemory(d);
   d.memory.external.enabled=false; // Restoring a backup never opts into remote disclosure.
   return d;
 }
@@ -119,6 +120,7 @@ export class LocalService {
       return result;
     }
     if(route==='character-looks')return new CharacterLooksModule(this).api(pathname,method,body);
+    if(route==='character-archive')return new CharacterArchiveModule(this).api(pathname,method,body);
     if(route==='world-history')return new WorldHistoryModule(this).api(path,method);
     if(route==='world')return new WorldModule(this).api(path,method,body);
     if(pathname==='/memory-engine'&&method==='GET')return this.embeddedMemory?.status()||{provider:'browser-local',installed:false};

@@ -2,19 +2,11 @@
 import {portraitImage,previewSprite} from './world-art.js';
 import {skinChoices,expressionChoices,ACTIONS} from './character-looks.js';
 import {mountAtlasEditor} from './character-atlas-ui.js';
-import {bindCharacterImageInput} from './character-image-input.js';
+import {bindCharacterImageInput,readCharacterPicture as readImage} from './character-image-input.js';
 const copy=v=>JSON.parse(JSON.stringify(v));
 const fingerprint=v=>JSON.stringify(v,(_,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value);
 const node=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
-async function readImage(file,{sprite=false,frames=4,row_count=4}={}){
-  if(!file||!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>4000000)throw Error('请选择不超过 4 MB 的 PNG、JPEG 或 WebP 图片');
-  const src=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('图片读取失败'));r.readAsDataURL(file);});
-  const image=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(Error('图片无法解码'));i.src=src;});
-  if(image.width*image.height>16000000)throw Error('图片尺寸过大，请缩小到 1600 万像素以内');
-  if(sprite){if(image.width%frames||image.height%row_count)throw Error('图片宽高须能按填写的行列均匀分格');if(image.width>2048||image.height>2048||file.type!=='image/png'||src.length>1200000)throw Error('图集请使用不超过 2048 像素、900 KB 的 PNG');return src;}
-  const c=document.createElement('canvas'),scale=Math.min(1,768/Math.max(image.width,image.height));c.width=Math.round(image.width*scale);c.height=Math.round(image.height*scale);c.getContext('2d').drawImage(image,0,0,c.width,c.height);return c.toDataURL('image/png');
-}
-export function mountCharacterLooksUI({api,refresh,toast,report}){
+export function mountCharacterLooksUI({api,refresh,toast,report,pickArchive}){
   const box=node('dialog');box.id='world-looks-dialog';box.className='world-panel';
   box.innerHTML=`<header class="looks-heading"><div class="looks-title"><button id="looks-back" aria-label="返回上一级">‹ 返回</button><div><h2 id="looks-title">人物形象</h2><small id="looks-subtitle"></small></div><button id="looks-close" aria-label="关闭人物形象">× 关闭</button></div>
     <nav class="looks-tabs" id="looks-tabs" role="tablist" aria-label="皮肤图片" hidden>${[['portrait','表情立绘'],['sprite','站立行走'],['action','交互动作']].map(([id,name])=>`<button id="looks-tab-${id}" role="tab" aria-controls="looks-${id}-panel" aria-selected="false">${name}</button>`).join('')}</nav></header>
@@ -22,7 +14,7 @@ export function mountCharacterLooksUI({api,refresh,toast,report}){
     <section id="looks-wardrobe" hidden><div class="looks-wardrobe-tools"><button id="looks-add-skin">＋ 添加皮肤</button><label class="looks-checkbox" id="looks-ai-setting"><input id="looks-ai-auto" type="checkbox">允许自主换装</label></div><div id="looks-skin-cards"></div></section>
     <section id="looks-editor" hidden>
       <section id="looks-portrait-panel" role="tabpanel"><div class="looks-previews"><img id="looks-portrait" alt="对话立绘预览"></div><div id="looks-expression-cards" aria-label="表情图片"></div>
-      <div class="looks-resource-tools"><button id="looks-add-expression">＋ 添加表情</button><button id="looks-delete-expression" class="looks-text-button" hidden>删除这个表情</button></div><label class="file-button">上传 / 替换选中表情<input id="looks-portrait-file" type="file" accept="image/png,image/jpeg,image/webp"></label><p id="looks-expression-hint"></p>
+      <div class="looks-resource-tools"><button id="looks-add-expression">＋ 添加表情</button><button id="looks-delete-expression" class="looks-text-button" hidden>删除这个表情</button></div><label class="file-button">上传 / 替换选中表情<input id="looks-portrait-file" type="file" accept="image/png,image/jpeg,image/webp"></label><button id="looks-pick-archive">从档案选择图片</button><p id="looks-expression-hint"></p>
       <details class="looks-extra-portraits"><summary>未分类图片与默认显示</summary><label>选择已有图片<select id="looks-portrait-choice"></select></label><label>图片表情<select id="looks-emotion"><option value="">未分类</option></select></label><button id="looks-remove-portrait">删除这张图片</button></details></section>
       <section id="looks-sprite-panel" role="tabpanel" hidden><div id="looks-walk-editor"></div></section>
       <section id="looks-action-panel" role="tabpanel" hidden><div class="looks-action-categories" role="group" aria-label="动作分类"><button id="looks-category-object" aria-pressed="true">物品交互</button><button id="looks-category-gesture" aria-pressed="false">小人表情 / 姿态</button></div><p id="looks-category-hint"></p><button id="looks-add-gesture" hidden>＋ 添加小人动作</button><div id="looks-action-cards"></div><div id="looks-action-detail" hidden><button id="looks-action-back" class="looks-text-button">‹ 所有动作</button><h3 id="looks-action-title"></h3><button id="looks-delete-gesture" class="looks-text-button" hidden>删除这个小人动作</button><div id="looks-action-editor"></div></div></section>
@@ -102,11 +94,23 @@ export function mountCharacterLooksUI({api,refresh,toast,report}){
   el('looks-add-skin').onclick=safe(async()=>{if(!catalog)return;const name=await askName('添加皮肤');if(!name)return;const id='skin_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);await persist(c=>{if(c.skins.length>=8)throw Error('每个人物最多八套额外皮肤');return {skins:[...c.skins,{id,name,skin:c.skin,portraits:[],portrait:0,sprite:null,actions:{},ai_allowed:true}]};});await editSkin(id);});
   el('looks-ai-auto').onchange=safe(async()=>{const value=el('looks-ai-auto').checked;try{await persist(()=>({auto_skin:value}));}catch(e){el('looks-ai-auto').checked=!value;throw e;}});
   bindCharacterImageInput(el('looks-portrait-file'),{error,guard:()=>{const value=draft,selected=emotion;return ()=>current()&&draft===value&&emotion===selected;},onFile:safe(async file=>{if(!file||!current())return;const token=generation,importToken=++portraitImport,value=draft,selectedEmotion=emotion;const image=await readImage(file);if(token!==generation||importToken!==portraitImport||!current())return;const old=value.portraits.findIndex(p=>p.emotion===selectedEmotion),entry={name:file.name.replace(/\.[^.]+$/,'').slice(0,40),image,emotion:selectedEmotion};if(old<0){if(value.portraits.length>=24)throw Error('每套皮肤最多二十四张，请先移除不用的图片');value.portraits.push(entry);value.portrait=value.portraits.length-1;}else{value.portraits[old]=entry;value.portrait=old;}changed();await portrait();})});
+  el('looks-pick-archive').hidden=!pickArchive;
+  el('looks-pick-archive').onclick=safe(async()=>{
+    const value=draft,selectedEmotion=emotion,id=owner;
+    if(dirty())throw Error('请先保存当前修改，再从档案选择图片');
+    const asset=await pickArchive(id);if(!asset||!current()||draft!==value||owner!==id||emotion!==selectedEmotion)return;
+    // Opening the archive may attach stable references to old portraits.
+    catalog=await api('/character-looks/'+id);const latest=skinChoices(catalog).find(s=>s.id===editingSkin);
+    draft=copy(latest);original=copy(latest);
+    const old=draft.portraits.findIndex(p=>p.emotion===selectedEmotion),entry={name:asset.name,image:asset.image,asset_id:asset.id,emotion:selectedEmotion};
+    if(old<0){if(draft.portraits.length>=24)throw Error('每套皮肤最多二十四张图片');draft.portraits.push(entry);draft.portrait=draft.portraits.length-1;}else{draft.portraits[old]=entry;draft.portrait=old;}
+    changed();await portrait();
+  });
   el('looks-portrait-choice').onchange=safe(async()=>{draft.portrait=Number(el('looks-portrait-choice').value);emotion=draft.portraits[draft.portrait]?.emotion||'neutral';changed();await portrait();});
   el('looks-emotion').onchange=safe(async()=>{const value=el('looks-emotion').value,p=draft.portraits[draft.portrait];if(value&&draft.portraits.some((p,i)=>i!==draft.portrait&&p.emotion===value))throw Error('已有该表情，请选择对应表情后替换图片');if(value)p.emotion=value;else delete p.emotion;emotion=value||'neutral';changed();await portrait();});
   el('looks-remove-portrait').onclick=safe(async()=>{draft.portraits.splice(draft.portrait,1);draft.portrait=0;changed();await portrait();});
   el('looks-skin').onchange=safe(async()=>{draft.skin=Number(el('looks-skin').value);changed();if(tab==='portrait')await portrait();else if(tab==='sprite')await walk.refresh();});
-  el('looks-save').onclick=safe(async()=>{if(walk.isWorking()||action.isWorking())throw Error('图片处理中，请稍后保存');const saved=copy(draft),before=copy(original),id=editingSkin;await persist(c=>{const latest=skinChoices(c).find(s=>s.id===id);if(fingerprint(latest)!==fingerprint(before))throw Error('这套皮肤已在别处修改，请返回衣橱重新打开');if(id==='default'){const {id:unused,name,...fields}=saved;return fields;}return {skins:c.skins.map(s=>s.id===id?saved:s)};});original=copy(saved);message('人物形象已保存');toast('已保存'+saved.name);});
+  el('looks-save').onclick=safe(async()=>{if(walk.isWorking()||action.isWorking())throw Error('图片处理中，请稍后保存');const saved=copy(draft),before=copy(original),id=editingSkin;await persist(c=>{const latest=skinChoices(c).find(s=>s.id===id);if(fingerprint(latest)!==fingerprint(before))throw Error('这套皮肤已在别处修改，请返回衣橱重新打开');if(id==='default'){const {id:unused,name,...fields}=saved;return fields;}return {skins:c.skins.map(s=>s.id===id?saved:s)};});draft=copy(skinChoices(catalog).find(s=>s.id===id));original=copy(draft);message('人物形象已保存');toast('已保存'+saved.name);});
   el('looks-back').onclick=safe(async()=>{if(view==='editor'){if(discard())await wardrobe();}else await peoplePage();});
   function close(){if(!busy&&discard())box.close();}
   el('looks-close').onclick=close;box.addEventListener('cancel',e=>{e.preventDefault();close();});

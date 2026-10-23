@@ -13,6 +13,8 @@ import java.io.IOException;
 final class TLookAssets {
     private interface Visitor { String image(String value) throws Exception; }
     private static void visit(JSONObject document,Visitor visitor) throws Exception {
+        JSONObject archive=document.optJSONObject("character_archive");
+        if(archive!=null){JSONArray items=archive.getJSONArray("items");for(int i=0;i<items.length();i++){JSONObject item=items.getJSONObject(i);item.put("image",visitor.image(item.getString("image")));}}
         JSONObject looks=document.optJSONObject("character_looks");if(looks==null)return;
         for(Iterator<String> keys=looks.keys();keys.hasNext();){
             JSONObject look=looks.getJSONObject(keys.next());visitSkin(look,visitor);

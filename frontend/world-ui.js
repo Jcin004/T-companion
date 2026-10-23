@@ -28,12 +28,12 @@ export async function showWorldSource(api,ref,owner){
   let d=el('world-source-dialog');if(!d)d=panel('world-source-dialog','世界事件来源','');
   const close=node('button','关闭');close.onclick=()=>d.close();d.replaceChildren(node('h2','世界事件来源'),close,node('p',e.id+' · '+e.created_at+' · '+e.location),node('pre',e.content),node('p','来源：'+e.source.type),node('p','知情依据：'+e.observations.filter(o=>o.owner_id===owner).map(o=>o.kind==='witness'?'在场观察':'听到对话').join('、')));if(!d.open)d.showModal();
 }
-export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak,stopSpeech}){
+export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak,stopSpeech,pickArchive}){
   let world,busy=false,pending=null,animation=0,resolveAnimation=null;const walkDistances=new Map();
   const safe=fn=>async(...args)=>{try{await fn(...args);}catch(e){report(e);toast(e.message);el('world-action-status').textContent=e.message;}};
   const button=(text,fn)=>{const b=node('button',text);b.type='button';b.onclick=safe(fn);return b;};
   const lifeUI=mountResidentLifeUI({api,toast,report,refreshWorld:refresh});el('world-life-container').append(el('resident-life'));el('resident-life').open=true;
-  const looks=mountCharacterLooksUI({api,getWorld:()=>world,refresh,toast,report});
+  const looks=mountCharacterLooksUI({api,getWorld:()=>world,refresh,toast,report,pickArchive});
   const history=mountWorldHistory({api,speak,stopSpeech,toast,report,afterDelete:async()=>{await refresh({light:true});await dialogue.reload();}});
   const dialogue=mountSceneDialogue({api,localReady,getWorld:()=>world,refresh,animate:animateEvents,speak,stopSpeech,toast,report,history,editLook:id=>looks.open(id)});
   const joystick=mountWorldJoystick({element:el('world-joystick'),canStart:()=>!busy&&!dialogue.isBusy()&&!pending&&!el('world').hidden&&!document.querySelector('dialog[open]')&&!!world?.state.residents.length,
@@ -49,7 +49,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
   async function refresh({light=false,paint=true,keepAnimation=false}={}){
     if(!keepAnimation)stopAnimation();
     if(!isLocal()){el('world-notice').textContent='世界使用本机数据，请在设置切换到本机模式。';el('world-notice').hidden=false;el('world-play').hidden=true;return;}
-    world=await api('/world');await loadWorldArt(world);document.body.classList.add('world-active');
+    world=await api('/world');await loadWorldArt(world);document.body.classList.toggle('world-active',!el('world').hidden);
     const ready=world.state.residents.length===2;el('world-play').hidden=!ready;el('world-notice').hidden=ready;el('world-setup').replaceChildren();
     if(!ready){
       el('world-notice').textContent='从名册选择两位居民，进入暖木小屋。';const people=await api('/characters');
@@ -138,5 +138,5 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
   el('world-actor').onchange=()=>{joystick.stop();renderPlaces();};
   el('world-advance').onclick=safe(()=>command({request_id:uid(),type:'advance',actor_id:el('world-actor').value}));
   el('world-retry').onclick=safe(()=>pending&&command(pending));
-  return {refresh,leave(){joystick.stop();stopAnimation();dialogue.close();document.body.classList.remove('world-active');}};
+  return {refresh,editLooks:id=>looks.open(id),leave(){joystick.stop();stopAnimation();dialogue.close();document.body.classList.remove('world-active');}};
 }
