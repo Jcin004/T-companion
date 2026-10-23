@@ -49,12 +49,12 @@ export class CharacterArchiveModule{
     if(method==='GET'){
       // Migration is durable and queued with foreground/background writes.
       const missing=!this.host.data.character_archive||Object.values(this.host.data.character_looks||{}).some(c=>skins(c).some(([,s])=>s.portraits.some(p=>p.asset_id===undefined)));
-      if(missing)await this.host.transact(d=>{d.character_archive??={version:1,items:[]};syncArchivePortraits(d);});
+      if(missing)await this.host.transact(d=>{if(!d.character_archive)d.character_archive={version:1,items:[]};syncArchivePortraits(d);});
       validateArchive(this.host.data);
       return copy(this.host.data.character_archive.items.filter(p=>p.owner_id===owner).map(p=>({...p,references:archiveReferences(this.host.data,p.id)})));
     }
     return this.host.transact(d=>{
-      d.character_archive??={version:1,items:[]};syncArchivePortraits(d);
+      if(!d.character_archive)d.character_archive={version:1,items:[]};syncArchivePortraits(d);
       const items=d.character_archive.items;
       if(method==='POST'&&!id){
         if(!validId(body?.id))throw Error('图片请求标识无效');
