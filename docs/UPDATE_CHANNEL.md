@@ -87,3 +87,12 @@ python scripts/publish-trial.py --apk artifacts/T-companion-0.13.2-trial.apk --s
 - 原签名旧 0.13.1/code 19 的真实原生更新检查发现 0.13.2/code 20；旧流程该次仍需 12,785 ms。覆盖到新版后，完整合成业务文档（人物、完成聊天、草稿、设置等）及加密凭据保留。未使用实体手机或真实模型。
 - 114 Node、103 Python（警告按错误）、专用浏览器和 Android 更新验收通过；[构建提交 CI](https://github.com/Jcin004/T-companion/actions/runs/39833854060) 的测试、密钥扫描、Android 构建全部通过。完整源码包在无 .git 目录中重新构建通过。
 - 公开 Release 和清单为本轮交付，后续文档提交只记录实际发布结果；安装包对应的源码始终以清单 sourceCommit 和匹配归档为准。原有未提交的 world-motion-android 测试修改保留在本机，未纳入本轮提交。
+
+## 0.14.1 世界整合版已发布验收（2026-10-23）
+
+- [公开试用 Release](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.14.1) 已发布，非草稿。整合世界分支 `12b24ac` 与更新分支 `e52eba7`，使用 versionCode 21，高于两条旧试用路径的 code 20。范围见 [整合说明](RELEASE_0_14_1.md)。
+- APK 构建提交为 `7d0b420d3db34848b6d7536683efc1ed8877ee7d`，原包名、原试用签名。APK 80,062,486 字节，SHA-256 `a6febb9a6dc6cc8494f0844a4cbff1510113a9d24da3521518d91346c18dfb2a`；完整源码归档 SHA-256 `364c87257fa62571d960e9fb1227c063018edad2e11e35e87b034f7eaa2b9bee`。七项附件均核对上传摘要，静态 main/t-update.json 指向同一提交与构建，匿名 APK HEAD 返回 200 且大小相符。
+- 专用 Android 11 / WebView 83 模拟器的原签名 0.14.0/code 20 从默认渠道发现新版；此次旧流程用时 9,447 ms。真实原生公网下载 137,412 ms，完成大小、SHA-256、包名、版本和签名校验；实际操作安装来源权限和系统安装器，覆盖至 0.14.1/code 21。完整合成人物、聊天、记忆、世界、皮肤与加密凭据文件指纹保持一致。
+- 新版默认原生检查用时 2,547 ms，单次直接清单请求，正确显示已是最新。这些是该模拟器、该网络的单次样本，不代表真机耗时或免 VPN 可达性。
+- 122 Node、103 Python（警告按错误）通过；更新与世界表情/皮肤/历史浏览器流程通过；UpdateTransfer、UpdateChannel 和旧 WebView 更新 UI 原生检查通过。Gitleaks 和源码快照隐私扫描通过。[构建提交 CI](https://github.com/Jcin004/T-companion/actions/runs/39907301228) 初次因 Chaquopy 依赖下载超时失败，重试后测试、密钥扫描和 Android 构建全部通过。匹配源码包在无 .git 目录中完成网页/后台规则构建。
+- 未使用真实人物数据、实体手机或付费模型；原世界说明中的系统选图完整验收和自然后台调度限制保留。发布后的文档提交只记录证据，不替换已发布的 APK 或 sourceCommit。
