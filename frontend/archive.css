@@ -25,7 +25,7 @@
 .archive-expression-section{margin:22px 0 30px}
 .archive-expression-section h2{font-size:17px;margin-bottom:12px}
 .archive-expression-section>button{margin-top:12px}
-dialog.archive-dialog{position:fixed;inset:0;width:min(600px,calc(100% - 20px));max-height:calc(100vh - 28px);max-height:calc(100dvh - 28px);padding:0;border:1px solid var(--line);border-radius:12px;color:var(--ink);background:var(--paper)}
+dialog.archive-dialog{position:fixed;top:14px;right:10px;bottom:auto;left:10px;margin:0 auto;width:min(600px,calc(100% - 20px));max-height:calc(100vh - 28px);max-height:calc(100dvh - 28px);padding:0;border:1px solid var(--line);border-radius:12px;color:var(--ink);background:var(--paper)}
 dialog.archive-dialog[open]{display:flex;flex-direction:column}
 .archive-dialog>header{padding:14px 16px;flex-shrink:0;border-bottom:1px solid var(--line)}
 .archive-dialog header button{font-size:14px;padding:8px 10px}

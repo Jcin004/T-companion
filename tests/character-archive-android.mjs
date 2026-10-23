@@ -17,7 +17,7 @@ async function pick(filename,done){
  for(let i=0;i<14;i++){
   if(await evaluate(done))return;
   const path='/sdcard/archive-picker-'+i+'.xml';try{await adb('shell','uiautomator','dump',path);}catch{await pause(500);continue;}
-  const xml=(await adb('shell','cat',path)).stdout;await writeFile('artifacts/single-archive-picker.xml',xml);const nodes=xml.match(/<node\b[^>]*>/g)||[];
+  const xml=(await adb('shell','cat',path)).stdout;await writeFile('artifacts/archive-picker.xml',xml);const nodes=xml.match(/<node\b[^>]*>/g)||[];
   const exact=nodes.find(n=>n.includes('text="'+filename+'"'))||nodes.find(n=>n.includes('content-desc="'+filename+','));
   if(exact){
    // This emulator's DocumentsUI accepts keyboard activation reliably; inspect
@@ -61,6 +61,8 @@ try{
  const target=await evaluate(async owner=>{const {actorPoint}=await import('/assets/world-art.js'),d=JSON.parse((await Capacitor.Plugins.TLocal.load()).data),c=document.querySelector('#world-canvas'),r=c.getBoundingClientRect(),p=actorPoint(d.world.positions[owner],r.width,r.height);return {x:(r.x+p.x)*devicePixelRatio,y:(r.y+p.y-r.width*.075)*devicePixelRatio};},owner);await adb('shell','input','tap',String(Math.round(target.x+inset.x)),String(Math.round(target.y+inset.y)));await wait(()=>document.querySelector('#world-dialogue').open);
  await set('#world-input','今天感觉如何？');await tap('#world-send');await wait(()=>document.querySelector('#world-dialogue-status').textContent==='已保存对话与世界事件');assert.equal(await evaluate(()=>window.archiveCalls),1);assert.equal(await evaluate(()=>document.querySelector('#world-portrait img').src),asset.image);await shot('world');
  const result={nativeButtons:true,systemPngPicker:true,nativeKeyboardFileSelection:true,legacyMigration:true,archiveSourceAndBinding:true,sqliteRestart:true,fixedClose:true,worldPortrait:true,mockRequests:1,physicalDevice:false};await writeFile('artifacts/archive-native-validation.json',JSON.stringify(result,null,2));console.log('PASS: Android native archive upload/name/binding, legacy migration, fixed close, SQLite restart and mocked world portrait');
+}catch(error){
+ console.log(await evaluate(()=>({status:document.querySelector('#archive-picture-status')?.textContent,open:document.querySelector('#archive-picture-dialog')?.open,body:document.querySelector('#archive-picture-dialog')?.getBoundingClientRect().toJSON()})).catch(e=>e.message));await shot('failure');throw error;
 }finally{
  if(before){await adb('shell','am','force-stop','com.google.android.documentsui');await restart();await evaluate(async before=>{const {NativePersistence}=await import('/assets/local-service.js'),p=new NativePersistence(Capacitor.Plugins.TLocal);await p.begin();try{await p.load();await p.save(before);}finally{await p.end();}},before);await restart();}
  disconnect();
