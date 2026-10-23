@@ -30,4 +30,12 @@ CharacterLooksModule 验证皮肤内新增可选 expressions（标识到名称�
 
 ## 验证
 
-`sprite-workshop-browser.mjs` 用合成 PNG、真实触屏事件与 120 ms 模拟保存延迟，检查持续步进间隔、无闪现倒退、失败回滚／同请求重试、三列四行全朝向切片、站立帧、自定义表情及姿态上传和重启。`world-expression.test.mjs` 验证资源归属、备份、预算、已完成动作来源、重试去重及未知／中断拒绝；WorldVisualInstrumentation 验证默认及额外皮肤的姿态图片 SQLite 恢复、CAS 和失败回滚。实际 Android 与发布结果在交付后补记。
+`sprite-workshop-browser.mjs` 用合成 PNG、真实触屏事件与 120 ms 模拟保存延迟，检查持续步进间隔、无闪现倒退、失败回滚／同请求重试、三列四行全朝向切片、站立帧、自定义表情及姿态上传和重启。实测步进间隔约 208 ms。`world-expression.test.mjs` 验证资源归属、备份、预算、已完成动作来源、重试去重及未知／中断拒绝；WorldVisualInstrumentation 在专用 Android 11 模拟器通过默认及额外皮肤的姿态图片 SQLite 恢复、CAS 和失败回滚。
+
+124 Node、103 Python（-W error）、衣橱／世界表情记录／行走／视觉／聊天设置浏览器检查通过；[构建提交 CI](https://github.com/Jcin004/T-companion/actions/runs/39965431079) 测试、扫描、Android 构建通过。本机 Gitleaks 与源码快照隐私检查通过。没有真实人物数据或付费模型请求。
+
+`sprite-workshop-android.mjs` 用真实原生触屏和 screencap 验证房间可见、摇杆四帧插值／松手站立、三列帧表、添加表情／姿态名称、固定返回／关闭／保存、Android 返回及 SQLite 重启；合成旧版本数据在原签名 0.14.2/code22 → 0.15.0/code23 覆盖安装后完整保留，含加密凭据指纹。
+
+系统选图入口能够打开并定位下载目录 PNG，但选择后返回并保存的完整自动化未跑通；`--picker` 作为可选诊断入口，未列为通过。浏览器图片上传和原生 SQLite 图片恢复通过，不能代替这项系统选择器验收。实体手机、真实模型未测试。默认素材本轮未重新绘制。
+
+[0.15.0 试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.15.0) 已发布七项匹配附件，构建与源码提交为 `bda26292fd443e22b825a9cb4b29cd0fd6cadf04`。APK 80,070,766 字节，SHA-256 `9d235222c935cf6c99bfe3b89a525dcc738b4734e379dc67117f7a9a32709dc3`；源码 ZIP SHA-256 `3c44c07ad729d397e580965b861fc4843c9e9469fda22637bf09a44da0a87c8c`。匿名 APK HEAD 返回 200、大小相符，默认渠道 main/t-update.json 指向同一构建。专用模拟器旧 0.14.2 的默认原生检查发现 0.15.0，单次 1,237 ms；新版默认检查一次直接清单请求报告已是最新，单次 1,295 ms。使用本机现有代理网络，不能推断实体手机耗时或免代理可达性。

@@ -96,3 +96,7 @@ python scripts/publish-trial.py --apk artifacts/T-companion-0.13.2-trial.apk --s
 - 新版默认原生检查用时 2,547 ms，单次直接清单请求，正确显示已是最新。这些是该模拟器、该网络的单次样本，不代表真机耗时或免 VPN 可达性。
 - 122 Node、103 Python（警告按错误）通过；更新与世界表情/皮肤/历史浏览器流程通过；UpdateTransfer、UpdateChannel 和旧 WebView 更新 UI 原生检查通过。Gitleaks 和源码快照隐私扫描通过。[构建提交 CI](https://github.com/Jcin004/T-companion/actions/runs/39907301228) 初次因 Chaquopy 依赖下载超时失败，重试后测试、密钥扫描和 Android 构建全部通过。匹配源码包在无 .git 目录中完成网页/后台规则构建。
 - 未使用真实人物数据、实体手机或付费模型；原世界说明中的系统选图完整验收和自然后台调度限制保留。发布后的文档提交只记录证据，不替换已发布的 APK 或 sourceCommit。
+
+## 0.15.0 人物图片与行走版（2026-10-23）
+
+[公开试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.15.0) 已发布 code23 的原签名 APK、对应提交 `bda26292fd443e22b825a9cb4b29cd0fd6cadf04` 的完整源码及许可等七项附件。默认清单同步，匿名 APK HEAD 200，旧 code22 原生默认检查发现新版，新版原生检查报告已是最新；合成业务文档与凭据指纹在覆盖升级后完整保留。功能、校验和、模拟器验收及系统选图限制见 [0.15.0 验收](SPRITE_WORKSHOP.md)。后续验收文档提交不替换该构建提交。
