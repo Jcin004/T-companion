@@ -1,3 +1,4 @@
+import {selectPerson,editSkin} from './wardrobe-fixture.mjs';
 // Synthetic mobile touch acceptance, intercepted model and TTS. No paid calls.
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
@@ -40,9 +41,9 @@ try{
   await page.locator('#world-records').tap();await page.locator('#world-history-dialog[open]').waitFor();assert.match(await page.locator('#world-lines').textContent(),/雨也在窗边/);assert.equal(await page.getByRole('button',{name:'回看这几句',exact:true}).count(),0);await page.locator('#world-history-close').tap();
   await page.screenshot({path:'artifacts/visual-browser-dialogue.png'});
   await page.locator('#world-close').tap();await tapMenu('人物');await page.locator('#world-looks-dialog[open]').waitFor();
-  await page.locator('#looks-owner').selectOption('a');await page.locator('.looks-default summary').tap();await page.locator('#looks-skin').selectOption('2');
+  await selectPerson(page,'a');await editSkin(page);await page.locator('.looks-default summary').tap();await page.locator('#looks-skin').selectOption('2');
   const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=32;c.height=32;c.getContext('2d').fillRect(0,0,32,32);return c.toDataURL().split(',')[1];});
-  for(const name of ['表情甲','表情乙']){await page.locator('#looks-portrait-file').setInputFiles({name:name+'.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await page.waitForFunction(n=>document.querySelector('#looks-portrait-choice').options.length===n,name==='表情甲'?1:2);}
+  for(const name of ['表情甲','表情乙']){await page.locator('[data-emotion="'+(name==='表情甲'?'neutral':'happy')+'"]').tap();await page.locator('#looks-portrait-file').setInputFiles({name:name+'.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await page.waitForFunction(n=>document.querySelector('#looks-portrait-choice').options.length===n,name==='表情甲'?1:2);}
   await page.locator('#looks-tab-sprite').tap();await page.locator('#looks-sprite-file').setInputFiles({name:'walk.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await page.locator('#looks-direction').selectOption('up');await page.locator('#looks-save').tap();await page.waitForFunction(()=>document.querySelector('#looks-status').textContent==='人物形象已保存');
   d=await read();assert.equal(d.character_looks.a.skin,2);assert.equal(d.character_looks.a.portraits.length,2);assert.equal(d.character_looks.a.sprite.frames,4);assert.equal(d.characters[0].identity,'合成身份');await page.screenshot({path:'artifacts/visual-browser-looks.png'});
   await page.locator('#looks-close').tap();await page.locator('#world-menu-open').tap();await page.screenshot({path:'artifacts/visual-browser-menu.png'});assert.equal(await page.locator('.world-menu-grid button').count(),10);

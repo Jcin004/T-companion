@@ -41,7 +41,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
     onRest:()=>{walkDistances.clear();if(world&&!el('world').hidden){drawWorld(el('world-canvas'),world);renderEvents();}},onError:e=>{report(e);toast(e.message);}});
   const menu=el('world-menu').querySelector('.world-menu-grid');
   for(const [label,icon,fn] of [
-    ['人物','♙',()=>looks.open('user')],['居民生活','☀',async()=>{await lifeUI.refresh();el('world-life-panel').showModal();}],['世界记录','▤',()=>{renderEvents();el('world-events-panel').showModal();}],
+    ['人物','♙',()=>looks.open()],['居民生活','☀',async()=>{await lifeUI.refresh();el('world-life-panel').showModal();}],['世界记录','▤',()=>{renderEvents();el('world-events-panel').showModal();}],
     ['对话记录','▤',()=>history.open()],['消息','✉',()=>navigate('chat')],['记忆','▣',()=>navigate('memory')],['外观','✿',()=>navigate('appearance')],['模型连接','⌘',()=>{navigate('settings');}],['设置','⚙',()=>el('world-settings-panel').showModal()],['返回桌面','⌂',()=>navigate('home')]
   ]){const b=button('',async()=>{el('world-menu').close();await fn();}),i=node('span',icon);i.setAttribute('aria-hidden','true');i.className='world-menu-icon';i.textContent='';const n=({'人物':0,'居民生活':1,'世界记录':2,'对话记录':2,'消息':3,'记忆':4,'外观':5,'模型连接':6,'设置':7,'返回桌面':8})[label];i.style.backgroundPosition=(n%3*50)+'% '+(Math.floor(n/3)*50)+'%';b.append(i,node('span',label));menu.append(b);}
   el('world-menu-open').onclick=safe(async()=>{joystick.stop();dialogue.close();el('world-menu').showModal();});

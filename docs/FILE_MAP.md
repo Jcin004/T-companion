@@ -1,5 +1,7 @@
 # 文件职责与布局评价
 
+人物衣橱：`frontend/character-looks-ui.js` 负责人物/皮肤/资源导航与原接口；`frontend/character-atlas-ui.js` 提供图集编辑和预览；`tests/wardrobe-browser.mjs` 验证新层级、保存失败、返回和异步读图隔离。
+
 这份清单覆盖本分支纳入源码管理的每个文件。`data/`、`.env`、`node_modules/`、`dist/` 和签名材料不在清单中：分别是私人运行数据、环境配置、安装依赖或生成结果。
 
 ## 布局评价

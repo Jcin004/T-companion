@@ -3,7 +3,7 @@ import {adb,connect,evaluate,disconnect,restart} from './embedded-ob-android.mjs
 import {readFile,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
-const expectedVersion=Number(process.env.T_VERSION_CODE||21);
+const expectedVersion=Number(process.env.T_VERSION_CODE||22);
 async function wait(fn,arg){for(let i=0;i<240;i++){if(await evaluate(fn,arg))return;await pause(100);}throw Error('Native expression flow timed out');}
 const data=()=>evaluate(async()=>JSON.parse((await Capacitor.Plugins.TLocal.load()).data));
 let inset;

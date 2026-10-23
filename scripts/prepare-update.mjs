@@ -10,6 +10,6 @@ const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Num
  sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['整合世界全局对话记录、人物筛选搜索及来源记忆联动删除','人物皮肤库按表情立绘、站立行走和家具交互动作分别上传配置，AI 只选择获准皮肤','对话保持房间高度、双方朝向彼此，支持自定义方向行、站立帧与步态顺序','检查更新使用直接清单优先，下载支持断点续传、暂停和切页进度恢复','versionCode 21 高于已分发的 0.13.2 与 0.14.0；原签名覆盖安装保留人物、聊天、记忆、皮肤和世界数据']};
+ releaseNotes:['人物形象改为人物列表、皮肤衣橱与独立编辑页面','表情立绘、站立行走、交互动作各有独立分页，交互首屏显示动作卡片','皮肤使用与编辑保存分开，新建名称独立输入，图集参数折叠调整','保留旧皮肤和图片，保存失败可重试；切页、返回和未保存提示适配手机','原包名和原签名覆盖升级，保留聊天、记忆、世界、皮肤与模型配置']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');
