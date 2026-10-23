@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Visual assets are separate from roster identity and model context.
+import {syncArchivePortraits,validateArchive} from './character-archive.js';
 const copy=x=>JSON.parse(JSON.stringify(x));
 const image=s=>typeof s==='string'&&s.length<=1200000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(s);
 export const DIRECTIONS=['down','left','right','up'];
@@ -75,7 +76,26 @@ export class CharacterLooksModule{
     const id=decodeURIComponent(path.split('/')[2]||'');
     if(id!=='user'&&!this.host.data.characters.some(c=>c.id===id))throw Error('人物不存在');
     if(method==='GET')return lookCatalog(this.host.data,id);
+    if(path.endsWith('/archive-binding'))return this.host.transact(d=>{
+      const catalog=lookCatalog(d,id),skin=body?.skin_id==='default'?catalog:catalog.skins.find(s=>s.id===body?.skin_id);
+      if(!skin||!(key(body?.emotion)||method==='DELETE'&&body?.emotion==='')||['__proto__','constructor','prototype'].includes(body.emotion))throw Error('皮肤或表情不存在');
+      const asset=d.character_archive?.items.find(p=>p.id===body.asset_id&&p.owner_id===id);
+      if(!asset)throw Error('图片不存在或不属于此人物');
+      const index=skin.portraits.findIndex(p=>(p.emotion||'')===body.emotion&&(method!=='DELETE'||p.asset_id===asset.id));
+      if(method==='DELETE'){
+        if(index>=0&&skin.portraits[index].asset_id===asset.id){skin.portraits.splice(index,1);skin.portrait=Math.min(skin.portrait,Math.max(0,skin.portraits.length-1));}
+      }else if(method==='POST'){
+        if((skin.portraits[index]?.asset_id||null)!==(body.expected_asset_id||null)&&skin.portraits[index]?.asset_id!==asset.id)throw Error('该表情已在别处修改，请刷新后重试');
+        if(!Object.prototype.hasOwnProperty.call(EXPRESSIONS,body.emotion)){
+          if(typeof body.expression_name!=='string'||!body.expression_name.trim())throw Error('请填写表情名称');
+          skin.expressions={...skin.expressions,[body.emotion]:body.expression_name.trim()};
+        }
+        const portrait={name:asset.name,image:asset.image,asset_id:asset.id,emotion:body.emotion};
+        if(index<0)skin.portraits.push(portrait);else skin.portraits[index]=portrait;
+      }else throw Error('不支持的表情操作');
+      d.character_looks={...(d.character_looks||{}),[id]:catalog};validateLooks(d);validateArchive(d);return catalog;
+    });
     if(method!=='PATCH')throw Error('人物形象使用 PATCH 保存');
-    return this.host.transact(d=>{const candidate={...lookCatalog(d,id),...copy(body)};d.character_looks={...(d.character_looks||{}),[id]:candidate};validateLooks(d);return candidate;});
+    return this.host.transact(d=>{const candidate={...lookCatalog(d,id),...copy(body)};d.character_looks={...(d.character_looks||{}),[id]:candidate};validateLooks(d);syncArchivePortraits(d);validateArchive(d);return candidate;});
   }
 }

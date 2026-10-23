@@ -10,14 +10,17 @@ import {mountChatSettings} from './chat-settings-ui.js';
 import {mountDialogNavigation} from './dialog-navigation.js';
 import {mountAppUpdate} from './app-update.js';
 import {DiagnosticStore,diagnosticPersistence,mountDiagnostics} from './diagnostics.js';
+import {installArchiveShell,mountArchiveUI} from './character-archive-ui.js';
 
 // Android 11's bundled WebView predates this DOM convenience method.
 if(!Element.prototype.replaceChildren)Object.defineProperty(Element.prototype,'replaceChildren',{configurable:true,writable:true,value:function(...nodes){while(this.firstChild)this.removeChild(this.firstChild);this.append(...nodes);}});
 
 installMemoryShell();
 installWorldShell();
+installArchiveShell();
 let memoryUI;
 let worldUI;
+let archiveUI;
 const el = id => document.getElementById(id);
 const native = window.Capacitor?.isNativePlatform?.() || /Capacitor|; wv\)/.test(navigator.userAgent);
 const device = native ? (window.Capacitor?.Plugins?.TDevice || window.Capacitor?.registerPlugin?.('TDevice')) : null;
@@ -80,6 +83,8 @@ function app(name) {
   dialogs.dismissAll();
   if(name==='chat')refreshContacts().catch(e=>{reportError(e);toast(e.message);});
   worldUI?.leave();
+  archiveUI?.leave();
+  if(name==='archive')archiveUI?.refresh().catch(e=>{reportError(e);toast(e.message);});
   if(name==='world')worldUI?.refresh().catch(e=>{reportError(e);toast(e.message);});
   if(name==='memory'||name==='self')memoryUI?.refresh(name);
   saveDraft();activeApp=name;document.querySelector('.phone').classList.toggle('on-desktop',name==='home');
@@ -372,7 +377,8 @@ const chatSettings=mountChatSettings({api,isLocal:()=>mode==='local',isBusy:()=>
  getCurrent:()=>current,setCurrent:c=>{current=c;},getPrefs:()=>prefs,setPrefs:p=>{prefs=p;},
  voiceOptions,updated:refreshSettings,toast,dialogs});
 const preferences=mountPreferences({api,localReady,isLocal:()=>mode==='local',isBusy:()=>busy,updated:refreshSettings,toast});
-worldUI=mountWorldUI({api,localReady,isLocal:()=>mode==='local',toast,report:e=>reportError(e,'世界操作失败'),navigate:app,speak:(text,voice)=>speak(text,voice||prefs.voice),stopSpeech:()=>{if(device)device.stopSpeech().catch(()=>{});else window.speechSynthesis?.cancel();}});
+archiveUI=mountArchiveUI({api,localReady,isLocal:()=>mode==='local',toast,report:e=>reportError(e,'档案操作失败'),editLooks:id=>worldUI.editLooks(id)});
+worldUI=mountWorldUI({api,localReady,isLocal:()=>mode==='local',toast,report:e=>reportError(e,'世界操作失败'),navigate:app,pickArchive:id=>archiveUI.pick(id),speak:(text,voice)=>speak(text,voice||prefs.voice),stopSpeech:()=>{if(device)device.stopSpeech().catch(()=>{});else window.speechSynthesis?.cancel();}});
 memoryUI=mountMemoryUI({api,localReady,isLocal:()=>mode==='local',getCurrent:()=>current,toast,report:e=>reportError(e,'记忆操作失败'),openSource:async (id,owner)=>{
   if(id?.source_type==='world_event')return showWorldSource(api,id,owner);
  const {contact}=await api(`/memory-sources/${id}/location?owner=${encodeURIComponent(owner)}`);
