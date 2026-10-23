@@ -27,6 +27,8 @@ public class WorldVisualInstrumentation extends Instrumentation {
             }
             looks.put(owner,new JSONObject().put("skin",1).put("portrait",0).put("portraits",portraits).put("sprite",JSONObject.NULL));
             JSONObject outfit=new JSONObject().put("id","night").put("name","合成夜间服").put("skin",1).put("portrait",0).put("portraits",new JSONArray().put(new JSONObject(portraits.getJSONObject(0).toString()).put("emotion","happy"))).put("sprite",new JSONObject().put("image",portraits.getJSONObject(1).getString("image")).put("frames",4)).put("actions",new JSONObject().put("plant",new JSONObject().put("image",portraits.getJSONObject(2).getString("image")).put("frames",4).put("row_count",1)));
+            JSONObject frameEditor=new JSONObject().put("version",1).put("width",64).put("height",128).put("scale",1).put("base_image",portraits.getJSONObject(4).getString("image")).put("cells",new JSONObject().put("0_1",new JSONObject().put("image",portraits.getJSONObject(5).getString("image")).put("scale",1).put("x",0).put("y",0)));
+            outfit.getJSONObject("sprite").put("frame_editor",frameEditor);
             outfit.put("gestures",new JSONObject().put("wave",new JSONObject().put("name","挥手").put("atlas",new JSONObject().put("image",portraits.getJSONObject(3).getString("image")).put("frames",3).put("row_count",1))));
             looks.getJSONObject(owner).put("gestures",new JSONObject().put("nod",new JSONObject().put("name","点头").put("atlas",new JSONObject().put("image",portraits.getJSONObject(4).getString("image")).put("frames",3).put("row_count",1))));
             looks.getJSONObject(owner).put("skins",new JSONArray().put(outfit)).put("active_skin_id","default").put("auto_skin",true);
@@ -40,6 +42,9 @@ public class WorldVisualInstrumentation extends Instrumentation {
             check(loadedSkin.getJSONObject("actions").getJSONObject("plant").getString("image").equals(portraits.getJSONObject(2).getString("image")),"nested interaction sprite restored");
             check(loadedSkin.getJSONObject("gestures").getJSONObject("wave").getJSONObject("atlas").getString("image").equals(portraits.getJSONObject(3).getString("image")),"nested gesture sprite restored");
             check(hydrated.getJSONObject("character_looks").getJSONObject(owner).getJSONObject("gestures").getJSONObject("nod").getJSONObject("atlas").getString("image").equals(portraits.getJSONObject(4).getString("image")),"default gesture sprite restored");
+            JSONObject frameRestored=loadedSkin.getJSONObject("sprite").getJSONObject("frame_editor");
+            check(frameRestored.getString("base_image").equals(portraits.getJSONObject(4).getString("image")),"single frame backing image restored");
+            check(frameRestored.getJSONObject("cells").getJSONObject("0_1").getString("image").equals(portraits.getJSONObject(5).getString("image")),"original source frame restored");
             long revision=store.read().getLong("revision");boolean stale=false;try{store.save(data.toString(),snap.getLong("revision"),"visual-assets-test");}catch(IllegalStateException e){stale=true;}check(stale,"CAS refuses stale asset writes");
             String before=store.read().getString("data");db.execSQL("CREATE TEMP TRIGGER fail_visual_document BEFORE INSERT ON documents BEGIN SELECT RAISE(ABORT,'synthetic document save failure'); END");
             boolean failed=false;try{JSONObject changed=new JSONObject(before);changed.getJSONObject("character_looks").getJSONObject(owner).getJSONArray("portraits").remove(5);store.save(changed.toString(),revision,"visual-assets-test");}catch(Exception e){failed=true;}finally{db.execSQL("DROP TRIGGER IF EXISTS fail_visual_document");}

@@ -22,9 +22,17 @@ final class TLookAssets {
     private static void visitSkin(JSONObject look,Visitor visitor) throws Exception {
             JSONArray portraits=look.optJSONArray("portraits");
             if(portraits!=null)for(int i=0;i<portraits.length();i++){JSONObject portrait=portraits.getJSONObject(i);portrait.put("image",visitor.image(portrait.getString("image")));}
-            JSONObject sprite=look.optJSONObject("sprite");if(sprite!=null)sprite.put("image",visitor.image(sprite.getString("image")));
-            JSONObject actions=look.optJSONObject("actions");if(actions!=null)for(Iterator<String> keys=actions.keys();keys.hasNext();){JSONObject animation=actions.getJSONObject(keys.next());animation.put("image",visitor.image(animation.getString("image")));}
-            JSONObject gestures=look.optJSONObject("gestures");if(gestures!=null)for(Iterator<String> keys=gestures.keys();keys.hasNext();){JSONObject animation=gestures.getJSONObject(keys.next()).optJSONObject("atlas");if(animation!=null)animation.put("image",visitor.image(animation.getString("image")));}
+            visitAtlas(look.optJSONObject("sprite"),visitor);
+            JSONObject actions=look.optJSONObject("actions");if(actions!=null)for(Iterator<String> keys=actions.keys();keys.hasNext();)visitAtlas(actions.getJSONObject(keys.next()),visitor);
+            JSONObject gestures=look.optJSONObject("gestures");if(gestures!=null)for(Iterator<String> keys=gestures.keys();keys.hasNext();)visitAtlas(gestures.getJSONObject(keys.next()).optJSONObject("atlas"),visitor);
+    }
+    private static void visitAtlas(JSONObject atlas,Visitor visitor) throws Exception {
+        if(atlas==null)return;
+        atlas.put("image",visitor.image(atlas.getString("image")));
+        JSONObject editor=atlas.optJSONObject("frame_editor");if(editor==null)return;
+        editor.put("base_image",visitor.image(editor.getString("base_image")));
+        JSONObject cells=editor.getJSONObject("cells");
+        for(Iterator<String> keys=cells.keys();keys.hasNext();){JSONObject cell=cells.getJSONObject(keys.next());cell.put("image",visitor.image(cell.getString("image")));}
     }
     static String encode(SQLiteDatabase db,String value) throws Exception {
         JSONObject document=new JSONObject(value);Set<String> keep=new HashSet<>();

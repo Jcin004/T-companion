@@ -17,6 +17,14 @@ export function validateAtlas(s){
   if(!image(s.image)||!Number.isInteger(s.frames)||s.frames<1||s.frames>8)throw Error('行走图集格式错误');
   const m=atlasMeta(s);
   if(!Number.isInteger(m.rowCount)||m.rowCount<1||m.rowCount>16||!Number.isInteger(m.idle)||m.idle<0||m.idle>=m.frames||DIRECTIONS.some(d=>!Number.isInteger(m.rows[d])||m.rows[d]<0||m.rows[d]>=m.rowCount)||!Array.isArray(m.order)||!m.order.length||m.order.length>16||m.order.some(f=>!Number.isInteger(f)||f<0||f>=m.frames))throw Error('图集的方向、站立帧或播放顺序无效');
+  if(s.frame_editor!==undefined){
+    const e=s.frame_editor;
+    if(!e||e.version!==1||!image(e.base_image)||!Number.isInteger(e.width)||!Number.isInteger(e.height)||e.width<1||e.height<1||e.width*m.frames>2048||e.height*m.rowCount>2048||!Number.isFinite(e.scale)||e.scale<=0||e.scale>16||!e.cells||typeof e.cells!=='object'||Array.isArray(e.cells)||Object.keys(e.cells).length>Math.min(32,m.frames*m.rowCount))throw Error('单帧编辑画布无效');
+    for(const [key,c]of Object.entries(e.cells)){
+      const match=key.match(/^(\d+)_(\d+)$/);
+      if(!match||+match[1]>=m.rowCount||+match[2]>=m.frames||!c||!image(c.image)||!Number.isFinite(c.scale)||c.scale<=0||c.scale>16||!Number.isInteger(c.x)||!Number.isInteger(c.y)||Math.abs(c.x)>e.width||Math.abs(c.y)>e.height)throw Error('单帧图片或对齐参数无效');
+    }
+  }
 }
 function validateSkin(v,nested=false){
   const allowed=['skin','portraits','portrait','sprite','actions','expressions','gestures','ai_allowed',...(nested?['id','name']:['skins','active_skin_id','auto_skin'])];

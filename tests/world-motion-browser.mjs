@@ -1,3 +1,4 @@
+import {openAtlasOptions} from './wardrobe-fixture.mjs';
 import {selectPerson,editSkin} from './wardrobe-fixture.mjs';
 // Isolated touch fixture. Observe real Canvas draws, never contact a model.
 import {chromium} from '@playwright/test';
@@ -32,7 +33,7 @@ try{
   const first=await png(['#a22','#2a2','#22a','#aa2']),second=await png(['#b33','#3b3','#33b','#bb3']);
   await writeFile('artifacts/motion-upload.png',first);
   await page.locator('#looks-portrait-file').setInputFiles({name:'林的立绘.png',mimeType:'image/png',buffer:first});await page.waitForFunction(()=>document.querySelector('#looks-portrait-choice').options[0].text==='林的立绘');
-  await page.locator('#looks-tab-sprite').tap();await page.locator('#looks-import-layout').selectOption('legacy');await page.locator('#looks-sprite-file').setInputFiles({name:'林的小人.png',mimeType:'image/png',buffer:first});await page.waitForFunction(()=>document.querySelector('#looks-sprite-name').textContent.includes('已上传'));
+  await page.locator('#looks-tab-sprite').tap();await openAtlasOptions(page,'looks');await page.locator('#looks-import-layout').selectOption('legacy');await page.locator('#looks-sprite-file').setInputFiles({name:'林的小人.png',mimeType:'image/png',buffer:first});await page.waitForFunction(()=>document.querySelector('#looks-sprite-name').textContent.includes('已上传'));
   const pixels=()=>page.locator('#looks-sprite').evaluate(c=>c.getContext('2d').getImageData(10,10,1,1).data.slice(0,3).join(','));
   const idle=await pixels();await page.waitForTimeout(250);assert.equal(await pixels(),idle,'preview starts stationary');
   await page.locator('#looks-preview-play').tap();await page.waitForFunction(()=>document.querySelector('#looks-pose').textContent.includes('第 2 帧'));assert.notEqual(await pixels(),idle);
@@ -40,7 +41,7 @@ try{
   await page.locator('#looks-save').tap();await waitSaved();const a=(await read()).character_looks.a;
   await selectPerson(page,'b');await editSkin(page);await page.locator('#looks-tab-sprite').tap();assert.equal(await page.locator('#looks-sprite-name').textContent(),'尚未上传 · 房间继续使用默认小人');
   await page.locator('#looks-tab-portrait').tap();await page.locator('#looks-portrait-file').setInputFiles({name:'雨的立绘.png',mimeType:'image/png',buffer:second});await page.waitForFunction(()=>document.querySelector('#looks-portrait-choice').options[0].text==='雨的立绘');
-  await page.locator('#looks-tab-sprite').tap();await page.locator('#looks-import-layout').selectOption('legacy');await page.locator('#looks-sprite-file').setInputFiles({name:'雨的小人.png',mimeType:'image/png',buffer:second});await page.waitForFunction(()=>document.querySelector('#looks-sprite-name').textContent.includes('已上传'));await page.locator('#looks-save').tap();await waitSaved();
+  await page.locator('#looks-tab-sprite').tap();await openAtlasOptions(page,'looks');await page.locator('#looks-import-layout').selectOption('legacy');await page.locator('#looks-sprite-file').setInputFiles({name:'雨的小人.png',mimeType:'image/png',buffer:second});await page.waitForFunction(()=>document.querySelector('#looks-sprite-name').textContent.includes('已上传'));await page.locator('#looks-save').tap();await waitSaved();
   let d=await read();assert.deepEqual(d.character_looks.a,a);assert.notDeepEqual(d.character_looks.b.sprite,a.sprite);assert.equal(d.characters[0].identity,'合成甲');assert.equal(d.characters[1].identity,'合成乙');
   // A read that finishes after switching person cannot attach to the new one.
   await selectPerson(page,'a');await editSkin(page);await page.locator('#looks-tab-portrait').tap();
