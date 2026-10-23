@@ -1,0 +1,28 @@
+{
+  "reviewed_on": "2026-10-23",
+  "scope": "Design reference only; no third-party code/art/dependency imported",
+  "sources": [
+    {
+      "url": "https://docs.godotengine.org/en/stable/tutorials/2d/2d_sprite_animation.html",
+      "version": "Godot stable documentation, accessed 2026-10-23",
+      "file": "2d_sprite_animation.html",
+      "review": "Individual image frames, sprite-sheet frames and ordered playback",
+      "modification": "None; implemented in existing T-companion atlas and Canvas editor"
+    },
+    {
+      "url": "https://docs.unity.com/en-us/engine/6000.6/manual/unity2d/sprite/sprite-editor-window-reference/reference",
+      "version": "Unity 6000.6 documentation, accessed 2026-10-23",
+      "file": "Sprite Editor tab reference",
+      "review": "Per-sprite rectangle and normalized/pixel pivot; consistent image placement",
+      "modification": "None; existing feet/center coordinates used in own compositor"
+    }
+  ],
+  "existing_reuse": [
+    "frontend/character-looks.js",
+    "frontend/character-atlas-ui.js",
+    "frontend/world-art.js",
+    "android/app/src/main/java/io/jcin/tcompanion/TLookAssets.java",
+    "android/app/src/main/java/io/jcin/tcompanion/TDevicePlugin.java"
+  ],
+  "private_reference": "User screenshot viewed only; not bundled"
+}

@@ -99,27 +99,36 @@ public class TDevicePlugin extends Plugin {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         // JSON MIME labels vary between Android document providers; validate content after selection.
-        intent.setType("*/*");
+        intent.setType(Boolean.TRUE.equals(call.getBoolean("image",false))?"image/*":"*/*");
         startActivityForResult(call, intent, "openFileResult");
     }
 
     @ActivityCallback private void openFileResult(PluginCall call, ActivityResult result) {
         if (call == null) return;
         if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null || result.getData().getData() == null) {
-            call.reject("已取消恢复文件选择"); return;
+            if(Boolean.TRUE.equals(call.getBoolean("image",false)))call.reject("已取消图片选择","image_cancelled");
+            else call.reject("已取消恢复文件选择");
+            return;
         }
         try (java.io.InputStream input = getContext().getContentResolver().openInputStream(result.getData().getData());
              java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream()) {
             if (input == null) throw new java.io.IOException();
             byte[] buffer = new byte[8192]; int size;
             while ((size = input.read(buffer)) != -1) {
-                if (bytes.size() + size > 20000000) { call.reject("备份文件超过 20 MB"); return; }
+                int limit=Boolean.TRUE.equals(call.getBoolean("image",false))?4000000:20000000;
+                if (bytes.size() + size > limit) { call.reject(limit==4000000?"图片超过 4 MB":"备份文件超过 20 MB"); return; }
                 bytes.write(buffer, 0, size);
+            }
+            if(Boolean.TRUE.equals(call.getBoolean("image",false))){
+                byte[] raw=bytes.toByteArray();android.graphics.BitmapFactory.Options options=new android.graphics.BitmapFactory.Options();options.inJustDecodeBounds=true;
+                android.graphics.BitmapFactory.decodeByteArray(raw,0,raw.length,options);
+                if(options.outWidth<=0||options.outHeight<=0||(long)options.outWidth*options.outHeight>16000000||!("image/png".equals(options.outMimeType)||"image/jpeg".equals(options.outMimeType)||"image/webp".equals(options.outMimeType))){call.reject("请选择有效的 PNG、JPEG 或 WebP 图片，且不超过 1600 万像素");return;}
+                JSObject response=new JSObject();response.put("dataURL","data:"+options.outMimeType+";base64,"+Base64.encodeToString(raw,Base64.NO_WRAP));call.resolve(response);return;
             }
             String data = new String(bytes.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
             new org.json.JSONObject(data);
             JSObject response = new JSObject(); response.put("data", data); call.resolve(response);
-        } catch (Exception error) { call.reject("读取备份失败，请选择有效的 JSON 备份文件"); }
+        } catch (Exception error) { call.reject(Boolean.TRUE.equals(call.getBoolean("image",false))?"读取图片失败，请重新选择图片":"读取备份失败，请选择有效的 JSON 备份文件"); }
     }
 
     @Override protected void handleOnDestroy() {

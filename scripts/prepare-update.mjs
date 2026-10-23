@@ -10,6 +10,6 @@ const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Num
  sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['行走上传改为四方向切帧表，默认支持三列四行，中间站立；保留旧图集','移动动画与相邻格保存并行，减少持续移动时每格之间的停顿；失败恢复已保存位置','表情立绘可自行添加命名和上传；小人表情姿态与物品交互分开管理','小人动作支持自行添加上传，完成场景回复后仅执行已配置的本人姿态','沿用原包名与签名，保留聊天、记忆、世界、皮肤和模型配置']};
+ releaseNotes:['选中朝向和姿势即可上传单张 PNG，整张图集导入收进高级设置','保留单帧原图，支持缩放、左右/上下对齐、站立对照和单格还原','人物皮肤、小人姿态和物品交互共用单格编辑，保留旧图集和原有移动规则','Android 图片选择复用原生文档接口，图片与 JSON 备份分别验证','原包名与原签名覆盖安装，保留聊天、记忆、世界和模型配置']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');

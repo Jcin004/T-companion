@@ -2,6 +2,7 @@
 import {portraitImage,previewSprite} from './world-art.js';
 import {skinChoices,expressionChoices,ACTIONS} from './character-looks.js';
 import {mountAtlasEditor} from './character-atlas-ui.js';
+import {bindCharacterImageInput} from './character-image-input.js';
 const copy=v=>JSON.parse(JSON.stringify(v));
 const fingerprint=v=>JSON.stringify(v,(_,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value);
 const node=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
@@ -39,11 +40,12 @@ export function mountCharacterLooksUI({api,refresh,toast,report}){
   const discard=()=>!dirty()||confirm('有尚未保存的修改，放弃这些修改？');
   const changed=()=>message('有未保存的修改');
   function stop(){walk.stop();action.stop();}
+  function syncSaveButton(){el('looks-save').disabled=busy||walk.isWorking()||action.isWorking();}
   function show(next){stop();generation++;view=next;box.dataset.view=next;for(const [id,value]of [['looks-people','people'],['looks-wardrobe','skins'],['looks-editor','editor']])el(id).hidden=next!==value;el('looks-tabs').hidden=next!=='editor';box.querySelector('.looks-footer').hidden=next!=='editor';el('looks-back').hidden=next==='people';box.querySelector('.looks-scroll').scrollTop=0;message();}
   function title(){el('looks-title').textContent=view==='people'?'人物形象':view==='skins'?(people.find(p=>p.id===owner)?.name||'人物')+'的衣橱':editingSkin==='default'?'默认皮肤':draft.name;el('looks-subtitle').textContent=view==='editor'?'正在编辑 · '+people.find(p=>p.id===owner)?.name:view==='skins'?'选择使用，或进入编辑':'';}
   async function persist(change){
     busy=true;box.setAttribute('aria-busy','true');
-    try{const latest=await api('/character-looks/'+owner),body=change(copy(latest));const result=await api('/character-looks/'+owner,'PATCH',body);catalog=result;await refresh({light:true});return result;}finally{busy=false;box.removeAttribute('aria-busy');}
+    try{const latest=await api('/character-looks/'+owner),body=change(copy(latest));const result=await api('/character-looks/'+owner,'PATCH',body);catalog=result;await refresh({light:true});return result;}finally{busy=false;box.removeAttribute('aria-busy');syncSaveButton();}
   }
   function askName(text,value='',label='皮肤名称'){
     nameBox.querySelector('label').firstChild.textContent=label;
@@ -86,8 +88,8 @@ export function mountCharacterLooksUI({api,refresh,toast,report}){
     for(const [id,label]of entries){const b=node('button');b.dataset[gesture?'gesture':'action']=id;b.append(node('strong',label),node('small',(gesture?draft.gestures[id]?.atlas:draft.actions?.[id])?'已配置图集':gesture?'等待上传':'使用基础动作'));b.onclick=safe(()=>openAction(id,label));cards.append(b);}
   }
   async function openAction(id,label){actionId=id;el('looks-action-cards').hidden=true;el('looks-action-detail').hidden=false;el('looks-add-gesture').hidden=true;el('looks-action-title').textContent=label;el('looks-delete-gesture').hidden=actionCategory!=='gesture';await action.refresh();}
-  const walk=mountAtlasEditor(el('looks-walk-editor'),{getLook:()=>draft,getAtlas:()=>draft?.sprite,setAtlas:v=>{draft.sprite=v;},readImage,changed,error,valid:()=>current()&&tab==='sprite'});
-  const action=mountAtlasEditor(el('looks-action-editor'),{prefix:'looks-action',action:true,getLook:()=>draft,getAtlas:()=>actionCategory==='gesture'?draft?.gestures?.[actionId]?.atlas:draft?.actions?.[actionId],setAtlas:v=>{if(actionCategory==='gesture'){draft.gestures[actionId].atlas=v;return;}draft.actions={...draft.actions};if(v)draft.actions[actionId]=v;else delete draft.actions[actionId];},readImage,changed,error,valid:()=>current()&&tab==='action'&&!!actionId&&!el('looks-action-detail').hidden});
+  const walk=mountAtlasEditor(el('looks-walk-editor'),{getLook:()=>draft,getAtlas:()=>draft?.sprite,setAtlas:v=>{draft.sprite=v;},readImage,changed,error,working:syncSaveButton,valid:()=>current()&&tab==='sprite'});
+  const action=mountAtlasEditor(el('looks-action-editor'),{prefix:'looks-action',action:true,getLook:()=>draft,getAtlas:()=>actionCategory==='gesture'?draft?.gestures?.[actionId]?.atlas:draft?.actions?.[actionId],setAtlas:v=>{if(actionCategory==='gesture'){draft.gestures[actionId].atlas=v;return;}draft.actions={...draft.actions};if(v)draft.actions[actionId]=v;else delete draft.actions[actionId];},readImage,changed,error,working:syncSaveButton,valid:()=>current()&&tab==='action'&&!!actionId&&!el('looks-action-detail').hidden});
   async function switchTab(value){stop();generation++;tab=value;for(const name of ['portrait','sprite','action']){el('looks-tab-'+name).setAttribute('aria-selected',String(tab===name));el('looks-'+name+'-panel').hidden=tab!==name;}message(dirty()?'有未保存的修改':'');box.querySelector('.looks-scroll').scrollTop=0;if(tab==='portrait')await portrait();else if(tab==='sprite')await walk.refresh();else await actionCards();}
   for(const name of ['portrait','sprite','action'])el('looks-tab-'+name).onclick=safe(()=>switchTab(name));
   const resourceId=prefix=>prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
@@ -99,12 +101,12 @@ export function mountCharacterLooksUI({api,refresh,toast,report}){
   el('looks-action-back').onclick=safe(actionCards);
   el('looks-add-skin').onclick=safe(async()=>{if(!catalog)return;const name=await askName('添加皮肤');if(!name)return;const id='skin_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);await persist(c=>{if(c.skins.length>=8)throw Error('每个人物最多八套额外皮肤');return {skins:[...c.skins,{id,name,skin:c.skin,portraits:[],portrait:0,sprite:null,actions:{},ai_allowed:true}]};});await editSkin(id);});
   el('looks-ai-auto').onchange=safe(async()=>{const value=el('looks-ai-auto').checked;try{await persist(()=>({auto_skin:value}));}catch(e){el('looks-ai-auto').checked=!value;throw e;}});
-  el('looks-portrait-file').onchange=safe(async e=>{const file=e.target.files[0];if(!file||!current())return;const token=generation,importToken=++portraitImport,value=draft,selectedEmotion=emotion;e.target.value='';const image=await readImage(file);if(token!==generation||importToken!==portraitImport||!current())return;const old=value.portraits.findIndex(p=>p.emotion===selectedEmotion),entry={name:file.name.replace(/\.[^.]+$/,'').slice(0,40),image,emotion:selectedEmotion};if(old<0){if(value.portraits.length>=24)throw Error('每套皮肤最多二十四张，请先移除不用的图片');value.portraits.push(entry);value.portrait=value.portraits.length-1;}else{value.portraits[old]=entry;value.portrait=old;}changed();await portrait();});
+  bindCharacterImageInput(el('looks-portrait-file'),{error,guard:()=>{const value=draft,selected=emotion;return ()=>current()&&draft===value&&emotion===selected;},onFile:safe(async file=>{if(!file||!current())return;const token=generation,importToken=++portraitImport,value=draft,selectedEmotion=emotion;const image=await readImage(file);if(token!==generation||importToken!==portraitImport||!current())return;const old=value.portraits.findIndex(p=>p.emotion===selectedEmotion),entry={name:file.name.replace(/\.[^.]+$/,'').slice(0,40),image,emotion:selectedEmotion};if(old<0){if(value.portraits.length>=24)throw Error('每套皮肤最多二十四张，请先移除不用的图片');value.portraits.push(entry);value.portrait=value.portraits.length-1;}else{value.portraits[old]=entry;value.portrait=old;}changed();await portrait();})});
   el('looks-portrait-choice').onchange=safe(async()=>{draft.portrait=Number(el('looks-portrait-choice').value);emotion=draft.portraits[draft.portrait]?.emotion||'neutral';changed();await portrait();});
   el('looks-emotion').onchange=safe(async()=>{const value=el('looks-emotion').value,p=draft.portraits[draft.portrait];if(value&&draft.portraits.some((p,i)=>i!==draft.portrait&&p.emotion===value))throw Error('已有该表情，请选择对应表情后替换图片');if(value)p.emotion=value;else delete p.emotion;emotion=value||'neutral';changed();await portrait();});
   el('looks-remove-portrait').onclick=safe(async()=>{draft.portraits.splice(draft.portrait,1);draft.portrait=0;changed();await portrait();});
   el('looks-skin').onchange=safe(async()=>{draft.skin=Number(el('looks-skin').value);changed();if(tab==='portrait')await portrait();else if(tab==='sprite')await walk.refresh();});
-  el('looks-save').onclick=safe(async()=>{const saved=copy(draft),before=copy(original),id=editingSkin;await persist(c=>{const latest=skinChoices(c).find(s=>s.id===id);if(fingerprint(latest)!==fingerprint(before))throw Error('这套皮肤已在别处修改，请返回衣橱重新打开');if(id==='default'){const {id:unused,name,...fields}=saved;return fields;}return {skins:c.skins.map(s=>s.id===id?saved:s)};});original=copy(saved);message('人物形象已保存');toast('已保存'+saved.name);});
+  el('looks-save').onclick=safe(async()=>{if(walk.isWorking()||action.isWorking())throw Error('图片处理中，请稍后保存');const saved=copy(draft),before=copy(original),id=editingSkin;await persist(c=>{const latest=skinChoices(c).find(s=>s.id===id);if(fingerprint(latest)!==fingerprint(before))throw Error('这套皮肤已在别处修改，请返回衣橱重新打开');if(id==='default'){const {id:unused,name,...fields}=saved;return fields;}return {skins:c.skins.map(s=>s.id===id?saved:s)};});original=copy(saved);message('人物形象已保存');toast('已保存'+saved.name);});
   el('looks-back').onclick=safe(async()=>{if(view==='editor'){if(discard())await wardrobe();}else await peoplePage();});
   function close(){if(!busy&&discard())box.close();}
   el('looks-close').onclick=close;box.addEventListener('cancel',e=>{e.preventDefault();close();});

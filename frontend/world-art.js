@@ -11,6 +11,7 @@ async function load(src){
   if(!images.has(src))images.set(src,new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>{images.delete(src);reject(Error('人物或房间图片加载失败'));};image.src=src;}));
   return images.get(src);
 }
+export {load as loadArtImage};
 export async function loadWorldArt(world){
   const sources=[...Object.values(art)];
   for(const look of Object.values(world.looks||{})){if(look.sprite)sources.push(look.sprite.image);for(const action of Object.values(look.actions||{}))sources.push(action.image);for(const g of Object.values(look.gestures||{}))if(g.atlas)sources.push(g.atlas.image);for(const p of look.portraits)sources.push(p.image);}
