@@ -4,7 +4,7 @@ import {ROOM,FURNITURE,collision,distance} from './world-map.js';
 import {findPath} from './world-pathfinding.js';
 import {sceneActionCandidate,sceneActionSteps} from './world-scene-actions.js';
 import {selectSkin,lookFor} from './character-looks.js';
-import {sceneSkinCandidate,presentationText} from './scene-presentation.js';
+import {sceneSkinCandidate,sceneGestureCandidate,presentationText} from './scene-presentation.js';
 import {sceneText} from './world-scene-actions.js';
 export const copy=value=>JSON.parse(JSON.stringify(value));
 export function ensureWorld(data){
@@ -91,6 +91,10 @@ export function applyWorldCommand(data,input,options={}){
     if(f.id==='window')w.curtain=!w.curtain;
     const dx=f.x+f.w/2-p.x,dy=f.y+f.h/2-p.y;w.facing[actor]=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
     content=name+f.action+(f.id==='lamp'?(w.lamp?'现在灯亮着。':'现在灯熄灭。'):f.id==='window'?(w.curtain?'现在窗帘合上。':'现在窗帘拉开。'):'');
+  }else if(command.type==='gesture'){
+    const gesture=lookFor(data,actor).gestures?.[command.gesture_id];
+    if(!gesture?.atlas)throw Error('这个人物尚未配置该小人动作');
+    observe(p);content=name+'做了「'+gesture.name+'」动作。';
   }else if(command.type==='change_skin'){
     const skin=selectSkin(data,actor,command.skin_id,options.ai===true);observe(p);content=name+'换上了「'+skin+'」皮肤。';
   }else if(command.type==='advance'){
@@ -112,6 +116,10 @@ export function completeWorldDialogue(data,turn){
     if(skin){const name=selectSkin(data,s.character_id,skin,true);w.tick++;const event=appendWorldEvent(w,{request_id:'look_'+turn.request_id,type:'change_skin'},data.characters.find(c=>c.id===s.character_id).name+'换上了「'+name+'」皮肤。',w.positions[s.character_id],[s.character_id],heard.map(c=>({owner_id:c.id,kind:'witness',position:copy(c.position)})),{type:'scene_action',dialogue_request_id:turn.request_id,command:{actor_id:s.character_id,type:'change_skin',skin_id:skin}});turn.skin_event_id=event.id;}
   }catch(e){turn.skin_error=e.message;}
   turn.presentation={skin_id:lookFor(data,s.character_id).skin_id};
+  try{
+    const id=sceneGestureCandidate(a.content);
+    if(id){const event=applyWorldCommand(data,{request_id:'gesture_'+turn.request_id,type:'gesture',actor_id:s.character_id,gesture_id:id},{sourceType:'scene_action'});w.events.find(e=>e.id===event.id).source.dialogue_request_id=turn.request_id;turn.presentation.gesture_id=id;}
+  }catch(e){turn.presentation.gesture_error=e.message;}
   try{
     const action=sceneActionCandidate(a.content);if(!action)return;
     let hash=2166136261;for(const c of turn.request_id)hash=Math.imul(hash^c.charCodeAt(0),16777619);

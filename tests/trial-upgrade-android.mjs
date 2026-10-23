@@ -4,7 +4,7 @@ import {adb,connect,evaluate,disconnect} from './embedded-ob-android.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const path='artifacts/integrated-upgrade-before.json';
-const version=Number(process.env.T_VERSION_CODE||22);
+const version=Number(process.env.T_VERSION_CODE||23);
 try{
  await adb('shell','am','start','-n','io.jcin.tcompanion/.MainActivity');await connect();
  for(let i=0;i<150;i++){if(await evaluate(()=>document.querySelector('#status')?.textContent==='记录保存在本机'))break;await new Promise(r=>setTimeout(r,200));}
@@ -13,7 +13,7 @@ try{
  if(process.argv.includes('--snapshot')){
   await evaluate(async()=>{if(!(await Capacitor.Plugins.TLocal.hasKey({profile_id:'legacy'})).value)await Capacitor.Plugins.TLocal.setKey({profile_id:'legacy',value:'synthetic-upgrade-key'});});
   const secrets=(await adb('shell','run-as','io.jcin.tcompanion','sha256sum','shared_prefs/t-secrets.xml')).stdout.split(/\s/)[0];
-  const info=await evaluate(()=>Capacitor.Plugins.TUpdate.info());assert.equal(info.versionCode,Number(process.env.T_OLD_VERSION_CODE||21));
+  const info=await evaluate(()=>Capacitor.Plugins.TUpdate.info());assert.equal(info.versionCode,Number(process.env.T_OLD_VERSION_CODE||22));
   assert.ok(data.character_looks&&Object.values(data.character_looks).some(c=>c.skins?.length),'old skin catalog exists');
   assert.ok(data.world.events.length&&data.memory.events.length&&data.messages.length,'old world/chat/memory exist');
   await writeFile(path,JSON.stringify({data,secrets}));console.log('Saved synthetic previous-version world, skin catalog, chat, memories and encrypted-key fingerprint');

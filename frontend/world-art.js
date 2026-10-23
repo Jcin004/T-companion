@@ -13,7 +13,7 @@ async function load(src){
 }
 export async function loadWorldArt(world){
   const sources=[...Object.values(art)];
-  for(const look of Object.values(world.looks||{})){if(look.sprite)sources.push(look.sprite.image);for(const action of Object.values(look.actions||{}))sources.push(action.image);for(const p of look.portraits)sources.push(p.image);}
+  for(const look of Object.values(world.looks||{})){if(look.sprite)sources.push(look.sprite.image);for(const action of Object.values(look.actions||{}))sources.push(action.image);for(const g of Object.values(look.gestures||{}))if(g.atlas)sources.push(g.atlas.image);for(const p of look.portraits)sources.push(p.image);}
   for(const src of new Set(sources))ready.set(src,await load(src));
 }
 export function actorPoint(p,width,height){return {x:(p.x+.5)/12*width,y:(.4+(p.y-3)*.065)*height};}
@@ -26,10 +26,11 @@ export function drawRoom(c,width,height,state){
 }
 export function drawActor(c,world,id,p,pose={},time=performance.now()){
   const width=c.canvas.width,height=c.canvas.height,look=world.looks[id],point=actorPoint(p,width,height);
-  const sprite=pose.using&&look.actions?.[pose.action]||look.sprite,m=atlasMeta(sprite),image=ready.get(sprite?.image||art.sprites),frames=m.frames;
+  const actionSprite=pose.gesture?look.gestures?.[pose.gesture]?.atlas:pose.using&&look.actions?.[pose.action];
+  const sprite=actionSprite||look.sprite,m=atlasMeta(sprite),image=ready.get(sprite?.image||art.sprites),frames=m.frames;
   const row=m.rows[pose.direction||world.state.facing[id]||'down'];
   const cols=sprite?frames:12,fw=image.width/cols,fh=image.height/m.rowCount;
-  const frame=pose.using&&look.actions?.[pose.action]?Math.min(frames-1,Math.floor((pose.progress||0)*frames)):pose.walking?m.order[walkFrame(pose.distance||0,m.order.length)]:m.idle,col=sprite?frame:look.skin*4+frame;
+  const frame=actionSprite?m.order[Math.min(m.order.length-1,Math.floor((pose.progress||0)*m.order.length))]:pose.walking?m.order[walkFrame(pose.distance||0,m.order.length)]:m.idle,col=sprite?frame:look.skin*4+frame;
   const size=Math.round(width*.24),lift=pose.using?Math.sin(time/90)*2:0;
   const spriteWidth=size*Math.min(1,fw/fh),spriteHeight=size*Math.min(1,fh/fw);
   c.fillStyle='#342b3340';c.beginPath();c.ellipse(point.x,point.y-2,size*.25,size*.07,0,0,Math.PI*2);c.fill();

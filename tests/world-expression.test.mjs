@@ -73,3 +73,25 @@ test('presentation tags leave literal code examples intact and do not execute un
  assert.equal(presentationText('[情绪:happy]你好\n[换装:night]'),'你好');assert.deepEqual(presentationLines('```\n[换装:night]\n```').skins,[]);
  assert.equal(atlasMeta({frames:3,idle_frame:1}).order.join(','),'1,0,1,2');
 });
+import {presentationOptions} from '../frontend/character-looks.js';
+test('custom portrait emotions and gesture atlases stay owned, persist and enter only own display options',async()=>{
+ const {s,restart}=await fixture();const atlas={image,frames:3,row_count:1,idle_frame:1,walk_order:[1,0,1,2]};
+ await s.api('/character-looks/a','PATCH',{expressions:{soft_smile:'微笑'},portraits:[{name:'微笑',emotion:'soft_smile',image}],gestures:{wave:{name:'挥手',atlas}}});
+ const options=presentationOptions(s.data,'a');assert.equal(options.expression_names.soft_smile,'微笑');assert.deepEqual(options.gestures,[{id:'wave',name:'挥手'}]);assert.doesNotMatch(JSON.stringify(options),/base64/);assert.deepEqual(presentationOptions(s.data,'b').gestures,[]);
+ assert.deepEqual((await restart()).data.character_looks,s.data.character_looks);assert.deepEqual(validateBackup(await s.api('/backup')).character_looks,s.data.character_looks);
+ await assert.rejects(s.api('/character-looks/a','PATCH',{expressions:{neutral:'覆盖内置'}}),/名称/);
+ await assert.rejects(s.api('/character-looks/a','PATCH',{gestures:{bad:{name:'无效',atlas:{image,frames:0}}}}),/图集/);
+ await assert.rejects(s.api('/character-looks/a','PATCH',{expressions:Object.fromEntries(Array.from({length:17},(_,i)=>['e'+i,'表情']))}),/分类/);
+});
+test('completed own gesture creates one observed event, unknown or interrupted gestures create none',async()=>{
+ for(const mode of ['valid','unknown','interrupted']){
+  const f=await fixture(),{s,scene}=f;await s.api('/character-looks/a','PATCH',{gestures:{wave:{name:'挥手',atlas:{image,frames:3,row_count:1}}}});
+  const positions=copy(s.data.world.positions),lamp=s.data.world.lamp;
+  f.answer('[情绪:happy]你好\n[小人动作:'+(mode==='unknown'?'foreign':'wave')+']');if(mode==='interrupted')f.interrupt();
+  try{await s.stream(scene.id,'你好','gesture_test',()=>{});}catch{}
+  const events=s.data.world.events.filter(e=>e.source.command?.type==='gesture');assert.equal(events.length,mode==='valid'?1:0,mode);
+  if(mode==='valid'){validateWorld(s.data);assert.equal(events[0].source.command.actor_id,'a');assert.ok(events[0].observations.some(o=>o.owner_id==='a'));assert.match(worldSource(s.data,events[0].id,'a').content,/挥手/);await s.stream(scene.id,'你好','gesture_test',()=>{});assert.equal(s.data.world.events.filter(e=>e.source.command?.type==='gesture').length,1);}
+  assert.deepEqual(s.data.world.positions,positions);assert.equal(s.data.world.lamp,lamp);
+ }
+ assert.equal(presentationText('你好\n[小人动作:wave]'),'你好');assert.deepEqual(presentationLines('```\n[小人动作:wave]\n```').gestures,[]);
+});
