@@ -1,11 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {spriteRect,locateCalibration,defaultCalibration,validateCalibration,frameView} from '../frontend/sprite-calibration.js';
+import {spriteRect,locateCalibration,defaultCalibration,validateCalibration,frameView,calibrationForFrame,fittingRect,fittingPercent,fitCalibration} from '../frontend/sprite-calibration.js';
+import {SPRITE_STANDARD,referenceView} from '../frontend/sprite-reference.js';
 import {validateAtlas} from '../frontend/character-looks.js';
 import {LocalService,emptyData,validateBackup} from '../frontend/local-service.js';
 const image='data:image/png;base64,AAAA';
 const calibrated=()=>({image,frames:3,calibration:{version:1,foot_x:.5,foot_y:.9,body_height:.7,world_height:.20}});
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
+
+test('fixed standard, legacy projection and atlas translation keep one scale across frames',()=>{
+  assert.deepEqual(SPRITE_STANDARD,{width:64,height:96,bodyHeight:80,footX:32,footY:88,worldHeight:.20});
+  const reference=referenceView(192,288);assert.deepEqual(reference,{x:96,y:264,height:240});
+  let a=calibrationForFrame(64,96),r=fittingRect(64,96,192,288);
+  near(fittingPercent(a),100);near(r.height,288);
+  // Bring feet at source y=88 to the fixed y=264 line without resizing.
+  const moved=fitCalibration(a,{footY:88/96});
+  const translated=fittingRect(64,96,192,288,moved);
+  near(translated.height,r.height);near(translated.y+translated.height*88/96,264);
+  assert.deepEqual(referenceView(192,288),reference);
+  for(const percent of [30,100,150,250]){
+    const resized=fitCalibration(moved,{percent});validateCalibration(resized);
+    near(fittingPercent(resized),percent);
+    const rect=fittingRect(64,96,192,288,resized);
+    near(rect.y+rect.height*resized.foot_y,reference.y);
+    assert.deepEqual(referenceView(192,288),reference);
+  }
+  const old={...defaultCalibration(),foot_y:.9,body_height:.05,world_height:.35};
+  near(calibrationForFrame(64,96,old).world_height/old.body_height,7);
+  const oldMoved=fitCalibration(old,{footX:.45});near(oldMoved.world_height/oldMoved.body_height,7);
+  const before=spriteRect(64,96,192*.24,{x:96,y:264});
+  const unedited=spriteRect(64,96,192*a.world_height,{x:96,y:264},a);
+  assert.deepEqual(unedited,before,'opening the editor does not migrate the old skin');
+});
 
 test('real feet and body height survive transparent margins without per-frame fitting',()=>{
   const ground={x:140,y:240};

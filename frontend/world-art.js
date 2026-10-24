@@ -3,6 +3,7 @@
 const root=new URL('./assets/world/',import.meta.url).href;
 import {atlasMeta} from './character-looks.js';
 import {spriteRect} from './sprite-calibration.js';
+import {SPRITE_STANDARD,drawBodyReference} from './sprite-reference.js';
 const images=new Map(),ready=new Map();
 export const art={room:root+'warm-room.png',sprites:root+'residents.png',portraits:root+'portraits.png'};
 // One cycle spans two tiles. The first frame is also the resting pose.
@@ -35,7 +36,8 @@ export function drawActor(c,world,id,p,pose={},time=performance.now()){
   const frame=actionSprite?m.order[Math.min(m.order.length-1,Math.floor((pose.progress||0)*m.order.length))]:pose.walking?m.order[walkFrame(pose.distance||0,m.order.length)]:m.idle,col=sprite?frame:look.skin*4+frame;
   const size=Math.round(width*(sprite?.calibration?.world_height??.24)),lift=pose.using?Math.sin(time/90)*2:0;
   const rect=spriteRect(fw,fh,size,point,sprite?.calibration);
-  c.fillStyle='#342b3340';c.beginPath();c.ellipse(point.x,point.y-2,size*.25,size*.07,0,0,Math.PI*2);c.fill();
+  const shadowSize=sprite?.calibration?rect.height*SPRITE_STANDARD.bodyHeight/SPRITE_STANDARD.height:size;
+  c.fillStyle='#342b3340';c.beginPath();c.ellipse(point.x,point.y-2,shadowSize*.25,shadowSize*.07,0,0,Math.PI*2);c.fill();
   c.drawImage(image,col*fw,row*fh,fw,fh,sprite?.calibration?rect.x:Math.round(rect.x),sprite?.calibration?rect.y+lift:Math.round(rect.y+lift),rect.width,rect.height);
   if(pose.using&&pose.action==='plant'){
     const hand=point.x+(world.state.facing[id]==='left'?-1:1)*size*.19,y=point.y-size*.40;
@@ -43,14 +45,20 @@ export function drawActor(c,world,id,p,pose={},time=performance.now()){
     c.fillStyle='#a4d4de';for(let i=0;i<3;i++)c.fillRect(hand-11-i*3,y+10+(Math.floor(time/90)+i)%4*3,2,4);
   }
   c.font=Math.round(width/36)+'px sans-serif';c.textAlign='center';c.fillStyle='#fff3db';c.strokeStyle='#503b35';c.lineWidth=3;
-  const name=id==='user'?'我':world.residents.find(r=>r.id===id)?.name||'';c.strokeText(name,point.x,point.y-size-3,width/3);c.fillText(name,point.x,point.y-size-3,width/3);
+  const name=id==='user'?'我':world.residents.find(r=>r.id===id)?.name||'',nameY=sprite?.calibration?Math.min(point.y-size-3,rect.y-3):point.y-size-3;c.strokeText(name,point.x,nameY,width/3);c.fillText(name,point.x,nameY,width/3);
 }
-export async function previewRoom(canvas,look,direction='down',distance=null,valid=()=>true){
+export async function previewRoom(canvas,look,direction='down',distance=null,valid=()=>true,reference=false){
   const world={looks:{user:look},residents:[],state:{facing:{user:direction},lamp:true,curtain:false}};
   await loadWorldArt(world);if(!valid())return;
   const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
   drawRoom(ctx,canvas.width,canvas.height,world.state);
-  drawActor(ctx,world,'user',{x:5,y:7},{direction,walking:distance!==null,distance:distance||0});
+  if(reference){
+    const point=actorPoint({x:3,y:7},canvas.width,canvas.height);
+    drawBodyReference(ctx,point,canvas.width*SPRITE_STANDARD.worldHeight);
+    ctx.fillStyle='#fff3db';ctx.strokeStyle='#503b35';ctx.lineWidth=2;ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.strokeText('标准素体',point.x,point.y+15);ctx.fillText('标准素体',point.x,point.y+15);
+  }
+  drawActor(ctx,world,'user',{x:6,y:7},{direction,walking:distance!==null,distance:distance||0});
 }
 export async function portraitImage(look,avatar,emotion){
   const expression=emotion&&(look.portraits.find(p=>p.emotion===emotion)||look.portraits.find(p=>p.emotion==='neutral'));

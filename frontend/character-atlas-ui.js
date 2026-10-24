@@ -37,7 +37,7 @@ export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAt
   function load(){selectedFrame=null;const sprite=getAtlas(),m=atlasMeta(sprite||(action?{frames:4,row_count:1}:{frames:3,idle_frame:1}));const standard=m.rowCount===4&&DIRECTIONS.every((d,i)=>m.rows[d]===i);el('import-layout').value=!sprite?(action?'action':'three'):standard&&m.frames===3&&m.idle===1?'three':standard&&m.frames===4&&m.idle===0?'legacy':m.rowCount===1?'action':'custom';el('frames').value=m.frames;el('row-count').value=m.rowCount;el('idle-frame').value=m.idle+1;el('walk-order').value=m.order.map(i=>i+1).join(',');for(const d of DIRECTIONS)el('row-'+d).value=m.rows[d]+1;}
   async function draw(){
     if(!valid())return;const token=generation,sprite=getAtlas(),m=meta(),selected=playing?order(m)[frame%order(m).length]:selectedFrame??m.idle;
-    if(sprite&&!playing)await drawFrameGuide(el('sprite'),sprite,el('direction').value,selected,getLook(),()=>token===generation&&valid(),calibration?.guides()??true);else await previewSprite(el('sprite'),sprite?{...getLook(),sprite}:getLook(),el('direction').value,sprite?selected:fallbackFrame(getLook(),m,selected,action),()=>token===generation&&valid());
+    if(sprite)await drawFrameGuide(el('sprite'),sprite,el('direction').value,selected,getLook(),()=>token===generation&&valid(),calibration?.guides()??true,!playing);else await previewSprite(el('sprite'),getLook(),el('direction').value,fallbackFrame(getLook(),m,selected,action),()=>token===generation&&valid());
     if(token!==generation||!valid())return;
     el('pose').textContent=(playing?(action?'播放中':selected===m.idle?'站立':'播放中'):action?'预览停止':selected===m.idle?'站立':'选中姿势')+' · 第 '+(selected+1)+' 帧';
     el('sprite-name').textContent=sprite?.frame_editor?'已替换 '+Object.keys(sprite.frame_editor.cells).length+' 格 · 其他格保留原图':sprite?'已上传图集 · 点击格子检查朝向和姿势':action?'尚未上传动作图':'尚未上传 · 房间继续使用默认小人';
@@ -51,7 +51,7 @@ export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAt
       const label=document.createElement('strong');label.textContent={down:'向下',left:'向左',right:'向右',up:'向上'}[direction];grid.append(label);
       for(let f=0;f<m.frames;f++){
         const b=document.createElement('button'),c=document.createElement('canvas');c.width=72;c.height=80;b.type='button';b.dataset.direction=direction;b.dataset.frame=f;b.setAttribute('aria-label',label.textContent+' · '+(f===m.idle?'站立':'第 '+(f+1)+' 帧'));b.classList.toggle('idle-frame',!action&&f===m.idle);b.append(c);grid.append(b);
-        b.onclick=safe(async()=>{stop();el('direction').value=direction;selectedFrame=f;selection();await draw();});
+        b.onclick=safe(async()=>{stop();el('direction').value=direction;selectedFrame=f;selection();await draw();await calibration.refresh();});
         if(sprite)await previewSprite(c,{...getLook(),sprite},direction,f,()=>token===generation&&valid());
         else{const x=c.getContext('2d');x.fillStyle='#a88b71';x.font='13px sans-serif';x.textAlign='center';x.fillText(action?'第 '+(f+1)+' 帧':f===m.idle?'站立':'迈腿',36,45);}
         if(token!==generation||!valid())return;
@@ -71,11 +71,13 @@ export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAt
   async function mutate(change,{resetSelection=false}={}){if(!valid())return;stop();const token=generation,look=getLook();pending++;working();root.setAttribute('aria-busy','true');try{const next=await change();if(token!==generation||!valid()||getLook()!==look)return;setAtlas(next);if(resetSelection)selectedFrame=null;changed();await refresh();}finally{pending--;root.setAttribute('aria-busy',String(pending>0));working();}}
   bindCharacterImageInput(el('frame-file'),{error,guard:capture,onFile:async file=>{if(!valid())return;const slot=key(),old=getAtlas(),look=getLook(),m=meta(),layout={frames:m.frames,row_count:m.rowCount,rows:m.rows,idle_frame:m.idle,walk_order:m.order};await mutate(async()=>{const image=await readImage(file,{sprite:true,frames:1,row_count:1}),atlas=await initializeFrames(old,look,layout,image,action);return replaceFrame(atlas,slot,image);});}});
   async function align(){const atlas=getAtlas(),e=atlas?.frame_editor;if(!e?.cells[key()])return;const x=Number(el('frame-x').value),y=Number(el('frame-y').value),scale=e.scale*Number(el('frame-scale').value)/100;if(!Number.isInteger(x)||!Number.isInteger(y)||Math.abs(x)>e.width||Math.abs(y)>e.height)throw Error('位置需要在当前格子的宽高范围内');await mutate(()=>replaceFrame(atlas,key(),null,{x,y,scale}));}
-  for(const n of ['frame-scale','frame-x','frame-y'])el(n).oninput=safe(align);
+  for(const n of ['frame-scale','frame-x','frame-y'])el(n).onchange=safe(align);
+  el('frame-scale').oninput=()=>{el('scale-value').textContent=el('frame-scale').value+'%';};
   el('align-reset').onclick=safe(()=>{const a=getAtlas();return mutate(()=>replaceFrame(a,key(),null,{x:0,y:0,scale:a.frame_editor.scale}));});
   el('frame-remove').onclick=safe(()=>{const a=getAtlas(),slot=key();return mutate(()=>removeFrame(a,slot));});
   el('reset-sprite').onclick=safe(async()=>{setAtlas(null);changed();await refresh();});
   calibration=mountCalibration(root,{prefix,canvas:el('sprite'),getAtlas,getLook,key,direction:()=>el('direction').value,valid,error,draw,commit:next=>mutate(async()=>next),move:(dx,dy)=>{const a=getAtlas(),cell=a?.frame_editor?.cells[key()];if(!cell)return;return mutate(()=>replaceFrame(a,key(),null,{x:Math.max(-a.frame_editor.width,Math.min(a.frame_editor.width,cell.x+dx)),y:Math.max(-a.frame_editor.height,Math.min(a.frame_editor.height,cell.y+dy))}));}});
-  adjust.querySelector('p').textContent='数值调整只影响这一格，也可以直接拖动上面的预览。';
+  adjust.querySelector('p').textContent='仅修正这一帧；以固定素体和半透明站立姿势对照。';
+  el('frame-scale').closest('label').firstChild.textContent='这一帧的大小 ';
   return {refresh,stop,draw,isWorking:()=>pending>0};
 }

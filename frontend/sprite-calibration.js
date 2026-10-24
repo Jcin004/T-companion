@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Normalized frame coordinates. No storage, image decoding or UI ownership.
+import {FRAME_WORLD_HEIGHT,SPRITE_STANDARD,referenceView,drawBodyReference} from './sprite-reference.js';
 export const defaultCalibration=()=>({version:1,foot_x:.5,foot_y:1,body_height:1,world_height:.20});
 
 export function validateCalibration(value){
@@ -36,13 +37,27 @@ export function locateCalibration(previous,mode,x,y){
   validateCalibration(next);return next;
 }
 
-export function drawCalibrationGuide(ctx,view,calibration){
-  const a=calibration||defaultCalibration(),x=view.x+a.foot_x*view.width,y=view.y+a.foot_y*view.height,h=a.body_height*view.height;
-  ctx.save();ctx.strokeStyle='#517665';ctx.lineWidth=1;ctx.setLineDash([4,3]);
-  ctx.beginPath();ctx.moveTo(x,view.y);ctx.lineTo(x,view.y+view.height);ctx.moveTo(view.x,y);ctx.lineTo(view.x+view.width,y);
-  ctx.moveTo(view.x,y-h);ctx.lineTo(view.x+view.width,y-h);ctx.stroke();
-  // A measuring silhouette, not a wearable body or generated character asset.
-  ctx.fillStyle='#51766518';ctx.beginPath();ctx.ellipse(x,y-h*.77,h*.18,h*.23,0,0,Math.PI*2);ctx.fill();ctx.stroke();
-  ctx.beginPath();ctx.moveTo(x-h*.13,y-h*.54);ctx.lineTo(x+h*.13,y-h*.54);ctx.lineTo(x+h*.16,y-h*.22);ctx.lineTo(x+h*.10,y);ctx.lineTo(x-h*.10,y);ctx.lineTo(x-h*.16,y-h*.22);ctx.closePath();ctx.fill();ctx.stroke();
-  ctx.setLineDash([]);ctx.fillStyle='#315b49';ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();ctx.restore();
+export function drawCalibrationGuide(ctx){
+  const ref=referenceView(ctx.canvas.width,ctx.canvas.height);
+  drawBodyReference(ctx,ref,ref.height,{labels:true});
+}
+
+// Preserve the world projection of old skins until the user changes the draft.
+export function calibrationForFrame(width,height,calibration){
+  return calibration||{...defaultCalibration(),world_height:.24*Math.min(1,height/width)};
+}
+export function fittingRect(width,height,canvasWidth,canvasHeight,calibration){
+  const ref=referenceView(canvasWidth,canvasHeight),a=calibrationForFrame(width,height,calibration);
+  return spriteRect(width,height,ref.height*a.world_height/SPRITE_STANDARD.worldHeight,ref,a);
+}
+export const fittingPercent=a=>a.world_height/a.body_height/FRAME_WORLD_HEIGHT*100;
+
+// v1 stores scale as world_height/body_height. Rebalance that fraction to keep
+// its existing validation and backup format while translating without resizing.
+export function fitCalibration(previous,{percent,footX=previous.foot_x,footY=previous.foot_y}={}){
+  const effective=percent===undefined?previous.world_height/previous.body_height:FRAME_WORLD_HEIGHT*Math.max(30,Math.min(250,percent))/100;
+  const y=Math.max(.05,.06/effective,Math.min(1,footY));
+  const body=Math.max(.05,.06/effective,Math.min(y,.35/effective,previous.body_height));
+  const next={version:1,foot_x:Math.max(0,Math.min(1,footX)),foot_y:y,body_height:body,world_height:Math.max(.06,Math.min(.35,effective*body))};
+  validateCalibration(next);return next;
 }
