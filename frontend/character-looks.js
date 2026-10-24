@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Visual assets are separate from roster identity and model context.
 import {syncArchivePortraits,validateArchive} from './character-archive.js';
+import {validateCalibration} from './sprite-calibration.js';
 const copy=x=>JSON.parse(JSON.stringify(x));
 const image=s=>typeof s==='string'&&s.length<=1200000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(s);
 export const DIRECTIONS=['down','left','right','up'];
@@ -15,6 +16,7 @@ export function atlasMeta(sprite){
 }
 export function validateAtlas(s){
   if(!s)return;
+  validateCalibration(s.calibration);
   if(!image(s.image)||!Number.isInteger(s.frames)||s.frames<1||s.frames>8)throw Error('行走图集格式错误');
   const m=atlasMeta(s);
   if(!Number.isInteger(m.rowCount)||m.rowCount<1||m.rowCount>16||!Number.isInteger(m.idle)||m.idle<0||m.idle>=m.frames||DIRECTIONS.some(d=>!Number.isInteger(m.rows[d])||m.rows[d]<0||m.rows[d]>=m.rowCount)||!Array.isArray(m.order)||!m.order.length||m.order.length>16||m.order.some(f=>!Number.isInteger(f)||f<0||f>=m.frames))throw Error('图集的方向、站立帧或播放顺序无效');

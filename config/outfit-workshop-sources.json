@@ -628,5 +628,13 @@
     }
   ],
   "artwork_policy": "No user screenshots, Stardew artwork, LPC sprites or upstream sample icons imported. Each actual asset needs separate origin/license/author evidence.",
-  "verification": "Source-file SHA-256 and Git blob hashes checked against pinned API tree metadata; candidate runtime and Android behavior untested."
+  "verification": "Source-file SHA-256 and Git blob hashes checked against pinned API tree metadata; candidate runtime and Android behavior untested.",
+  "experiments": {
+    "entry": "tests/outfit-reuse-probe.mjs",
+    "cache": "Ignored local source cache; --fetch retrieves immutable URLs and verifies recorded SHA-256 and Git blob before execution.",
+    "scope": "Isolated test only: Piskel connected flood fill with integer Frame adapter; LPC drawFrameToFrame extracted and transpiled for the probe. No upstream bytes added to product runtime.",
+    "browser": "Passed offline Edge: enclosed/edge fill, same-color no-op and real Canvas frame copy without stretching.",
+    "android": "Pending target WebView execution.",
+    "decision": "Keep existing frame editor for calibration; neither Piskel application nor Cropper UI is needed for foot picking and per-cell drag. Retain fill/frame-copy candidates for the later layered drawing stage."
+  }
 }
