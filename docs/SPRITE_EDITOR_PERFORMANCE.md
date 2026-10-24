@@ -55,3 +55,16 @@
 ## 后续绘画约定
 
 尚未新增绘画功能。按用户确认，画笔是吸附固定网格的整格填色，支持改变逻辑单位和辅助线；画布放大与格子单位分别控制，详见 `OUTFIT_WORKSHOP_PLAN.md`。先完成母版四方向与姿势，再实现衣服独立图层和逐笔撤销。
+
+
+## 正式交付
+
+- 源码/构建提交：`6cd8cea7f1379a615be9e04e13235d9d60bcfcf6`，分支 `fix/sprite-editor-performance`，草稿 [PR #31](https://github.com/Jcin004/T-companion/pull/31)，基于 `feat/fixed-sprite-reference`，不合并 main。
+- [0.18.2 试用下载](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.18.2)：原包名、原签名，versionCode 28。APK 80,153,563 字节，SHA-256 `664392206de0210f5f26d35832cc5c06a63dcefdccb8fa020a2c16b893dafe30`。
+- 匹配 `git archive` 源码 11,824,997 字节，SHA-256 `9fa67ae5fda2c69b24d1a70c1b910d30e0691bd3bcd22266053bd2a6c1b2e460`。APK 内 source-commit 与所有 frontend 文件逐项匹配此提交；七份发布附件包含源码、许可和校验清单，静态更新清单同步推进。
+- 最终签名 APK 再次覆盖安装并运行原生校准/压力测试：64 个绘制样本，帧间隔 p95 29ms、最大 110ms；移动服务 12～20ms；点击到后续两帧 18/21ms。与上表前一次同规则测试的波动分开记录，不当作稳定真机帧率。
+- 原存档与加密凭据完整指纹仍与 code27 升级前一致；最终 APK 源码标记核对通过。仅专用合成模拟器，不读取真实聊天或模型密钥值。
+- 141 Node、103 Python、六组浏览器、原生覆盖/触屏/重启和来源/密钥扫描通过；[GitHub Actions](https://github.com/Jcin004/T-companion/actions/runs/40127442472) 成功。快照扫描 511 个 blob，无密钥/隐私阻断。
+- 安装后从世界 → 头像 → 人物 → 皮肤 → 站立行走体验；可以直接覆盖旧版，保留应用数据。未验证真机与真实模型；本轮未重新验收 Android 原生网络的更新检查/下载，不把桌面渠道可达当作手机网络验证。
+
+本地 APK：`artifacts/T-companion-0.18.2-trial.apk`；匹配源码：`artifacts/T-companion-0.18.2-source.zip`。本文件后续交付记录提交与 APK 构建提交区分，APK 不冒用文档提交作为构建源码。
