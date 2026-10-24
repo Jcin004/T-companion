@@ -25,10 +25,10 @@ async function fingerprint(){
 try{
   await adb('shell','am','start','-n','io.jcin.tcompanion/.MainActivity');await connect();await wait(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
   if(process.argv.includes('--capture')){
-    const expected=await fingerprint();assert.equal(expected.version,25);await writeFile('artifacts/calibration-upgrade-before.json',JSON.stringify(expected,null,2));console.log('Captured synthetic code25 business/credential fingerprints');
+    const expected=await fingerprint();assert.equal(expected.version,26);await writeFile('artifacts/calibration-upgrade-before.json',JSON.stringify(expected,null,2));console.log('Captured synthetic code26 business/credential fingerprints');
   }else{
     const expected=JSON.parse(await readFile('artifacts/calibration-upgrade-before.json','utf8')),after=await fingerprint();
-    assert.equal(after.version,26);assert.equal(after.data,expected.data);assert.equal(after.credentials,expected.credentials);
+    assert.equal(after.version,27);assert.equal(after.data,expected.data);assert.equal(after.credentials,expected.credentials);
     before=await read();const owner=before.characters[0].id;
     const probe=await evaluate(source=>(0,eval)(source),await outfitProbeSource());assert.equal(probe.lpcCanvasCopy,true);assert.equal(probe.piskelFill,true);
     await evaluate(async owner=>{
@@ -40,17 +40,25 @@ try{
     await tap('[data-app=world]');await tap('#world-menu-open');await tap('.world-menu-grid button:first-child');
     await tap('[data-person="'+owner+'"]');await tap('.looks-skin-card[data-skin=default] .looks-card-controls button:last-child');await tap('#looks-tab-sprite');
     await wait(()=>!document.querySelector('#looks-walk-editor .looks-calibration').hidden);
-    await tap('#looks-walk-editor [data-mode=foot]');await tap('#looks-sprite',.5,.875);
-    await tap('#looks-walk-editor [data-mode=head]');await tap('#looks-sprite',.5,.1875);await save();
-    let atlas=(await read()).character_looks[owner].sprite;assert.equal(atlas.calibration.foot_y,.875);assert.equal(atlas.calibration.body_height,.6875);
-    await tap('#looks-walk-editor [data-mode=drag]');const p=await position('#looks-sprite',.5,.5);
-    await adb('shell','input','swipe',String(p.x),String(p.y),String(p.x+33),String(p.y),'400');await pause(300);await save();
-    atlas=(await read()).character_looks[owner].sprite;assert.ok(atlas.frame_editor.cells['0_1'].x>0,'native drag updates only the selected frame');
-    await tap('#looks-walk-editor [data-mode=foot]');await tap('#looks-walk-editor [data-zoom="2"]');await tap('#looks-walk-editor [data-zoom="1"]');
+    assert.equal(await evaluate(()=>document.querySelectorAll('#looks-walk-editor [data-mode=head],[data-mode=foot]').length),0);
+    const initial=await read();
+    const p=await position('#looks-sprite',.5,.5);
+    await adb('shell','input','swipe',String(p.x),String(p.y),String(p.x),String(p.y+66),'500');await pause(300);await save();
+    let atlas=(await read()).character_looks[owner].sprite;
+    assert.ok(atlas.calibration.foot_y<1,'native drag moves group relative to fixed ground');
+    assert.deepEqual(atlas.frame_editor,initial.character_looks[owner].sprite.frame_editor,'group drag preserves originals and cell settings');
+    const ratio=atlas.calibration.world_height/atlas.calibration.body_height;
+    assert.ok(Math.abs(ratio-.24)<1e-8,'translation preserves projected scale');
+    await tap('#looks-walk-editor [data-zoom="2"]');await tap('#looks-walk-editor [data-zoom="1"]');
+    await tap('#looks-walk-editor .calibration-frame-fine>summary');await tap('#looks-walk-editor [data-mode=frame]');
+    const f=await position('#looks-sprite',.5,.5);
+    await adb('shell','input','swipe',String(f.x),String(f.y),String(f.x+33),String(f.y),'400');await pause(300);await save();
+    atlas=(await read()).character_looks[owner].sprite;assert.ok(atlas.frame_editor.cells['0_1'].x>0,'native advanced drag edits selected frame');
+    await tap('#looks-walk-editor .calibration-frame-fine>summary');
     await position('#looks-sprite');await pause(400);await shot('editor');await position('#looks-room-preview');await pause(500);await shot('room-preview');
     await tap('#looks-close');await shot('world');const saved=await read();await restart();await wait(()=>document.querySelector('#status')?.textContent==='记录保存在本机');assert.deepEqual(await read(),saved);
-    await writeFile('artifacts/calibration-native.json',JSON.stringify({upgrade25to26:true,businessAndCredentialsPreserved:true,nativeFootHeadPicking:true,nativeDrag:true,zoomButtons:true,sqliteRestart:true,nativeScreencaps:true,reuseProbe:probe,paidModelCalls:0},null,2));
-    console.log('PASS: original-signature upgrade, native foot/head touch, frame drag, zoom, SQLite restart and offline Piskel/LPC probe');
+    await writeFile('artifacts/calibration-native.json',JSON.stringify({upgrade26to27:true,businessAndCredentialsPreserved:true,fixedReferenceGroupDrag:true,nativeDrag:true,zoomButtons:true,sqliteRestart:true,nativeScreencaps:true,reuseProbe:probe,paidModelCalls:0},null,2));
+    console.log('PASS: original-signature upgrade, fixed-reference group touch, frame drag, zoom, SQLite restart and offline Piskel/LPC probe');
   }
 }finally{
   if(before){await evaluate(async before=>{const {NativePersistence}=await import('/assets/local-service.js'),p=new NativePersistence(Capacitor.Plugins.TLocal);await p.begin();try{await p.load();await p.save(before);}finally{await p.end();}},before);await restart();}

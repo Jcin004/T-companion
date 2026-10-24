@@ -34,7 +34,8 @@ try{
   await writeFile('artifacts/motion-upload.png',first);
   await page.locator('#looks-portrait-file').setInputFiles({name:'林的立绘.png',mimeType:'image/png',buffer:first});await page.waitForFunction(()=>document.querySelector('#looks-portrait-choice').options[0].text==='林的立绘');
   await page.locator('#looks-tab-sprite').tap();await openAtlasOptions(page,'looks');await page.locator('#looks-import-layout').selectOption('legacy');await page.locator('#looks-sprite-file').setInputFiles({name:'林的小人.png',mimeType:'image/png',buffer:first});await page.waitForFunction(()=>document.querySelector('#looks-sprite-name').textContent.includes('已上传'));
-  const pixels=()=>page.locator('#looks-sprite').evaluate(c=>c.getContext('2d').getImageData(10,10,1,1).data.slice(0,3).join(','));
+  await page.locator('#looks-walk-editor .calibration-guide input').uncheck();
+  const pixels=()=>page.locator('#looks-sprite').evaluate(c=>c.getContext('2d').getImageData(96,144,1,1).data.slice(0,3).join(','));
   const idle=await pixels();await page.waitForTimeout(250);assert.equal(await pixels(),idle,'preview starts stationary');
   await page.locator('#looks-preview-play').tap();await page.waitForFunction(()=>document.querySelector('#looks-pose').textContent.includes('第 2 帧'));assert.notEqual(await pixels(),idle);
   await page.locator('#looks-preview-play').tap();assert.equal(await pixels(),idle,'stop restores first uploaded frame');
