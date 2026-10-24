@@ -36,7 +36,7 @@ export function drawActor(c,world,id,p,pose={},time=performance.now()){
   const size=Math.round(width*(sprite?.calibration?.world_height??.24)),lift=pose.using?Math.sin(time/90)*2:0;
   const rect=spriteRect(fw,fh,size,point,sprite?.calibration);
   c.fillStyle='#342b3340';c.beginPath();c.ellipse(point.x,point.y-2,size*.25,size*.07,0,0,Math.PI*2);c.fill();
-  c.drawImage(image,col*fw,row*fh,fw,fh,rect.x,rect.y+lift,rect.width,rect.height);
+  c.drawImage(image,col*fw,row*fh,fw,fh,sprite?.calibration?rect.x:Math.round(rect.x),sprite?.calibration?rect.y+lift:Math.round(rect.y+lift),rect.width,rect.height);
   if(pose.using&&pose.action==='plant'){
     const hand=point.x+(world.state.facing[id]==='left'?-1:1)*size*.19,y=point.y-size*.40;
     c.fillStyle='#779284';c.fillRect(hand-6,y,13,10);c.strokeStyle='#c3d5c1';c.lineWidth=3;c.strokeRect(hand-2,y-5,8,6);

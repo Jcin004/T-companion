@@ -59,8 +59,9 @@ export async function removeFrame(atlas,key){
   if(!Object.keys(cells).length){const {frame_editor,...rest}=atlas;return {...rest,image:e.base_image};}
   return composeFrames({...atlas,frame_editor:{...e,cells}});
 }
-export async function drawFrameGuide(c,atlas,direction,frame,look,valid){
+export async function drawFrameGuide(c,atlas,direction,frame,look,valid,showGuide=true){
   await previewSprite(c,{...look,sprite:atlas},direction,frame,valid);if(!valid())return;
+  if(!showGuide)return;
   const ctx=c.getContext('2d'),m=atlasMeta(atlas),e=atlas?.frame_editor;
   const reference=e?.cells[frameKey(atlas,direction,m.idle)];
   if(reference&&frame!==m.idle){

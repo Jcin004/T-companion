@@ -4,6 +4,7 @@ import {previewSprite} from './world-art.js';
 import {atlasMeta,validateAtlas,DIRECTIONS} from './character-looks.js';
 import {frameKey,initializeFrames,replaceFrame,removeFrame,drawFrameGuide,fallbackFrame} from './character-frame-editor.js';
 import {bindCharacterImageInput} from './character-image-input.js';
+import {mountCalibration} from './character-calibration-ui.js';
 export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAtlas,setAtlas,readImage,changed,error,valid,working=()=>{}}){
   const id=n=>prefix+'-'+n,el=n=>root.querySelector('#'+id(n));
   root.innerHTML=`<label>导入格式<select id="${id('import-layout')}"><option value="three">三列四行 · 迈腿 / 站立 / 迈腿</option><option value="legacy">四列四行 · 站立开始</option><option value="action">单行 · 动作序列</option><option value="custom">自定义布局 / 保留原设置</option></select></label><p class="looks-sheet-help">${action?'可上传单行动画，也可使用四方向图集。':'下、左、右、上各一行。中间站立，左右两格分别迈腿；每格大小一致，脚底对齐。'}</p><label class="file-button">${action?'上传 / 替换动作图集':'上传 / 替换行走图集'}<input id="${id('sprite-file')}" type="file" accept="image/png"></label><p id="${id('sprite-name')}"></p><div class="looks-sheet-grid" aria-label="四方向切帧表"></div><p id="${id('sheet-size')}"></p><div class="looks-animation-preview"><canvas id="${id('sprite')}" width="192" height="192" aria-label="${action?'动作':'行走'}预览"></canvas><div><button id="${id('preview-play')}" aria-pressed="false">${action?'播放动作':'播放行走'}</button><p id="${id('pose')}" role="status"></p></div></div>
@@ -18,10 +19,10 @@ export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAt
   const single=document.createElement('div');single.className='looks-selected-upload';single.innerHTML=`<strong id="${id('selected-frame')}"></strong><label class="file-button">上传 / 替换这一格<input id="${id('frame-file')}" type="file" accept="image/png"></label>`;root.prepend(single);
   const adjust=document.createElement('div');adjust.id=id('frame-adjustments');adjust.className='looks-frame-adjustments';adjust.hidden=true;adjust.innerHTML=`<p>中心与脚底用绿线标出，迈腿时可对照半透明站立图。调整只影响这一格。</p><label>大小 <output id="${id('scale-value')}"></output><input id="${id('frame-scale')}" type="range" min="25" max="200" step="1"></label><div class="looks-field-pair"><label>左右位置（像素）<input id="${id('frame-x')}" type="number" step="1"></label><label>上下位置（像素）<input id="${id('frame-y')}" type="number" step="1"></label></div><div class="looks-resource-tools"><button id="${id('align-reset')}">重置对齐</button><button id="${id('frame-remove')}">还原这一格</button></div>`;root.querySelector('.looks-animation-preview').after(adjust);
   root.querySelector('.looks-sheet-help').textContent='选中一格，再上传这个姿势的单张透明 PNG；未替换的格子保留原图。';
-  let timer=null,frame=0,playing=false,generation=0,selectedFrame=null,pending=0;
+  let timer=null,frame=0,playing=false,generation=0,selectedFrame=null,pending=0,calibration;
   const safe=fn=>async(...args)=>{try{await fn(...args);}catch(e){error(e);}};
   const order=m=>m.order;
-  function stop(){clearInterval(timer);timer=null;playing=false;frame=0;generation++;el('preview-play').textContent=action?'播放动作':'播放行走';el('preview-play').setAttribute('aria-pressed','false');}
+  function stop(){clearInterval(timer);timer=null;playing=false;frame=0;generation++;calibration?.cancel();el('preview-play').textContent=action?'播放动作':'播放行走';el('preview-play').setAttribute('aria-pressed','false');}
   function inputs(){const value={frames:Number(el('frames').value),row_count:Number(el('row-count').value),idle_frame:Number(el('idle-frame').value)-1,walk_order:el('walk-order').value.split(',').map(n=>Number(n.trim())-1),rows:Object.fromEntries(DIRECTIONS.map(d=>[d,Number(el('row-'+d).value)-1]))};validateAtlas({...value,image:'data:image/png;base64,AAAA'});return value;}
   const meta=()=>atlasMeta(getAtlas()||inputs());
   const key=()=>frameKey(getAtlas()||inputs(),el('direction').value,selectedFrame??meta().idle);
@@ -36,10 +37,11 @@ export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAt
   function load(){selectedFrame=null;const sprite=getAtlas(),m=atlasMeta(sprite||(action?{frames:4,row_count:1}:{frames:3,idle_frame:1}));const standard=m.rowCount===4&&DIRECTIONS.every((d,i)=>m.rows[d]===i);el('import-layout').value=!sprite?(action?'action':'three'):standard&&m.frames===3&&m.idle===1?'three':standard&&m.frames===4&&m.idle===0?'legacy':m.rowCount===1?'action':'custom';el('frames').value=m.frames;el('row-count').value=m.rowCount;el('idle-frame').value=m.idle+1;el('walk-order').value=m.order.map(i=>i+1).join(',');for(const d of DIRECTIONS)el('row-'+d).value=m.rows[d]+1;}
   async function draw(){
     if(!valid())return;const token=generation,sprite=getAtlas(),m=meta(),selected=playing?order(m)[frame%order(m).length]:selectedFrame??m.idle;
-    if(sprite&&!playing)await drawFrameGuide(el('sprite'),sprite,el('direction').value,selected,getLook(),()=>token===generation&&valid());else await previewSprite(el('sprite'),sprite?{...getLook(),sprite}:getLook(),el('direction').value,sprite?selected:fallbackFrame(getLook(),m,selected,action),()=>token===generation&&valid());
+    if(sprite&&!playing)await drawFrameGuide(el('sprite'),sprite,el('direction').value,selected,getLook(),()=>token===generation&&valid(),calibration?.guides()??true);else await previewSprite(el('sprite'),sprite?{...getLook(),sprite}:getLook(),el('direction').value,sprite?selected:fallbackFrame(getLook(),m,selected,action),()=>token===generation&&valid());
     if(token!==generation||!valid())return;
     el('pose').textContent=(playing?(action?'播放中':selected===m.idle?'站立':'播放中'):action?'预览停止':selected===m.idle?'站立':'选中姿势')+' · 第 '+(selected+1)+' 帧';
     el('sprite-name').textContent=sprite?.frame_editor?'已替换 '+Object.keys(sprite.frame_editor.cells).length+' 格 · 其他格保留原图':sprite?'已上传图集 · 点击格子检查朝向和姿势':action?'尚未上传动作图':'尚未上传 · 房间继续使用默认小人';
+    await calibration?.drawRoom(playing?frame*2/m.order.length:null);
   }
   async function sheet(){
     const token=generation,sprite=getAtlas(),m=atlasMeta(sprite||{...inputs()}),grid=root.querySelector('.looks-sheet-grid');
@@ -58,9 +60,9 @@ export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAt
     selection();el('sheet-size').textContent='';
     if(sprite){const img=new Image();img.onload=()=>{if(token===generation&&valid())el('sheet-size').textContent=img.width+' × '+img.height+' px · 每格 '+(img.width/m.frames)+' × '+(img.height/m.rowCount)+' px';};img.src=sprite.image;}
   }
-  async function refresh(){stop();const selected=selectedFrame;load();selectedFrame=selected!==null&&selected<meta().frames?selected:meta().idle;await draw();if(valid())await sheet();}
+  async function refresh(){stop();const selected=selectedFrame;load();selectedFrame=selected!==null&&selected<meta().frames?selected:meta().idle;await draw();if(valid())await sheet();if(valid())await calibration?.refresh();}
   el('preview-play').onclick=safe(async()=>{if(playing){stop();selectedFrame=meta().idle;selection();await draw();return;}playing=true;el('preview-play').textContent=action?'停止动作':'停止 · 回到站立';el('preview-play').setAttribute('aria-pressed','true');await draw();timer=setInterval(()=>{frame++;draw().catch(e=>{stop();error(e);});},120);});
-  el('direction').onchange=safe(async()=>{stop();selection();await draw();});
+  el('direction').onchange=safe(async()=>{stop();selection();await draw();await calibration.refresh();});
   function preset(p){el('frames').value=p==='three'?3:4;el('row-count').value=p==='action'?1:4;el('idle-frame').value=p==='three'?2:1;el('walk-order').value=p==='three'?'2,1,2,3':'1,2,3,4';const rows=p==='rpg'?{down:1,right:2,up:3,left:4}:{down:1,left:2,right:3,up:4};for(const d of DIRECTIONS)el('row-'+d).value=p==='action'?1:rows[d];}
   el('atlas-preset').onchange=()=>preset(el('atlas-preset').value);
   el('import-layout').onchange=safe(async()=>{const value=el('import-layout').value;if(value!=='custom'){preset(value);if(!getAtlas())await sheet();}if(getAtlas())el('sprite-name').textContent='下次上传按新格式切分；当前图片保持原布局。';});
@@ -73,5 +75,7 @@ export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAt
   el('align-reset').onclick=safe(()=>{const a=getAtlas();return mutate(()=>replaceFrame(a,key(),null,{x:0,y:0,scale:a.frame_editor.scale}));});
   el('frame-remove').onclick=safe(()=>{const a=getAtlas(),slot=key();return mutate(()=>removeFrame(a,slot));});
   el('reset-sprite').onclick=safe(async()=>{setAtlas(null);changed();await refresh();});
+  calibration=mountCalibration(root,{prefix,canvas:el('sprite'),getAtlas,getLook,key,direction:()=>el('direction').value,valid,error,draw,commit:next=>mutate(async()=>next),move:(dx,dy)=>{const a=getAtlas(),cell=a?.frame_editor?.cells[key()];if(!cell)return;return mutate(()=>replaceFrame(a,key(),null,{x:Math.max(-a.frame_editor.width,Math.min(a.frame_editor.width,cell.x+dx)),y:Math.max(-a.frame_editor.height,Math.min(a.frame_editor.height,cell.y+dy))}));}});
+  adjust.querySelector('p').textContent='数值调整只影响这一格，也可以直接拖动上面的预览。';
   return {refresh,stop,draw,isWorking:()=>pending>0};
 }
