@@ -17,9 +17,10 @@ import {validateWorld,sceneSnapshot,completeWorldDialogue} from './world-core.js
 import {CharacterLooksModule,validateLooks} from './character-looks.js';
 import {WorldHistoryModule} from './world-history.js';
 import {CharacterArchiveModule,validateArchive} from './character-archive.js';
+import {visitLookImages,imageDigest} from './native-look-images.js';
 // Preserve the existing import path for callers while the implementation moves.
 export {buildContext} from './local-queries.js';
-const clone = value => JSON.parse(JSON.stringify(value));
+import {jsonSnapshot as clone} from './json-snapshot.js';
 const uid = () => 't_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
 const now = () => new Date().toISOString();
 const defaults = {base_url:'https://api.openai.com/v1',model:'',protocol:'openai-chat',theme:'light',font_size:16,voice:'',timezone:'Asia/Shanghai',history_limit:30};
@@ -57,11 +58,43 @@ export class BrowserPersistence {
   async getKey(id){return localStorage.getItem(this.keyName(id))||'';}
 }
 export class NativePersistence {
-  constructor(plugin){this.plugin=plugin;this.owner='ui_'+uid();}
-  async begin(){await this.plugin.beginWrite?.({owner:this.owner});}
-  async end(){await this.plugin.endWrite?.({owner:this.owner});}
-  async load(){const r=await this.plugin.load();this.revision=r.revision;return r.data?JSON.parse(r.data):emptyData();}
-  async save(data){const r=await this.plugin.save({data:JSON.stringify(data),revision:this.revision,owner:this.owner});this.revision=r?.revision;}
+  constructor(plugin){this.plugin=plugin;this.owner='ui_'+uid();this.images=new Map();this.imageIds=new Map();this.knownImages=new Set();this.assetReferences=false;}
+  async begin(){this.releasedWrite=false;this.pendingSnapshot=await this.plugin.beginWrite?.({owner:this.owner,assetReferences:true});}
+  async end(){this.pendingSnapshot=null;if(!this.releasedWrite)await this.plugin.endWrite?.({owner:this.owner});this.releasedWrite=false;}
+  async load(){
+    const pending=this.pendingSnapshot;this.pendingSnapshot=null;
+    const r=pending?.assetReferences===true?pending:await this.plugin.load({assetReferences:true}),data=r.data?JSON.parse(r.data):emptyData(),ids=new Set();
+    if(r.assetReferences===true){
+      visitLookImages(data,image=>{if(image.startsWith('asset:'))ids.add(image.slice(6));return image;});
+      for(const id of ids){
+        if(!/^[a-f0-9]{64}$/.test(id))throw Error('图片资源引用无效');
+        if(this.images.has(id))continue;
+        // One bounded image per bridge reply; the native table already deduplicates.
+        const result=await this.plugin.loadImages({ids:[id]}),image=result.images?.[id];
+        if(typeof image!=='string'||!image.startsWith('data:image/')||image.length>1200000||await imageDigest(image)!==id)throw Error('图片资源缺失或校验失败');
+        this.images.set(id,image);this.imageIds.set(image,id);
+      }
+      visitLookImages(data,image=>image.startsWith('asset:')?this.images.get(image.slice(6)):image);
+    }
+    this.assetReferences=r.assetReferences===true;this.knownImages=ids;this.revision=r.revision;
+    for(const [id,image]of this.images)if(!ids.has(id)){this.images.delete(id);this.imageIds.delete(image);}
+    return data;
+  }
+  async save(data){
+    let document=data,images;
+    if(this.assetReferences){
+      document=clone(data);const unique=new Set();images={};visitLookImages(document,image=>{unique.add(image);return image;});
+      for(const image of unique){
+        const id=this.imageIds.get(image)||await imageDigest(image);
+        if(!this.knownImages.has(id))images[id]=image;
+        this.images.set(id,image);this.imageIds.set(image,id);
+      }
+      visitLookImages(document,image=>'asset:'+this.imageIds.get(image));
+    }
+    const r=await this.plugin.save({data:JSON.stringify(document),revision:this.revision,owner:this.owner,release:true,...(images?{images}:{})});
+    this.revision=r?.revision;this.releasedWrite=r?.released===true;
+    if(this.assetReferences){const ids=new Set();visitLookImages(document,image=>{ids.add(image.slice(6));return image;});this.knownImages=ids;}
+  }
   async setKey(value,id='legacy'){await this.plugin.setKey({value:value||'',profile_id:id});}
   async hasKey(id='legacy'){return (await this.plugin.hasKey({profile_id:id})).value;}
 }
@@ -107,7 +140,10 @@ export class LocalService {
   async publicSettings(){return {...this.connection(),active_profile_id:this.data.active_profile_id,has_api_key:await this.storage.hasKey(this.data.active_profile_id)};}
   message(m){const t=this.data.turns.find(t=>t.user_id===m.id||t.assistant_id===m.id);return {...m,state:t?.state||'complete',chat_style:m.role==='assistant'?t?.chat_style:undefined,world_action:m.role==='assistant'?t?.world_action:undefined,presentation:m.role==='assistant'?t?.presentation:undefined,skin_error:m.role==='assistant'?t?.skin_error:undefined,request_id:m.role==='user'?t?.request_id:undefined};}
   async api(path,method='GET',body){
-    if(this.storage.plugin?.beginWrite&&!this.active){await this.queue.catch(()=>{});const current=await this.storage.load();ensureProfiles(current);validateWorld(current);validateMemory(current);this.data=current;}
+    // World writes read the durable document under their transaction lease.
+    // Reading it again before that lease only adds an extra bridge round trip.
+    const worldWrite=method==='POST'&&/^\/world\/(commands|setup|dialogue)(?:\?|$)/.test(path);
+    if(this.storage.plugin?.beginWrite&&!this.active&&!worldWrite){await this.queue.catch(()=>{});const current=await this.storage.load();ensureProfiles(current);validateWorld(current);validateMemory(current);this.data=current;}
     const url=new URL(path,'https://local'),pathname=url.pathname,route=pathname.split('/').filter(Boolean)[0];
     if(route==='world-life'){
       if(this.storage.plugin?.lifeRun&&['run','resume','cancel','settings'].includes(pathname.split('/')[2])){

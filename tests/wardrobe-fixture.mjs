@@ -6,6 +6,6 @@ export async function editSkin(page,id='default'){await page.locator('.looks-ski
 export async function addSkin(page,name){await page.locator('#looks-add-skin').tap();await page.locator('#looks-name-input').fill(name);await page.locator('#looks-name-dialog button[type=submit]').tap();await page.locator('#looks-editor').waitFor();return page.locator('#world-looks-dialog').getAttribute('data-skin');}
 
 export async function openAtlasOptions(page,prefix='looks'){
- const root=page.locator('#'+(prefix==='looks'?'looks-walk-editor':'looks-action-editor')+' .looks-import-advanced');
- if(await root.getAttribute('open')===null)await root.locator(':scope > summary').tap();
+ const root=page.locator('#'+(prefix==='looks'?'looks-walk-editor':'looks-action-editor'));
+ await root.locator('.looks-import-open').tap();await root.locator('.looks-import-dialog').waitFor({state:'visible'});
 }

@@ -43,16 +43,34 @@ public class TLocalPlugin extends Plugin {
         try{String value=call.getString("data","");if(value.length()>1100000)throw new IOException();new JSONObject(value);ContentValues row=new ContentValues();row.put("id",1);row.put("data",value);if(diagnosticDatabase().insertWithOnConflict("diagnostics",null,row,SQLiteDatabase.CONFLICT_REPLACE)==-1)throw new IOException();call.resolve();}catch(Exception e){call.reject("保存运行日志失败");}
     }
     @PluginMethod public void load(PluginCall call){
-        try{call.resolve(new JSObject(database.read().toString()));}catch(Exception e){call.reject("读取本机 SQLite 失败");}
+        try{call.resolve(new JSObject(database.read(call.getBoolean("assetReferences",false)).toString()));}catch(Exception e){call.reject("读取本机 SQLite 失败");}
+    }
+    @PluginMethod public void loadImages(PluginCall call){
+        try{JSObject result=new JSObject();result.put("images",database.images(call.getArray("ids")));call.resolve(result);}catch(Exception e){call.reject("读取本机图片失败");}
     }
     @PluginMethod public void beginWrite(PluginCall call){
-        if(!database.acquire(call.getString("owner",""))){call.reject("居民正在推进，请稍后操作");return;}call.resolve();
+        String owner=call.getString("owner","");
+        if(!database.acquire(owner)){call.reject("居民正在推进，请稍后操作");return;}
+        try{if(call.getBoolean("assetReferences",false))call.resolve(new JSObject(database.read(true).toString()));else call.resolve();}
+        catch(Exception e){database.release(owner);call.reject("读取本机 SQLite 失败");}
     }
     @PluginMethod public void endWrite(PluginCall call){database.release(call.getString("owner",""));call.resolve();}
     @PluginMethod public void save(PluginCall call){
-        try{long rev=call.getLong("revision",-1L);if(rev<0)rev=database.read().getLong("revision");
-            long next=database.save(call.getString("data",""),rev,call.getString("owner",""));
-            JSObject result=new JSObject();result.put("revision",next);call.resolve(result);
+        long started=android.os.SystemClock.elapsedRealtime();
+        try{
+            // Capacitor getLong accepts Long only; JSON small integers are Integer.
+            Object supplied=call.getData().opt("revision");long rev;
+            if(supplied==null||supplied==JSONObject.NULL)rev=database.read(true).getLong("revision");
+            else{
+                if(!(supplied instanceof Number))throw new IllegalArgumentException("Invalid revision");
+                double number=((Number)supplied).doubleValue();rev=((Number)supplied).longValue();
+                if(!Double.isFinite(number)||number<0||number>9007199254740991d||number!=rev)throw new IllegalArgumentException("Invalid revision");
+            }
+            long next=database.save(call.getString("data",""),rev,call.getString("owner",""),call.getObject("images"));
+            JSObject result=new JSObject();result.put("revision",next);
+            if(call.getBoolean("release",false)){database.release(call.getString("owner",""));result.put("released",true);}
+            result.put("storageMs",android.os.SystemClock.elapsedRealtime()-started);
+            call.resolve(result);
         }catch(Exception e){call.reject(e instanceof IllegalStateException?e.getMessage():"保存本机数据失败，请检查剩余空间");}
     }
     private javax.crypto.SecretKey encryptionKey() throws Exception { return TSecrets.encryptionKey(); }

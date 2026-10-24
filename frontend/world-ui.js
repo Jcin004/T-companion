@@ -46,10 +46,10 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
   ]){const b=button('',async()=>{el('world-menu').close();await fn();}),i=node('span',icon);i.setAttribute('aria-hidden','true');i.className='world-menu-icon';i.textContent='';const n=({'人物':0,'居民生活':1,'世界记录':2,'对话记录':2,'消息':3,'记忆':4,'外观':5,'模型连接':6,'设置':7,'返回桌面':8})[label];i.style.backgroundPosition=(n%3*50)+'% '+(Math.floor(n/3)*50)+'%';b.append(i,node('span',label));menu.append(b);}
   el('world-menu-open').onclick=safe(async()=>{joystick.stop();dialogue.close();el('world-menu').showModal();});
   function stopAnimation(){cancelAnimationFrame(animation);resolveAnimation?.();resolveAnimation=null;}
-  async function refresh({light=false,paint=true,keepAnimation=false}={}){
+  async function refresh({light=false,paint=true,keepAnimation=false,snapshot=null}={}){
     if(!keepAnimation)stopAnimation();
     if(!isLocal()){el('world-notice').textContent='世界使用本机数据，请在设置切换到本机模式。';el('world-notice').hidden=false;el('world-play').hidden=true;return;}
-    world=await api('/world');await loadWorldArt(world);document.body.classList.toggle('world-active',!el('world').hidden);
+    world=snapshot||await api('/world');await loadWorldArt(world);document.body.classList.toggle('world-active',!el('world').hidden);
     const ready=world.state.residents.length===2;el('world-play').hidden=!ready;el('world-notice').hidden=ready;el('world-setup').replaceChildren();
     if(!ready){
       el('world-notice').textContent='从名册选择两位居民，进入暖木小屋。';const people=await api('/characters');
@@ -111,7 +111,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
       // Slow saves stop at this endpoint; failed saves restore saved positions.
       const positions=previous.state.positions,actor=value.actor_id||'user';
       const movement=preview?animatePath(actor,[positions[actor],value.target],positions):null;
-      const saved=(async()=>{await api('/world/commands','POST',value);await refresh({light:true,paint:false,keepAnimation:preview});})();
+      const saved=(async()=>{const result=await api('/world/commands?view=world','POST',value);await refresh({light:true,paint:false,keepAnimation:preview,snapshot:result.world});})();
       await Promise.all([saved,movement]);pending=null;
       if(!preview)await animateEvents(previous,world);
       el('world-action-status').textContent=value.type==='interact'?world.state.events[world.state.events.length-1].content:'';

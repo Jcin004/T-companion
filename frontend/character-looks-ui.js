@@ -3,7 +3,7 @@ import {portraitImage,previewSprite} from './world-art.js';
 import {skinChoices,expressionChoices,ACTIONS} from './character-looks.js';
 import {mountAtlasEditor} from './character-atlas-ui.js';
 import {bindCharacterImageInput,readCharacterPicture as readImage} from './character-image-input.js';
-const copy=v=>JSON.parse(JSON.stringify(v));
+import {jsonSnapshot as copy} from './json-snapshot.js';
 const fingerprint=v=>JSON.stringify(v,(_,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value);
 const node=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
 export function mountCharacterLooksUI({api,refresh,toast,report,pickArchive}){

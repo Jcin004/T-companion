@@ -114,3 +114,8 @@ python scripts/publish-trial.py --apk artifacts/T-companion-0.13.2-trial.apk --s
 ## 0.18.0 小人大小与落地版（2026-10-24）
 
 [公开试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.18.0) 已发布 code26 原签名 APK、提交 `9d46904d4dd6ab26238ece82ca03114188168ec6` 的完整匹配源码与许可等七项附件。默认静态清单同步，匿名 APK HEAD 200 且大小相符；旧 code25 默认原生检查发现新版，新版报告已是最新，覆盖安装保留合成业务文档与加密凭据指纹。校准、复用试验、原生截图与测试边界见 [交付验收](SPRITE_CALIBRATION.md)。分层服装与直接绘画仍是后续阶段，后续验收文档提交不改变发布包的源码提交。
+
+
+## 0.18.2 交付（2026-10-25）
+
+形象编辑精简与大图片存档性能修复，原包名/签名，versionCode 28；[Release](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.18.2)，构建源码 `6cd8cea7f1379a615be9e04e13235d9d60bcfcf6`。APK、精确源码、构建说明、许可、第三方声明、清单和 SHA256SUMS 共七件；静态 feed 同步。本轮更新器代码未改，设备网络检查未重新验收。正式包指纹、设备结果和使用入口见 [交付记录](SPRITE_EDITOR_PERFORMANCE.md#正式交付)。
