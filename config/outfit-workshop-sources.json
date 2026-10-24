@@ -1,0 +1,632 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-10-24",
+  "baseline_commit": "df2fc1f7a97a62878a06ab1bba588a7a2a05e55e",
+  "scope": "Read-only source, license and dependency inspection (targeted sections where noted). No imported code, artwork, runtime dependency or implemented outfit feature.",
+  "follow_up": "OUTFIT_WORKSHOP_PLAN.md stages 1-2 first; selected file dependencies and attribution must be completed before vendor import.",
+  "existing_reference_checks": [
+    {
+      "repository": "https://github.com/Jcin004/Alicization-Town",
+      "commit": "1a33ba65d0af2134b369b1eb4eb68f45d2c817c4",
+      "path": "server/web/js/game.js",
+      "result": "Existing movement reference; not an outfit drawing editor. See sprite-workshop-sources.json for blob/license notes."
+    },
+    {
+      "repository": "https://github.com/Jcin004/float",
+      "commit": "c1b0ea74d7690beae31bc7c9e2a8c382fa4b151b",
+      "scope": "Local tracked-path keyword search for clothing/wardrobe/pixel drawing and existing appearance references, not a full repository audit.",
+      "result": "No ready layered clothing editor identified in inspected paths."
+    },
+    {
+      "repository": "https://github.com/DasterProkio/awesome-ai-companion",
+      "commit": "6b03e71a7a245f61c5a9bc3aaba2123b5c2a480d",
+      "path": "README.md",
+      "sha256": "c2567c7a166b163beba26ed6667d43975ea2c02928886ebd7d0fcf2f7f849e19",
+      "scope": "Catalog keyword search: clothing, sprites, pixel and drawing; listing is discovery, not an approval of listed licenses."
+    }
+  ],
+  "sources": [
+    {
+      "repository": "https://github.com/piskelapp/piskel",
+      "commit": "d828941fa9fe76464d69d91d5fd862067c98c02c",
+      "role": "pixel-algorithm-candidate",
+      "license_evidence": "Apache-2.0",
+      "api_license": "Apache-2.0",
+      "attribution_evidence": "README.md identifies Julian Descottes (2017); preserve upstream notices and per-file history on import.",
+      "dependencies_and_adapter": "pskl namespace, Frame API, keyboard/tool events and controllers; no whole-app import; README excludes mobile support.",
+      "status": "reviewed-candidate; not imported; not Android-tested",
+      "files": [
+        {
+          "path": "LICENSE",
+          "blob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "size": 11358,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/LICENSE",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "README.md",
+          "blob": "b622948c51ee14a3c515431d4ac8861608783ed7",
+          "sha256": "ba18ce36ba4190d45a12ad25308191661ffa007b33047de5a092dfb9779bf484",
+          "size": 3578,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/README.md",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "package.json",
+          "blob": "8d3bccb17ef7ade75d53a116047d7415d41ac92b",
+          "sha256": "0fe320bff7dc6ad071bbd111e7d9dab833026fab9b279c7e71d0d6749018dc49",
+          "size": 2528,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/package.json",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/tools/drawing/SimplePen.js",
+          "blob": "186cecb3a1d13d29808d936b1a9e951aa1db5d0b",
+          "sha256": "885f8860b858b49dc0c3e9d84bcf41869018f3858bb2531f1dd73055cad1fa0e",
+          "size": 3231,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/src/js/tools/drawing/SimplePen.js",
+          "inspection": "Inspect tool namespace, inherited BaseTool and pen stroke entry points.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/tools/drawing/PaintBucket.js",
+          "blob": "f4ecb0af535589d0d4e5ec08f92773c22fd802a3",
+          "sha256": "e0d857945ef6fa63229514a0609e79c4d4f5c37485d24de69c488a14eb2283ed",
+          "size": 987,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/src/js/tools/drawing/PaintBucket.js",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/utils/PixelUtils.js",
+          "blob": "7aa852d1bcc7628c0b7eedba510ff146f62ab782",
+          "sha256": "c5b6a68f505ca062b3139b7f706f108632161e9573ba6edeb5aadb7ce4f9972b",
+          "size": 10348,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/src/js/utils/PixelUtils.js",
+          "inspection": "Inspect flood-fill/connected-pixel implementation and Frame dependency; externally cited line algorithms need further provenance before import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/utils/FrameUtils.js",
+          "blob": "246183793e25a996eccb5536aaeb7588606c3bf5",
+          "sha256": "38af7f5b528648f34d08983d5162b649fbb7772bcbed44521c1b1892ac407551",
+          "size": 11071,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/src/js/utils/FrameUtils.js",
+          "inspection": "Frame composition dependency assessment.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/model/Frame.js",
+          "blob": "926f3f33dc541603f98cff04e234fd66708bbcbc",
+          "sha256": "68d84e3c0374bdb2e8719bf7843cba7b78880b9c8091d9ed46693376a601f55c",
+          "size": 4338,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/src/js/model/Frame.js",
+          "inspection": "Frame pixel API dependency assessment.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/rendering/OnionSkinRenderer.js",
+          "blob": "c66abb35d5a3c44517a34c02f6ac2fd2ff7840b2",
+          "sha256": "3c3c55428c47816c4dd41cc73347374536dadc592ddd410cd0adda30cf49a9d9",
+          "size": 2741,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/src/js/rendering/OnionSkinRenderer.js",
+          "inspection": "Inspect controller/CompositeRenderer coupling and previous-frame overlay.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/service/HistoryService.js",
+          "blob": "e43392e817d8b40c6664f3e65c3f2b10fbe2c8ec",
+          "sha256": "8b2bcb4fc10f7738997454064467577a9fb2121f2fb8dce7fbdcc535e28c7ecb",
+          "size": 7058,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/src/js/service/HistoryService.js",
+          "inspection": "Inspect singleton/event/serialization dependencies; not selected as a second application history service.",
+          "changes": "None; review-only local copy; no product destination."
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator",
+      "commit": "9bf06be193b053db256b2536824af426de046aa2",
+      "role": "composition-and-schema-candidate",
+      "license_evidence": "GPL-3.0 (code); individual artwork licenses vary",
+      "api_license": null,
+      "attribution_evidence": "Repository contributors for code; artwork authors and licenses must come from per-asset credits, not repository ownership.",
+      "dependencies_and_adapter": "TypeScript, Mithril, catalog/state and recoloring pipeline; direction remapping required; no sprite assets imported.",
+      "status": "reviewed-candidate; not imported; not Android-tested",
+      "files": [
+        {
+          "path": "LICENSE",
+          "blob": "94a9ed024d3859793618152ea559a168bbcbb5e2",
+          "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+          "size": 35147,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/9bf06be193b053db256b2536824af426de046aa2/LICENSE",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "README.md",
+          "blob": "65911d0419736b958e41f1e5d09239ffe67ed564",
+          "sha256": "96ac75120796da4a31a3b4c9a842ac9c1d4bb16b385354a1b2884adc76ea1104",
+          "size": 17705,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/9bf06be193b053db256b2536824af426de046aa2/README.md",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "package.json",
+          "blob": "a252c8d90fcebaed131a4ee57e5d4ea042e83557",
+          "sha256": "887ada901f2f8d00248ba8e491c58e24ff956c4e2bfa30420412ad15cfa2b69b",
+          "size": 6039,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/9bf06be193b053db256b2536824af426de046aa2/package.json",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "sources/canvas/draw-frames.ts",
+          "blob": "db67c98ebf245a1b3ea5b0a0470b7da62c937293",
+          "sha256": "ec3f84b53dbc18d7ab4d9dba2bb6f9e9402929d8f7e4a1ffa7e76d2fadbaf8fc",
+          "size": 4111,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/9bf06be193b053db256b2536824af426de046aa2/sources/canvas/draw-frames.ts",
+          "inspection": "Inspect frame copying, directional mapping and custom animation frame selection.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "sources/canvas/renderer.ts",
+          "blob": "7d6e4b1f5b8fe867dddea38e531ed58dd6a4c92f",
+          "sha256": "2da2d818de9091b88c1ba71105c78505e12ea2f023b713f0901dc7b2fc96ad31",
+          "size": 36052,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/9bf06be193b053db256b2536824af426de046aa2/sources/canvas/renderer.ts",
+          "inspection": "Targeted inspection of body-type compatibility, zPos sorting, draw calls and state dependencies.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "sources/canvas/preview-animation.ts",
+          "blob": "106117bc6be38a9e1c50ea78e7c47e8c2a25ce31",
+          "sha256": "cebceac87f7e32dfb01053670495bb1796e38f9b6c13432e5e3db8245fa3262d",
+          "size": 7576,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/9bf06be193b053db256b2536824af426de046aa2/sources/canvas/preview-animation.ts",
+          "inspection": "Animation preview dependency and shared-sheet mapping assessment.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "sources/models/credits.ts",
+          "blob": "d7446a699896b8aeaff3ce40eec6c2711fe91057",
+          "sha256": "39b2f8849d2e02b27c99024349f8effa9b44b0180c00584cb6d5100f7b343742",
+          "size": 1453,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/9bf06be193b053db256b2536824af426de046aa2/sources/models/credits.ts",
+          "inspection": "Inspect credit types/export format and per-asset author/license fields.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "sources/utils/credits.ts",
+          "blob": "15b87a693cc87a3c8a811cf08404f2ca66bc57bf",
+          "sha256": "3869dbec4f01002bb5ed571ada42a760ba1389cb49d33238fd0822ea8f0a2e99",
+          "size": 4042,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/9bf06be193b053db256b2536824af426de046aa2/sources/utils/credits.ts",
+          "inspection": "Inspect credit types/export format and per-asset author/license fields.",
+          "changes": "None; review-only local copy; no product destination."
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/Floogen/FashionSense",
+      "commit": "39e9e9e13c9f9a78416172e73a229cf8703ddb59",
+      "role": "schema-reference",
+      "license_evidence": "GPL-3.0",
+      "api_license": "GPL-3.0",
+      "attribution_evidence": "Floogen repository and contributors; preserve individual source history/notices if porting code.",
+      "dependencies_and_adapter": "Stardew Valley, SMAPI, XNA, C# and Newtonsoft.Json; translate selected model rules, retain existing JS renderer.",
+      "status": "reviewed-candidate; not imported; not Android-tested",
+      "files": [
+        {
+          "path": "LICENSE",
+          "blob": "e62ec04cdeece724caeeeeaeb6ae1f6af1bb6b9a",
+          "sha256": "605e9047a563c5c8396ffb18232aa4304ec56586aee537c45064c6fb425e44ad",
+          "size": 35129,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/LICENSE",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "README.md",
+          "blob": "ccc61c6309f699329c5f6b207bafb611e5949e72",
+          "sha256": "e9fdce077a93488619fe459355e0e9d5921926ca2137b94da577f05d646ed6f8",
+          "size": 1117,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/README.md",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "FashionSense/Framework/Models/Appearances/AppearanceModel.cs",
+          "blob": "7bb3049a8fb3925cf6bc728bd05ce36255057852",
+          "sha256": "5485713093f3ca55fa33650412c71dc3f516e826d71542db618acbe30011df59",
+          "size": 10268,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/FashionSense/Framework/Models/Appearances/AppearanceModel.cs",
+          "inspection": "Inspect animation sets, draw ordering, color masks and visibility flags.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "FashionSense/Framework/Models/Appearances/AnimationModel.cs",
+          "blob": "89271f6fe47e5d09a3b33b1d405fa05fa4326fa5",
+          "sha256": "d16d387e4cce629f4383d1a64cc29331a841ff47f15927e4531f41c3e8657110",
+          "size": 2958,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/FashionSense/Framework/Models/Appearances/AnimationModel.cs",
+          "inspection": "Inspect frame, offset, duration and Idle/Moving/Uniform types plus Game1 dependency.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "FashionSense/Framework/Models/Appearances/Body/BodyModel.cs",
+          "blob": "997aa998b1aae57510085329871806f2f459e739",
+          "sha256": "fd42f98b2201b55184bb77acbcfbe1853dc57d16843a5869d876fce8f297fe54",
+          "size": 1925,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/FashionSense/Framework/Models/Appearances/Body/BodyModel.cs",
+          "inspection": "Inspect body size and head/body/arms/legs/shoes offsets.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "FashionSense/Framework/Models/Appearances/Shirt/ShirtModel.cs",
+          "blob": "ec1188752d09971e2213108bef76544521fd2ef0",
+          "sha256": "a2c37d02990fbd97b23f359e8095b7596e033cae4655b8902ab1b09c24817616",
+          "size": 1185,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/FashionSense/Framework/Models/Appearances/Shirt/ShirtModel.cs",
+          "inspection": "Review shirt geometry model and inherited appearance dependencies.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "FashionSense/Framework/Models/Appearances/Sleeves/SleevesModel.cs",
+          "blob": "0390d06af7cd39a64fac8bf00a933ebc937b9edd",
+          "sha256": "5b7e62b89a7e9f732538bc11b672d26034b47452bc7c10e2411b830c9ba34ab2",
+          "size": 1719,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/FashionSense/Framework/Models/Appearances/Sleeves/SleevesModel.cs",
+          "inspection": "Review sleeve geometry model and inherited appearance dependencies.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "FashionSense/Framework/Managers/DrawManager.cs",
+          "blob": "3f8b8bfd2e082c55e002229daa8ca60bd630800a",
+          "sha256": "5e2f751d5c3c9736990169161dc9453d2be21af68b9376e8406167f0cbe3af01",
+          "size": 84702,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/FashionSense/Framework/Managers/DrawManager.cs",
+          "inspection": "Targeted inspection of game/XNA rendering dependencies; no renderer port completed.",
+          "changes": "None; review-only local copy; no product destination."
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/hinagiku1306/Outfit-Studio",
+      "commit": "4f8f46d52cbbf33cb78498d40861bad885e71cd0",
+      "role": "wardrobe-reference",
+      "license_evidence": "GPL-3.0 (GitHub code)",
+      "api_license": "GPL-3.0",
+      "attribution_evidence": "hinagiku1306 repository and contributors; Nexus distribution and game artwork have separate permissions.",
+      "dependencies_and_adapter": "C#, Stardew Valley/SMAPI/XNA; UI and storage bind to game state; do not introduce its separate JSON stores.",
+      "status": "reviewed-candidate; not imported; not Android-tested",
+      "files": [
+        {
+          "path": "LICENSE",
+          "blob": "f288702d2fa16d3cdf0035b15a9fcbc552cd88e7",
+          "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+          "size": 35149,
+          "url": "https://github.com/hinagiku1306/Outfit-Studio/blob/4f8f46d52cbbf33cb78498d40861bad885e71cd0/LICENSE",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "README.md",
+          "blob": "9f61b85a182078a37fda560d851e3b668b51b7f6",
+          "sha256": "3a4dcc7001d8875dc8569566d49d415d31df1a826422bdd59b74ded86570ee8c",
+          "size": 1730,
+          "url": "https://github.com/hinagiku1306/Outfit-Studio/blob/4f8f46d52cbbf33cb78498d40861bad885e71cd0/README.md",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "OutfitStudio/OutfitStudio.csproj",
+          "blob": "97213ddaf2d8ff535e3da8e5dad338fbe0ce21e0",
+          "sha256": "211f42f1d66200abc622d4183ebc3b66b1690ed6e469e476c6bcbfb87b4dedf1",
+          "size": 526,
+          "url": "https://github.com/hinagiku1306/Outfit-Studio/blob/4f8f46d52cbbf33cb78498d40861bad885e71cd0/OutfitStudio/OutfitStudio.csproj",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "OutfitStudio/Models/OutfitSet.cs",
+          "blob": "c77af046a42998be7201aff74da57ee60a940263",
+          "sha256": "77484f38bc821437988ec7113e90d1e739356204816c7b04ff1bb2474b6dd91d",
+          "size": 1153,
+          "url": "https://github.com/hinagiku1306/Outfit-Studio/blob/4f8f46d52cbbf33cb78498d40861bad885e71cd0/OutfitStudio/Models/OutfitSet.cs",
+          "inspection": "Inspect outfit IDs, part/color fields, tags and load-time validity.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "OutfitStudio/Rendering/OutfitDrawingHelper.cs",
+          "blob": "8789b788a867af5f63e2ff506d6be0923e210929",
+          "sha256": "604ecfbe8518125791309ed51577800bfd8155da67f4b2bc09e39450c17aa511",
+          "size": 8315,
+          "url": "https://github.com/hinagiku1306/Outfit-Studio/blob/4f8f46d52cbbf33cb78498d40861bad885e71cd0/OutfitStudio/Rendering/OutfitDrawingHelper.cs",
+          "inspection": "Inspect game-menu drawing dependencies.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "OutfitStudio/Services/OutfitSetFiltering.cs",
+          "blob": "e7526cde2ad67a2d6dddf8b02b25ee11383c6b38",
+          "sha256": "680e1d45d1fe6d7bd9ded1b51a855397a72cfa8f7801cd304e01811b71a8b613",
+          "size": 3939,
+          "url": "https://github.com/hinagiku1306/Outfit-Studio/blob/4f8f46d52cbbf33cb78498d40861bad885e71cd0/OutfitStudio/Services/OutfitSetFiltering.cs",
+          "inspection": "Inspect tag/favorite/search/validity filters.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "OutfitStudio/Services/OutfitSetStore.cs",
+          "blob": "a961977da9162a7394fdd381e8f169f4f13024aa",
+          "sha256": "803055274c2fd4fbb29e523df989ef58566765c30f3960174d70b60705dd18c2",
+          "size": 17630,
+          "url": "https://github.com/hinagiku1306/Outfit-Studio/blob/4f8f46d52cbbf33cb78498d40861bad885e71cd0/OutfitStudio/Services/OutfitSetStore.cs",
+          "inspection": "Inspect scope and SMAPI persistence dependencies; retain our SQLite ownership.",
+          "changes": "None; review-only local copy; no product destination."
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/rgab1508/PixelCraft",
+      "commit": "45a5d4821caeebaea4ee507bdabf8e2645631418",
+      "role": "touch-reference",
+      "license_evidence": "MIT",
+      "api_license": "MIT",
+      "attribution_evidence": "LICENSE: Copyright (c) 2021 PixelCraft.",
+      "dependencies_and_adapter": "DOM/global tools, mouse/touch handlers and ten-times logical pixel canvas; touch cancellation/multitouch need adaptation.",
+      "status": "reviewed-candidate; not imported; not Android-tested",
+      "files": [
+        {
+          "path": "LICENSE",
+          "blob": "cd53a6fc30aa613f23bf693a61a3c339f63635fd",
+          "sha256": "fe1ccad516d91c70b26dcccc68bbc01eb0d93d2f2182e0bb0e6a3676e8435eaf",
+          "size": 1067,
+          "url": "https://github.com/rgab1508/PixelCraft/blob/45a5d4821caeebaea4ee507bdabf8e2645631418/LICENSE",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "README.MD",
+          "blob": "6df20c0d0cf7c7add25852f402db190785f0b78e",
+          "sha256": "7c96737f72497dd6bf8f346720ecf82781c5d7216f8c18ed0f7ae9e39bb38230",
+          "size": 7469,
+          "url": "https://github.com/rgab1508/PixelCraft/blob/45a5d4821caeebaea4ee507bdabf8e2645631418/README.MD",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "Canvas.js",
+          "blob": "15f8c7cebf338731ec2b4dd81117256c0bbd2010",
+          "sha256": "3e2d2264c8609023b5a248cbb426d966cd4e8d633b6ce48e76de3b969651c013",
+          "size": 9028,
+          "url": "https://github.com/rgab1508/PixelCraft/blob/45a5d4821caeebaea4ee507bdabf8e2645631418/Canvas.js",
+          "inspection": "Inspect touch coordinate mapping, global tools and canvas scaling.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "index.html",
+          "blob": "9024daee3a7a82912403cf4ece161b17b8c937d8",
+          "sha256": "5b8f7c8b86cbf903566477eab4ded2060893c4536c46580cfffd6109a6d1c259",
+          "size": 14488,
+          "url": "https://github.com/rgab1508/PixelCraft/blob/45a5d4821caeebaea4ee507bdabf8e2645631418/index.html",
+          "inspection": "Review DOM/global tool composition, not an approved UI or asset import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "sw.js",
+          "blob": "d0755aa66b5452a5d493dde8835a3a5d4ce74938",
+          "sha256": "5c87d722d62cb17e76959ee1b09fddd581ca79efba82f0baf471c0950ef718ad",
+          "size": 867,
+          "url": "https://github.com/rgab1508/PixelCraft/blob/45a5d4821caeebaea4ee507bdabf8e2645631418/sw.js",
+          "inspection": "Review offline cache entry point only; not a service-worker integration decision.",
+          "changes": "None; review-only local copy; no product destination."
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/viliusle/miniPaint",
+      "commit": "a79733eb803fc97084ef0ee4faa96b031e69e1c0",
+      "role": "layer-editor-backup",
+      "license_evidence": "MIT (MIT-LICENSE.txt; API NOASSERTION)",
+      "api_license": "NOASSERTION",
+      "attribution_evidence": "MIT-LICENSE.txt: Copyright (c) ViliusL.",
+      "dependencies_and_adapter": "app/config/Layers singleton, independent image_store, alertify, build/runtime dependencies; do not import another persistence system.",
+      "status": "reviewed-candidate; not imported; not Android-tested",
+      "files": [
+        {
+          "path": "MIT-LICENSE.txt",
+          "blob": "760e23255b64af2ca7d3d59b369beb6401197e03",
+          "sha256": "92a21f763974d0a691f7738ed8aae674b74ef077ff6341844ad7fadf36999be8",
+          "size": 1074,
+          "url": "https://github.com/viliusle/miniPaint/blob/a79733eb803fc97084ef0ee4faa96b031e69e1c0/MIT-LICENSE.txt",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "README.md",
+          "blob": "8f0f308eaa035541deb4767a4d8977f6808d77ba",
+          "sha256": "4b00f8990081b49f2514ef4b1aafca045345af2dd12bbcd8de37431105180f67",
+          "size": 2880,
+          "url": "https://github.com/viliusle/miniPaint/blob/a79733eb803fc97084ef0ee4faa96b031e69e1c0/README.md",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "package.json",
+          "blob": "53c5ef23b9ecfac0c327a0ec9ff3ac28ebe04bfe",
+          "sha256": "c01054e3fc211db5c587858192aab12a1afde805ee8a21fb4b7d25e903cac1c8",
+          "size": 1417,
+          "url": "https://github.com/viliusle/miniPaint/blob/a79733eb803fc97084ef0ee4faa96b031e69e1c0/package.json",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/tools/pencil.js",
+          "blob": "68957c52cfd1931a8d73c182b3f1574e2ae386cc",
+          "sha256": "4abd412ea4cdfd38c433bed6d549d19aae29e266cc7fb5199c4237850b743cd4",
+          "size": 7026,
+          "url": "https://github.com/viliusle/miniPaint/blob/a79733eb803fc97084ef0ee4faa96b031e69e1c0/src/js/tools/pencil.js",
+          "inspection": "Inspect pointer/tool/layer coupling; mobile gesture behavior remains untested.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/tools/fill.js",
+          "blob": "d2bdc4aea21351a55280a05dd97b6b8abf447a5d",
+          "sha256": "650f71f609b8ce81378fd573ac615a641dec54ce96f3769d596d14a5ad5cd87d",
+          "size": 6361,
+          "url": "https://github.com/viliusle/miniPaint/blob/a79733eb803fc97084ef0ee4faa96b031e69e1c0/src/js/tools/fill.js",
+          "inspection": "Fill-tool/layer dependency assessment.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/core/base-state.js",
+          "blob": "b9852f843c471ebc69a2e3191a977cab4cd99213",
+          "sha256": "347d3d5a7f5057154c0cffbe918774f46c261ba4142033ad4206aff97f90c44f",
+          "size": 6034,
+          "url": "https://github.com/viliusle/miniPaint/blob/a79733eb803fc97084ef0ee4faa96b031e69e1c0/src/js/core/base-state.js",
+          "inspection": "Inspect command history/singleton and application dependencies.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/actions/base.js",
+          "blob": "9608dc7f5036f3a0b7ad880003cc2b6bd4c42d20",
+          "sha256": "889644a6e11d5f7a4f3b3a467a30a61a288b70f0e208e27a2b447e5f9cdb7d16",
+          "size": 596,
+          "url": "https://github.com/viliusle/miniPaint/blob/a79733eb803fc97084ef0ee4faa96b031e69e1c0/src/js/actions/base.js",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/actions/update-layer-image.js",
+          "blob": "0941417eca9ffe677a466bddb8eb25309b6ef812",
+          "sha256": "eb13dcbb55c0baf9ce38343fc1109cd6a6e0363cba2cc9a14b0a39e89bcbfaa8",
+          "size": 4169,
+          "url": "https://github.com/viliusle/miniPaint/blob/a79733eb803fc97084ef0ee4faa96b031e69e1c0/src/js/actions/update-layer-image.js",
+          "inspection": "Inspect reversible layer image command and its independent image-store dependency.",
+          "changes": "None; review-only local copy; no product destination."
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/fengyuanchen/cropperjs",
+      "commit": "d671590f32aa655eba87069b61b1e22ff0a2fb63",
+      "role": "transform-backup",
+      "license_evidence": "MIT",
+      "api_license": "MIT",
+      "attribution_evidence": "README/LICENSE identify Chen Fengyuan.",
+      "dependencies_and_adapter": "v2 TypeScript multi-package Web Components; test target WebView and offline bundle; not a painter or foot detector.",
+      "status": "reviewed-candidate; not imported; not Android-tested",
+      "files": [
+        {
+          "path": "LICENSE",
+          "blob": "4ca99accbc50ca78a05477a89e69a23d0f2c8f8f",
+          "sha256": "eb917650781dcf06a60b97cba9b05bf583931ec2d311d8a5548a8dca90a57e0f",
+          "size": 1084,
+          "url": "https://github.com/fengyuanchen/cropperjs/blob/d671590f32aa655eba87069b61b1e22ff0a2fb63/LICENSE",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "README.md",
+          "blob": "9242505f09486ddc90dd54adce2bae7c68aefc20",
+          "sha256": "b8a6b6bfcf5a087c3f52d267371dd34cb34eb869e990ea275228da99b3716eb0",
+          "size": 1932,
+          "url": "https://github.com/fengyuanchen/cropperjs/blob/d671590f32aa655eba87069b61b1e22ff0a2fb63/README.md",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "package.json",
+          "blob": "4e5993a40f378ff61a6ed3a652745bdb1c0e8545",
+          "sha256": "1ade9b39d8a37007db64b14d12af32e66f6fa2d8b97acdd4448f4b6ff49803a3",
+          "size": 2257,
+          "url": "https://github.com/fengyuanchen/cropperjs/blob/d671590f32aa655eba87069b61b1e22ff0a2fb63/package.json",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "packages/element-image/src/index.ts",
+          "blob": "41c0a1899efc046307b6514de668903d573a5a66",
+          "sha256": "26f2361d73ec8fa319c60c4dadddbfdf5f148a780b4254404355f0deb286c80c",
+          "size": 29888,
+          "url": "https://github.com/fengyuanchen/cropperjs/blob/d671590f32aa655eba87069b61b1e22ff0a2fb63/packages/element-image/src/index.ts",
+          "inspection": "Inspect Cropper element transformation/selection dependencies; no Android execution.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "packages/element-selection/src/index.ts",
+          "blob": "0ba8090cb9deae31d1589b824b0697c2e637bfd1",
+          "sha256": "9fa31f9dd971e13ddf82cced7c8a00ef13a243bafbe4c7b61480684dcd1946fb",
+          "size": 36463,
+          "url": "https://github.com/fengyuanchen/cropperjs/blob/d671590f32aa655eba87069b61b1e22ff0a2fb63/packages/element-selection/src/index.ts",
+          "inspection": "Inspect Cropper element transformation/selection dependencies; no Android execution.",
+          "changes": "None; review-only local copy; no product destination."
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/Orama-Interactive/Pixelorama",
+      "commit": "9d0659cd6935db4c616ffc69fe44a36140f36e61",
+      "role": "interaction-reference",
+      "license_evidence": "MIT",
+      "api_license": "MIT",
+      "attribution_evidence": "LICENSE: Copyright (c) 2019-present Orama Interactive and contributors.",
+      "dependencies_and_adapter": "Godot/GDScript and Global project state; reference editor behavior, no second embedded engine.",
+      "status": "reviewed-candidate; not imported; not Android-tested",
+      "files": [
+        {
+          "path": "LICENSE",
+          "blob": "4baf05ee8fc00add66ef378713ec00f50940bab3",
+          "sha256": "07ddf85025568856f9b92fb7193589dd055c749c563aa9b2d4e943eb53ef61f9",
+          "size": 1099,
+          "url": "https://github.com/Orama-Interactive/Pixelorama/blob/9d0659cd6935db4c616ffc69fe44a36140f36e61/LICENSE",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "README.md",
+          "blob": "ee488dd0f85caffa36afbbc9d0a0d8e217933809",
+          "sha256": "9826a3a9d17f6c12fd3b885ba11271a34dafa98a43bd1e281475f640dcb733d5",
+          "size": 7770,
+          "url": "https://github.com/Orama-Interactive/Pixelorama/blob/9d0659cd6935db4c616ffc69fe44a36140f36e61/README.md",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "project.godot",
+          "blob": "8bb38001640ceba1c39814f00be01f35b55a5f5d",
+          "sha256": "2ad52ef9cfd9723ea0a095dce091784b3bbc7033ee994518a9707ce3867e27b4",
+          "size": 68571,
+          "url": "https://github.com/Orama-Interactive/Pixelorama/blob/9d0659cd6935db4c616ffc69fe44a36140f36e61/project.godot",
+          "inspection": "Engine/runtime dependency assessment.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/Tools/DesignTools/Pencil.gd",
+          "blob": "60fad87506a65afe8a93678ba73e833b253ea707",
+          "sha256": "4193ffc4060b159ae12c0dd3a41aa043c81d76df10fd5798365e3abfc851ef95",
+          "size": 6004,
+          "url": "https://github.com/Orama-Interactive/Pixelorama/blob/9d0659cd6935db4c616ffc69fe44a36140f36e61/src/Tools/DesignTools/Pencil.gd",
+          "inspection": "Pixel drawing tool/engine dependency assessment.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/UI/Canvas/OnionSkinning.gd",
+          "blob": "4bac7f4f084ae2ad122608fc92d97313b1a6fcc7",
+          "sha256": "441588ebe970a6433a2093c7366e0bcadef053a8fa269187ad1dbc7954a9972a",
+          "size": 1174,
+          "url": "https://github.com/Orama-Interactive/Pixelorama/blob/9d0659cd6935db4c616ffc69fe44a36140f36e61/src/UI/Canvas/OnionSkinning.gd",
+          "inspection": "Inspect previous/next frame overlays and layer visibility.",
+          "changes": "None; review-only local copy; no product destination."
+        }
+      ]
+    }
+  ],
+  "artwork_policy": "No user screenshots, Stardew artwork, LPC sprites or upstream sample icons imported. Each actual asset needs separate origin/license/author evidence.",
+  "verification": "Source-file SHA-256 and Git blob hashes checked against pinned API tree metadata; candidate runtime and Android behavior untested."
+}
