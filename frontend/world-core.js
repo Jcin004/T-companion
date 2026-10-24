@@ -6,7 +6,8 @@ import {sceneActionCandidate,sceneActionSteps} from './world-scene-actions.js';
 import {selectSkin,lookFor} from './character-looks.js';
 import {sceneSkinCandidate,sceneGestureCandidate,presentationText} from './scene-presentation.js';
 import {sceneText} from './world-scene-actions.js';
-export const copy=value=>JSON.parse(JSON.stringify(value));
+export {jsonSnapshot as copy} from './json-snapshot.js';
+import {jsonSnapshot as copy} from './json-snapshot.js';
 export function ensureWorld(data){
   if(data.world===undefined)data.world={version:1,room_id:ROOM.id,tick:0,lamp:true,residents:[],positions:{user:{x:5,y:8}},events:[]};
   if(data.world.curtain===undefined)data.world.curtain=false;

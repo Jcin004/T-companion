@@ -2,7 +2,7 @@
 // Visual assets are separate from roster identity and model context.
 import {syncArchivePortraits,validateArchive} from './character-archive.js';
 import {validateCalibration} from './sprite-calibration.js';
-const copy=x=>JSON.parse(JSON.stringify(x));
+import {jsonSnapshot as copy} from './json-snapshot.js';
 const image=s=>typeof s==='string'&&s.length<=1200000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(s);
 export const DIRECTIONS=['down','left','right','up'];
 export const EXPRESSIONS={neutral:'平静',happy:'开心',sad:'难过',angry:'生气',shy:'害羞',surprised:'惊讶',tired:'疲倦',worried:'担心'};
@@ -58,9 +58,16 @@ export function lookCatalog(data,id){
   return copy({skins:[],active_skin_id:'default',auto_skin:false,ai_allowed:true,...(validateLooks(data)[id]||{skin:Math.max(0,Math.min(2,index)),portraits:[],portrait:0,sprite:null})});
 }
 export function skinChoices(catalog){return [{id:'default',name:'默认皮肤',skin:catalog.skin,portraits:catalog.portraits,portrait:catalog.portrait,sprite:catalog.sprite,actions:catalog.actions||{},...(catalog.expressions?{expressions:catalog.expressions}:{}),...(catalog.gestures?{gestures:catalog.gestures}:{}),ai_allowed:catalog.ai_allowed!==false},...(catalog.skins||[])];}
-export function lookFor(data,id,skinId){
-  const catalog=lookCatalog(data,id),skin=skinChoices(catalog).find(s=>s.id===(skinId||catalog.active_skin_id))||skinChoices(catalog)[0];
+function selectedLook(data,id,skinId,rows){
+  const index=id==='user'?0:(data.world?.residents.indexOf(id)??-1)+1;
+  const catalog={skins:[],active_skin_id:'default',auto_skin:false,...(rows[id]||{skin:Math.max(0,Math.min(2,index)),portraits:[],portrait:0,sprite:null})};
+  const skin=skinChoices(catalog).find(s=>s.id===(skinId||catalog.active_skin_id))||skinChoices(catalog)[0];
   return copy({...skin,skin_id:skin.id,auto_skin:catalog.auto_skin});
+}
+export function lookFor(data,id,skinId){return selectedLook(data,id,skinId,validateLooks(data));}
+export function looksFor(data,ids){
+  const rows=validateLooks(data);
+  return Object.fromEntries(ids.map(id=>[id,selectedLook(data,id,undefined,rows)]));
 }
 export function selectSkin(data,id,skinId,ai=false){
   if(id!=='user'&&!data.characters.some(c=>c.id===id))throw Error('人物不存在');

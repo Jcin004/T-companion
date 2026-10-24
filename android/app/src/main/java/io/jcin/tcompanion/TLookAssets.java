@@ -36,14 +36,27 @@ final class TLookAssets {
         JSONObject cells=editor.getJSONObject("cells");
         for(Iterator<String> keys=cells.keys();keys.hasNext();){JSONObject cell=cells.getJSONObject(keys.next());cell.put("image",visitor.image(cell.getString("image")));}
     }
-    static String encode(SQLiteDatabase db,String value) throws Exception {
-        JSONObject document=new JSONObject(value);Set<String> keep=new HashSet<>();
+    private static String digest(String image) throws Exception {
+        byte[] digest=MessageDigest.getInstance("SHA-256").digest(image.getBytes(StandardCharsets.UTF_8));StringBuilder hash=new StringBuilder();
+        for(byte b:digest)hash.append(String.format(java.util.Locale.ROOT,"%02x",b&255));return hash.toString();
+    }
+    static String encode(SQLiteDatabase db,String value) throws Exception { return encode(db,value,null); }
+    static String encode(SQLiteDatabase db,String value,JSONObject images) throws Exception {
+        JSONObject document=new JSONObject(value);Set<String> keep=new HashSet<>();Map<String,String> hashes=new HashMap<>();
         visit(document,image->{
-            if(!image.startsWith("data:image/")||image.length()>1200000)throw new IOException("Invalid image size");
-            byte[] digest=MessageDigest.getInstance("SHA-256").digest(image.getBytes(StandardCharsets.UTF_8));StringBuilder hash=new StringBuilder();
-            for(byte b:digest)hash.append(String.format(java.util.Locale.ROOT,"%02x",b&255));String id=hash.toString();
+            String id,candidate;
+            if(image.startsWith("asset:")){
+                id=image.substring(6);if(!id.matches("[a-f0-9]{64}"))throw new IOException("Invalid asset reference");
+                candidate=images==null?null:images.optString(id,null);
+            }else{
+                candidate=image;if(!image.startsWith("data:image/")||image.length()>1200000)throw new IOException("Invalid image size");
+                id=hashes.get(image);if(id==null){id=digest(image);hashes.put(image,id);}
+            }
             boolean exists;try(Cursor c=db.rawQuery("SELECT id FROM look_assets WHERE id=?",new String[]{id})){exists=c.moveToFirst();}
-            if(!exists){ContentValues row=new ContentValues();row.put("id",id);row.put("data",image);if(db.insertWithOnConflict("look_assets",null,row,SQLiteDatabase.CONFLICT_IGNORE)==-1)throw new IOException("Image asset save failed");}
+            if(!exists){
+                if(candidate==null||!candidate.startsWith("data:image/")||candidate.length()>1200000||!digest(candidate).equals(id))throw new IOException("Missing or invalid image asset");
+                ContentValues row=new ContentValues();row.put("id",id);row.put("data",candidate);if(db.insertWithOnConflict("look_assets",null,row,SQLiteDatabase.CONFLICT_IGNORE)==-1)throw new IOException("Image asset save failed");
+            }
             keep.add(id);return "asset:"+id;
         });
         List<String> remove=new ArrayList<>();try(Cursor c=db.rawQuery("SELECT id FROM look_assets",null)){while(c.moveToNext())if(!keep.contains(c.getString(0)))remove.add(c.getString(0));}

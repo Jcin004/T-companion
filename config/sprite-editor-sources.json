@@ -1,0 +1,69 @@
+{
+  "reviewed_on": "2026-10-25",
+  "baseline_commit": "333834e8b082c2b1a9e9f89c48eaeca7fd21f3e2",
+  "scope": "Design-only review of pinned source files. No runtime source/assets copied; no new dependency.",
+  "sources": [
+    {
+      "repository": "https://github.com/piskelapp/piskel",
+      "commit": "d828941fa9fe76464d69d91d5fd862067c98c02c",
+      "role": "changed-only rendering design reference",
+      "license_evidence": "Apache-2.0",
+      "api_license": "Apache-2.0",
+      "attribution_evidence": "README.md identifies Julian Descottes (2017); preserve upstream notices and per-file history on import.",
+      "dependencies_and_adapter": "pskl namespace, Frame API, keyboard/tool events and controllers; no whole-app import; README excludes mobile support.",
+      "status": "reviewed; no source or art imported",
+      "files": [
+        {
+          "path": "LICENSE",
+          "blob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "size": 11358,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/LICENSE",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "README.md",
+          "blob": "b622948c51ee14a3c515431d4ac8861608783ed7",
+          "sha256": "ba18ce36ba4190d45a12ad25308191661ffa007b33047de5a092dfb9779bf484",
+          "size": 3578,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/README.md",
+          "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
+          "changes": "None; review-only local copy; no product destination."
+        },
+        {
+          "path": "src/js/rendering/OnionSkinRenderer.js",
+          "blob": "c66abb35d5a3c44517a34c02f6ac2fd2ff7840b2",
+          "sha256": "3c3c55428c47816c4dd41cc73347374536dadc592ddd410cd0adda30cf49a9d9",
+          "size": 2741,
+          "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/src/js/rendering/OnionSkinRenderer.js",
+          "inspection": "Inspect controller/CompositeRenderer coupling and previous-frame overlay.",
+          "changes": "None; review-only local copy; no product destination."
+        }
+      ],
+      "adaptation": "Reuse unchanged atlas thumbnail DOM/canvases keyed by image and layout; lazy room preview; own existing Canvas code. No pskl controller/tool/history dependency imported."
+    },
+    {
+      "repository": "https://github.com/Jcin004/Alicization-Town",
+      "commit": "1a33ba65d0af2134b369b1eb4eb68f45d2c817c4",
+      "files": [
+        {
+          "path": "server/web/js/game.js",
+          "blob": "4dbf77467cae13173d6a832b63e3d1d0ff27a2fb",
+          "review": "gameLoop/updatePhysics, display/target positions and animation frame reset"
+        },
+        {
+          "path": "LICENSE",
+          "review": "root AGPL-3.0-or-later; manifests/badges differ, see world-reference-sources.json"
+        }
+      ],
+      "modifications": "None; existing T-companion elapsed-time renderer adapted instead of server/client movement",
+      "dependencies_not_imported": [
+        "Node world server",
+        "WebSocket player snapshots",
+        "upstream artwork"
+      ],
+      "adaptation": "Keep existing elapsed-time movement renderer and serialized durable steps; remove storage/image work from the step budget. No upstream Node server, snapshots or artwork imported."
+    }
+  ]
+}

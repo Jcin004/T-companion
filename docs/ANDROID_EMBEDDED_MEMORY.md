@@ -74,6 +74,13 @@ android/gradlew -p android :app:assembleDebug :app:assembleDebugAndroidTest '-Pu
 
 ## 0.13.0 人物图片与场景动作
 
-多立绘和自定义行走图集由 `TLookAssets` 按内容哈希存在同一个 SQLite 的 `look_assets` 表，业务文档仅保存引用；插件读写和备份接口仍返回完整图片。资源写入、清理、文档 CAS 和租约在同一事务内处理。图片不进入模型或 OB 的文本上下文，不建立第二个人物库。
+多立绘和自定义行走图集由 `TLookAssets` 按内容哈希存在同一个 SQLite 的 `look_assets` 表，业务文档仅保存引用；业务/备份接口仍返回完整图片；0.18.2 前台插件可选择只传图片引用，见文末。资源写入、清理、文档 CAS 和租约在同一事务内处理。图片不进入模型或 OB 的文本上下文，不建立第二个人物库。
 
 专用 Android 11 模拟器已验证超过 2 MB 的有效 PNG 总量读取、备份形状还原、过期版本拒绝、保存失败回滚与原签名覆盖保留数据；原居民前台和无 Activity Worker 验收也通过。新增画面与台词回放的验证边界见 [世界画面与对话](WORLD_VISUAL_DIALOGUE.md)。
+
+
+### 0.18.2 图片引用传输
+
+前台 `NativePersistence` 请求 `assetReferences:true`，文档仅传原 SQLite `look_assets` 的 SHA-256 引用；首次读取按张加载并校验，新图随同事务保存，未变化图片不重复传输。角色、世界、聊天和备份接口仍接收完整图片字符串。未选择该协议的后台/旧调用继续解码完整图片，无 schema 迁移。租约开始时返回同份元数据快照；成功保存可同时释放租约，失败保留原 revision 和文档。
+
+`PluginCall.getLong` 不接受 Android JSON 中的 Integer，旧代码会误走“无版本号”路径并全量解码。现在接受 Number 中的非负安全整数，显式旧版本仍由 SQLite CAS 拒绝；缺版本的旧调用只读取元数据获取 revision。详见 [设备回归](SPRITE_EDITOR_PERFORMANCE.md)。

@@ -5,6 +5,7 @@ import {atlasMeta} from './character-looks.js';
 import {spriteRect} from './sprite-calibration.js';
 import {SPRITE_STANDARD,drawBodyReference} from './sprite-reference.js';
 const images=new Map(),ready=new Map();
+const defaultPortraits=new Map();
 export const art={room:root+'warm-room.png',sprites:root+'residents.png',portraits:root+'portraits.png'};
 // One cycle spans two tiles. The first frame is also the resting pose.
 export function walkFrame(distance,frames=4){return Math.floor(Math.max(0,distance)*frames/2)%frames;}
@@ -63,9 +64,10 @@ export async function previewRoom(canvas,look,direction='down',distance=null,val
 export async function portraitImage(look,avatar,emotion){
   const expression=emotion&&(look.portraits.find(p=>p.emotion===emotion)||look.portraits.find(p=>p.emotion==='neutral'));
   const chosen=expression?.image||look.portraits[look.portrait]?.image||avatar;if(chosen)return chosen;
+  if(defaultPortraits.has(look.skin))return defaultPortraits.get(look.skin);
   const image=await load(art.portraits),canvas=document.createElement('canvas');canvas.width=256;canvas.height=512;
   canvas.getContext('2d').drawImage(image,look.skin*image.width/3,0,image.width/3,image.height,0,0,256,512);
-  return canvas.toDataURL('image/png');
+  const result=canvas.toDataURL('image/png');defaultPortraits.set(look.skin,result);return result;
 }
 export async function previewSprite(canvas,look,direction,frame,valid=()=>true){
   const image=await load(look.sprite?.image||art.sprites),m=atlasMeta(look.sprite),frames=m.frames,cols=look.sprite?frames:12;
