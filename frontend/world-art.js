@@ -2,6 +2,7 @@
 // Original generated assets; see assets/world/PROVENANCE.json.
 const root=new URL('./assets/world/',import.meta.url).href;
 import {atlasMeta} from './character-looks.js';
+import {spriteRect} from './sprite-calibration.js';
 const images=new Map(),ready=new Map();
 export const art={room:root+'warm-room.png',sprites:root+'residents.png',portraits:root+'portraits.png'};
 // One cycle spans two tiles. The first frame is also the resting pose.
@@ -32,10 +33,10 @@ export function drawActor(c,world,id,p,pose={},time=performance.now()){
   const row=m.rows[pose.direction||world.state.facing[id]||'down'];
   const cols=sprite?frames:12,fw=image.width/cols,fh=image.height/m.rowCount;
   const frame=actionSprite?m.order[Math.min(m.order.length-1,Math.floor((pose.progress||0)*m.order.length))]:pose.walking?m.order[walkFrame(pose.distance||0,m.order.length)]:m.idle,col=sprite?frame:look.skin*4+frame;
-  const size=Math.round(width*.24),lift=pose.using?Math.sin(time/90)*2:0;
-  const spriteWidth=size*Math.min(1,fw/fh),spriteHeight=size*Math.min(1,fh/fw);
+  const size=Math.round(width*(sprite?.calibration?.world_height??.24)),lift=pose.using?Math.sin(time/90)*2:0;
+  const rect=spriteRect(fw,fh,size,point,sprite?.calibration);
   c.fillStyle='#342b3340';c.beginPath();c.ellipse(point.x,point.y-2,size*.25,size*.07,0,0,Math.PI*2);c.fill();
-  c.drawImage(image,col*fw,row*fh,fw,fh,Math.round(point.x-spriteWidth/2),Math.round(point.y-spriteHeight+lift),spriteWidth,spriteHeight);
+  c.drawImage(image,col*fw,row*fh,fw,fh,sprite?.calibration?rect.x:Math.round(rect.x),sprite?.calibration?rect.y+lift:Math.round(rect.y+lift),rect.width,rect.height);
   if(pose.using&&pose.action==='plant'){
     const hand=point.x+(world.state.facing[id]==='left'?-1:1)*size*.19,y=point.y-size*.40;
     c.fillStyle='#779284';c.fillRect(hand-6,y,13,10);c.strokeStyle='#c3d5c1';c.lineWidth=3;c.strokeRect(hand-2,y-5,8,6);
@@ -43,6 +44,13 @@ export function drawActor(c,world,id,p,pose={},time=performance.now()){
   }
   c.font=Math.round(width/36)+'px sans-serif';c.textAlign='center';c.fillStyle='#fff3db';c.strokeStyle='#503b35';c.lineWidth=3;
   const name=id==='user'?'我':world.residents.find(r=>r.id===id)?.name||'';c.strokeText(name,point.x,point.y-size-3,width/3);c.fillText(name,point.x,point.y-size-3,width/3);
+}
+export async function previewRoom(canvas,look,direction='down',distance=null,valid=()=>true){
+  const world={looks:{user:look},residents:[],state:{facing:{user:direction},lamp:true,curtain:false}};
+  await loadWorldArt(world);if(!valid())return;
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawRoom(ctx,canvas.width,canvas.height,world.state);
+  drawActor(ctx,world,'user',{x:5,y:7},{direction,walking:distance!==null,distance:distance||0});
 }
 export async function portraitImage(look,avatar,emotion){
   const expression=emotion&&(look.portraits.find(p=>p.emotion===emotion)||look.portraits.find(p=>p.emotion==='neutral'));

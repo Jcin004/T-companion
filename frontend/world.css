@@ -84,3 +84,15 @@ body.world-active #api-floating-switcher{display:none}
 #world-looks-dialog .file-button{position:relative;min-height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer}#world-looks-dialog .file-button input[type=file]{position:absolute;width:1px;height:1px;padding:0;margin:0;overflow:hidden;clip:rect(0,0,0,0)}#world-looks-dialog .file-button:focus-within{outline:2px solid #53705b;outline-offset:2px}.looks-sheet-help{font-size:11px!important;line-height:1.5!important}.looks-sheet-grid canvas{height:56px}
 .looks-selected-upload{display:flex;align-items:center;gap:10px}.looks-selected-upload strong{font-size:13px;min-width:80px;white-space:nowrap}.looks-selected-upload .file-button{flex:1;margin:0!important}.looks-import-advanced{border-top:1px solid #c39a73;margin-top:14px;padding-top:8px;font-size:12px}.looks-import-advanced>summary{min-height:44px;padding:10px 0}.looks-frame-adjustments{background:#f9edd7;padding:8px;margin-top:8px;border-left:3px solid #718264}.looks-frame-adjustments input[type=range]{width:100%;padding:0;min-height:36px;accent-color:#53705b}.looks-frame-adjustments output{float:right;font-size:12px}.looks-frame-adjustments p{font-size:11px}.looks-frame-adjustments button{padding:7px 5px}.looks-import-advanced .looks-atlas-settings{border-top:0}
 .world-history-message small{font-size:10px;display:block;overflow-wrap:anywhere}.world-history-message p{font-size:13px;margin:7px 0}.world-history-message button{margin:5px 5px 0 0}
+.looks-calibration{border-top:1px solid #c39a73;margin-top:12px;padding-top:10px}
+.looks-calibration>summary{min-height:44px;padding:8px 0;font-weight:bold}
+.looks-calibration>p{font-size:12px;line-height:1.6}
+.looks-calibration-tools{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.looks-calibration-tools button{flex:1;padding:9px 6px;font-size:13px;min-height:44px}
+.looks-calibration-tools button[aria-pressed=true]{background:#53705b;color:#fff}
+.looks-calibration-stage{width:192px;max-width:100%;height:208px;overflow:auto;flex-shrink:0;background:repeating-conic-gradient(#dec8a8 0% 25%,#ead9bd 0% 50%) 0/16px 16px}
+.looks-calibration-stage canvas{display:block;width:192px;height:192px;max-width:none;touch-action:none}
+.looks-calibration .looks-animation-preview{flex-wrap:wrap;padding:6px;gap:8px}
+.looks-calibration input[type=range]{width:100%;min-height:40px;padding:0;accent-color:#53705b}
+.looks-calibration output{float:right}
+.looks-room-preview{display:block;max-width:100%;width:192px;height:288px;image-rendering:pixelated;margin:12px auto;border:2px solid #a87855}

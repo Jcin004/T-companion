@@ -2,7 +2,7 @@
   "schema_version": 1,
   "reviewed_on": "2026-10-24",
   "baseline_commit": "df2fc1f7a97a62878a06ab1bba588a7a2a05e55e",
-  "scope": "Read-only source, license and dependency inspection (targeted sections where noted). No imported code, artwork, runtime dependency or implemented outfit feature.",
+  "scope": "Pinned file/license/dependency review plus isolated probes. No upstream code, artwork or dependency imported into product runtime. Calibration is implemented with existing modules; layered clothing is still planned.",
   "follow_up": "OUTFIT_WORKSHOP_PLAN.md stages 1-2 first; selected file dependencies and attribution must be completed before vendor import.",
   "existing_reference_checks": [
     {
@@ -34,7 +34,7 @@
       "api_license": "Apache-2.0",
       "attribution_evidence": "README.md identifies Julian Descottes (2017); preserve upstream notices and per-file history on import.",
       "dependencies_and_adapter": "pskl namespace, Frame API, keyboard/tool events and controllers; no whole-app import; README excludes mobile support.",
-      "status": "reviewed-candidate; not imported; not Android-tested",
+      "status": "selected algorithm probe passed offline Edge/Android 83; full editor untested; not imported",
       "files": [
         {
           "path": "LICENSE",
@@ -136,7 +136,7 @@
       "api_license": null,
       "attribution_evidence": "Repository contributors for code; artwork authors and licenses must come from per-asset credits, not repository ownership.",
       "dependencies_and_adapter": "TypeScript, Mithril, catalog/state and recoloring pipeline; direction remapping required; no sprite assets imported.",
-      "status": "reviewed-candidate; not imported; not Android-tested",
+      "status": "selected algorithm probe passed offline Edge/Android 83; full editor untested; not imported",
       "files": [
         {
           "path": "LICENSE",
@@ -628,5 +628,13 @@
     }
   ],
   "artwork_policy": "No user screenshots, Stardew artwork, LPC sprites or upstream sample icons imported. Each actual asset needs separate origin/license/author evidence.",
-  "verification": "Source-file SHA-256 and Git blob hashes checked against pinned API tree metadata; candidate runtime and Android behavior untested."
+  "verification": "Source-file SHA-256 and Git blob hashes verified. Only Piskel connected-fill and LPC frame-copy probes passed offline Edge/Android 11 WebView 83; complete editors and other candidates remain untested.",
+  "experiments": {
+    "entry": "tests/outfit-reuse-probe.mjs",
+    "cache": "Ignored local source cache; --fetch retrieves immutable URLs and verifies recorded SHA-256 and Git blob before execution.",
+    "scope": "Isolated test only: Piskel connected flood fill with integer Frame adapter; LPC drawFrameToFrame extracted and transpiled for the probe. No upstream bytes added to product runtime.",
+    "browser": "Passed offline Edge: enclosed/edge fill, same-color no-op and real Canvas frame copy without stretching.",
+    "android": "Passed dedicated Android 11 / WebView 83: offline connected fill and actual Canvas frame copy; not a full upstream editor compatibility test.",
+    "decision": "Keep existing frame editor for calibration; neither Piskel application nor Cropper UI is needed for foot picking and per-cell drag. Retain fill/frame-copy candidates for the later layered drawing stage."
+  }
 }

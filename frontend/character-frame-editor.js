@@ -2,6 +2,7 @@
 // Image composition only. The looks module validates and persists these values.
 import {atlasMeta,validateAtlas,DIRECTIONS} from './character-looks.js';
 import {previewSprite,loadArtImage} from './world-art.js';
+import {frameView,drawCalibrationGuide} from './sprite-calibration.js';
 const canvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 export const frameKey=(atlas,direction,frame)=>atlasMeta(atlas).rows[direction]+'_'+frame;
 export function fallbackFrame(look,meta,frame,action=false){
@@ -58,8 +59,9 @@ export async function removeFrame(atlas,key){
   if(!Object.keys(cells).length){const {frame_editor,...rest}=atlas;return {...rest,image:e.base_image};}
   return composeFrames({...atlas,frame_editor:{...e,cells}});
 }
-export async function drawFrameGuide(c,atlas,direction,frame,look,valid){
+export async function drawFrameGuide(c,atlas,direction,frame,look,valid,showGuide=true){
   await previewSprite(c,{...look,sprite:atlas},direction,frame,valid);if(!valid())return;
+  if(!showGuide)return;
   const ctx=c.getContext('2d'),m=atlasMeta(atlas),e=atlas?.frame_editor;
   const reference=e?.cells[frameKey(atlas,direction,m.idle)];
   if(reference&&frame!==m.idle){
@@ -67,5 +69,6 @@ export async function drawFrameGuide(c,atlas,direction,frame,look,valid){
     const p=framePlacement(e.width,e.height,image.width,image.height,reference),s=Math.min(c.width/e.width,c.height/e.height),x=(c.width-e.width*s)/2,y=c.height-e.height*s;
     ctx.save();ctx.globalAlpha=.25;ctx.drawImage(image,x+p.x*s,y+p.y*s,p.width*s,p.height*s);ctx.restore();
   }
-  ctx.save();ctx.strokeStyle='#53806a';ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(c.width/2,0);ctx.lineTo(c.width/2,c.height);ctx.moveTo(0,c.height-1);ctx.lineTo(c.width,c.height-1);ctx.stroke();ctx.restore();
+  const image=await loadArtImage(atlas.image);if(!valid())return;
+  drawCalibrationGuide(ctx,frameView(c.width,c.height,image.width/m.frames,image.height/m.rowCount),atlas.calibration);
 }
