@@ -37,3 +37,15 @@
 
 
 验证通过：141 项 Node、103 项 Python（warnings as errors）、新增逐帧浏览器回归及原六组相关流程。专用 Android 11 / WebView83 使用原生触屏拖动第二/第三帧，另 11 格逐像素相同，原图保留；切格恢复单帧范围，SQLite 重启和原签名 28→29 覆盖保留完整业务/加密凭据指纹。结果 `artifacts/frame-position-native.json` 和原生截图 `frame-position-native.png` 留本机忽略目录。真机未测。
+
+
+## 正式交付
+
+- 构建源码：`1fce06e5a882d123531dacd87ab74bc13a462bf9`。分支 `fix/isolated-sprite-frame-position`，草稿 [PR #32](https://github.com/Jcin004/T-companion/pull/32)，基于 `fix/sprite-editor-performance`，不合并 main。
+- [0.18.3-trial 下载](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.18.3)，包名 `io.jcin.tcompanion`、原试用签名、versionCode 29。APK 80,116,699 字节，SHA-256 `4a5a62071d6d1b85ebe14e82c9225ac7f361ed2c5c508aa1173a90c47ad8d3ad`。
+- 精确 `git archive` 源码 11,835,729 字节，SHA-256 `484d1bfed24b912632d0734eb77219892b370fd28deee03d787cfdb5ec03e334`。发布七份附件：APK、源码、构建说明、许可、第三方声明、清单、SHA256SUMS。静态 feed 同步到 29。
+- 最终签名 APK 再次通过原生第二/第三帧隔离回归；随后恢复完整合成存档，业务及加密凭据指纹与 code28 覆盖安装前一致，APK 内 source-commit 核对为上述构建提交。
+- [构建提交 CI](https://github.com/Jcin004/T-companion/actions/runs/40166154297) 通过；快照来源/隐私/密钥审计检查 514 个 blob，无阻断。没有调用真实模型或付费服务。
+- 本地文件：`artifacts/T-companion-0.18.3-trial.apk`、`artifacts/T-companion-0.18.3-source.zip`；覆盖安装保留应用数据。真机和 Android 网络更新检查未重新验收，发布渠道验证与设备网络能力分别记录。
+
+后续交付文档提交与构建源码提交区分。用户原工作区的未提交修改保留，临时服务器和专用模拟器在验收后关闭。

@@ -119,3 +119,8 @@ python scripts/publish-trial.py --apk artifacts/T-companion-0.13.2-trial.apk --s
 ## 0.18.2 交付（2026-10-25）
 
 形象编辑精简与大图片存档性能修复，原包名/签名，versionCode 28；[Release](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.18.2)，构建源码 `6cd8cea7f1379a615be9e04e13235d9d60bcfcf6`。APK、精确源码、构建说明、许可、第三方声明、清单和 SHA256SUMS 共七件；静态 feed 同步。本轮更新器代码未改，设备网络检查未重新验收。正式包指纹、设备结果和使用入口见 [交付记录](SPRITE_EDITOR_PERFORMANCE.md#正式交付)。
+
+
+## 0.18.3 交付（2026-10-25）
+
+修复单帧位置拖动联动整组，原包名/签名、versionCode 29；[Release](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.18.3)，构建源码 `1fce06e5a882d123531dacd87ab74bc13a462bf9`。APK、精确源码及许可等七份附件与静态 feed 同步；完整指纹、测试与用法见 [逐帧位置交付](SPRITE_FRAME_POSITION.md#正式交付)。本轮未改更新器，没有重测 Android 原生网络检查/下载。
