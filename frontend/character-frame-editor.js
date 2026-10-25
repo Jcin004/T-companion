@@ -54,6 +54,21 @@ export async function replaceFrame(atlas,key,image,adjustment){
   const cell=adjustment?{...previous,...adjustment}:{image,scale:e.scale,x:0,y:0};
   return composeFrames({...atlas,frame_editor:{...e,cells:{...e.cells,[key]:cell}}});
 }
+// Make an imported tile editable without changing any other tile or its pixels.
+export async function editableFrame(atlas,key){
+  validateAtlas(atlas);
+  const m=atlasMeta(atlas),match=/^(\d+)_(\d+)$/.exec(key);
+  if(!match||+match[1]>=m.rowCount||+match[2]>=m.frames)throw Error('所选姿势不存在');
+  if(atlas.frame_editor?.cells[key])return atlas;
+  const base=atlas.frame_editor?.base_image||atlas.image,image=await loadArtImage(base);
+  const width=image.width/m.frames,height=image.height/m.rowCount;
+  if(!Number.isInteger(width)||!Number.isInteger(height))throw Error('原图不能按当前行列均分，请重新导入图集');
+  const c=canvas(width,height),ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(image,+match[2]*width,+match[1]*height,width,height,0,0,width,height);
+  const editor=atlas.frame_editor||{version:1,width,height,scale:1,base_image:base,cells:{}};
+  const next={...atlas,frame_editor:{...editor,cells:{...editor.cells,[key]:{image:boundedImage(c),scale:1,x:0,y:0}}}};
+  validateAtlas(next);return next;
+}
 export async function removeFrame(atlas,key){
   const e=atlas.frame_editor,cells={...e.cells};delete cells[key];
   if(!Object.keys(cells).length){const {frame_editor,...rest}=atlas;return {...rest,image:e.base_image};}

@@ -33,7 +33,7 @@ try{
   assert.match(await panel.locator('.calibration-standard').textContent(),/64×96.*80.*8/);
   assert.equal((await read()).character_looks.a.sprite.calibration,undefined,'opening does not change existing scale');
   // 8 source pixels of bottom padding at 3x = 24 display pixels.
-  await drag(canvas,0,24);await save();
+  await panel.locator('.calibration-move-all input').check();await drag(canvas,0,24);await save();
   let a=(await read()).character_looks.a.sprite;near(a.calibration.foot_y,88/96);near(a.calibration.world_height/a.calibration.body_height,.24);
   assert.equal(a.frame_editor.cells['0_1'].image,'data:image/png;base64,'+png);assert.equal(a.frame_editor.cells['0_1'].y,0,'main drag adjusts the group, not one source cell');
   await drag(canvas,15,10,true);await save();assert.deepEqual((await read()).character_looks.a.sprite,a,'cancel does not edit the atlas');

@@ -10,6 +10,6 @@ const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Num
  sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['形象编辑统一用上方格子选方向和姿势；整图导入独立打开','移除重复模板和常驻行号设置，非标准图集可在导入窗口调整','人物大小使用数字和加减，滚轮滑页面不改值；房间试穿按需展开','复用缩略图与图片资源引用，减少大皮肤存档下的移动和展开等待','修正 Android 小整数版本号读取，拒绝过期写入并保留原签名和数据']};
+ releaseNotes:['修正调整第二帧时连带改变其他帧的位置问题','拖动默认只移动选中格，整张图导入的格子也能独立调整','整组移动需明确勾选，切换姿势后恢复单格范围；展开数字微调不再改变范围','行走帧共用固定中心和地面参照，拖动时保留站立叠影，方便纠正左右偏移','保留原图、旧皮肤、备份和 SQLite，沿用原包名与签名']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');
