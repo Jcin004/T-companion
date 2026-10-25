@@ -25,10 +25,10 @@ async function fingerprint(){
 try{
   await adb('shell','am','start','-n','io.jcin.tcompanion/.MainActivity');await connect();await wait(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
   if(process.argv.includes('--capture')){
-    const expected=await fingerprint();assert.equal(expected.version,27);await writeFile('artifacts/calibration-upgrade-before.json',JSON.stringify(expected,null,2));console.log('Captured synthetic code27 business/credential fingerprints');
+    const expected=await fingerprint();assert.equal(expected.version,28);await writeFile('artifacts/calibration-upgrade-before.json',JSON.stringify(expected,null,2));console.log('Captured synthetic code28 business/credential fingerprints');
   }else{
     const expected=JSON.parse(await readFile('artifacts/calibration-upgrade-before.json','utf8')),after=await fingerprint();
-    assert.equal(after.version,28);assert.equal(after.data,expected.data);assert.equal(after.credentials,expected.credentials);
+    assert.equal(after.version,29);assert.equal(after.data,expected.data);assert.equal(after.credentials,expected.credentials);
     before=await read();const owner=before.characters[0].id;
     const probe=await evaluate(source=>(0,eval)(source),await outfitProbeSource());assert.equal(probe.lpcCanvasCopy,true);assert.equal(probe.piskelFill,true);
     await evaluate(async owner=>{
@@ -42,6 +42,7 @@ try{
     await wait(()=>!document.querySelector('#looks-walk-editor .looks-calibration').hidden);
     assert.equal(await evaluate(()=>document.querySelectorAll('#looks-walk-editor [data-mode=head],[data-mode=foot]').length),0);
     const initial=await read();
+    await tap('#looks-walk-editor .calibration-move-all input');
     const p=await position('#looks-sprite',.5,.5);
     await adb('shell','input','swipe',String(p.x),String(p.y),String(p.x),String(p.y+66),'500');await pause(300);await save();
     let atlas=(await read()).character_looks[owner].sprite;
@@ -56,7 +57,7 @@ try{
     await tap('#looks-walk-editor .calibration-frame-fine>summary');
     await position('#looks-sprite');await pause(400);await shot('editor');await tap('#looks-walk-editor .calibration-room>summary');await position('#looks-room-preview');await pause(500);await shot('room-preview');
     await tap('#looks-close');await shot('world');const saved=await read();await restart();await wait(()=>document.querySelector('#status')?.textContent==='记录保存在本机');assert.deepEqual(await read(),saved);
-    await writeFile('artifacts/calibration-native.json',JSON.stringify({upgrade27to28:true,businessAndCredentialsPreserved:true,fixedReferenceGroupDrag:true,nativeDrag:true,compactControls:true,sqliteRestart:true,nativeScreencaps:true,reuseProbe:probe,paidModelCalls:0},null,2));
+    await writeFile('artifacts/calibration-native.json',JSON.stringify({upgrade28to29:true,businessAndCredentialsPreserved:true,fixedReferenceGroupDrag:true,nativeDrag:true,compactControls:true,sqliteRestart:true,nativeScreencaps:true,reuseProbe:probe,paidModelCalls:0},null,2));
     console.log('PASS: original-signature upgrade, fixed-reference group touch, frame drag, compact controls, SQLite restart and offline Piskel/LPC probe');
   }
 }finally{

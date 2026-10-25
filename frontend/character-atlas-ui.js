@@ -2,7 +2,7 @@
 // Shared image editor; callers own the selected skin, draft and persistence.
 import {previewSprite,loadArtImage} from './world-art.js';
 import {atlasMeta,validateAtlas,DIRECTIONS} from './character-looks.js';
-import {frameKey,initializeFrames,replaceFrame,removeFrame,drawFrameGuide,fallbackFrame} from './character-frame-editor.js';
+import {frameKey,initializeFrames,replaceFrame,removeFrame,drawFrameGuide,fallbackFrame,editableFrame} from './character-frame-editor.js';
 import {bindCharacterImageInput} from './character-image-input.js';
 import {mountCalibration} from './character-calibration-ui.js';
 export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAtlas,setAtlas,readImage,changed,error,valid,working=()=>{}}){
@@ -33,11 +33,13 @@ export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAt
   const key=()=>frameKey(getAtlas()||inputs(),direction,selectedFrame??meta().idle);
   const capture=()=>{const look=getLook(),slot=key();return ()=>valid()&&getLook()===look&&key()===slot;};
   function selection(){
-    const m=meta(),f=selectedFrame??m.idle,d=direction,e=getAtlas()?.frame_editor,cell=e?.cells[key()];
+    const m=meta(),f=selectedFrame??m.idle,d=direction,e=getAtlas()?.frame_editor,stored=e?.cells[key()],cell=stored||{scale:e?.scale||1,x:0,y:0};
     el('selected-frame').textContent={down:'向下',left:'向左',right:'向右',up:'向上'}[d]+' · '+(action?'第 '+(f+1)+' 帧':f===m.idle?'站立':m.frames===3?(f===0?'迈腿 A':'迈腿 B'):'第 '+(f+1)+' 帧');
     root.querySelectorAll('.looks-sheet-grid button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.direction===d&&+b.dataset.frame===f)));
-    adjust.hidden=!cell;
-    if(cell){el('frame-scale').max=Math.min(200,Math.floor(16/e.scale*100));el('frame-scale').value=Math.round(cell.scale/e.scale*100);el('scale-value').textContent=Math.round(cell.scale/e.scale*100)+'%';el('frame-x').value=cell.x;el('frame-y').value=cell.y;for(const n of ['frame-x','frame-y']){el(n).min=-(n==='frame-x'?e.width:e.height);el(n).max=n==='frame-x'?e.width:e.height;}}
+    adjust.hidden=!getAtlas();
+    el('frame-scale').value=Math.round(cell.scale/(e?.scale||1)*100);el('scale-value').textContent=el('frame-scale').value+'%';el('frame-x').value=cell.x;el('frame-y').value=cell.y;
+    el('align-reset').disabled=!stored;el('frame-remove').disabled=!stored;
+    for(const n of ['frame-x','frame-y']){if(e){el(n).min=-(n==='frame-x'?e.width:e.height);el(n).max=n==='frame-x'?e.width:e.height;}else{el(n).removeAttribute('min');el(n).removeAttribute('max');}}
   }
   function load(){selectedFrame=null;const sprite=getAtlas(),m=atlasMeta(sprite||(action?{frames:4,row_count:1}:{frames:3,idle_frame:1}));const standard=m.rowCount===4&&DIRECTIONS.every((d,i)=>m.rows[d]===i);el('import-layout').value=!sprite?(action?'action':'three'):standard&&m.frames===3&&m.idle===1?'three':standard&&m.frames===4&&m.idle===0?'legacy':m.rowCount===1?'action':'custom';el('frames').value=m.frames;el('row-count').value=m.rowCount;el('idle-frame').value=m.idle+1;el('walk-order').value=m.order.map(i=>i+1).join(',');for(const d of DIRECTIONS)el('row-'+d).value=m.rows[d]+1;settings.hidden=el('import-layout').value!=='custom';}
   async function draw(){
@@ -75,13 +77,17 @@ export function mountAtlasEditor(root,{prefix='looks',action=false,getLook,getAt
   bindCharacterImageInput(el('sprite-file'),{error,guard:capture,onFile:async file=>{if(!valid())return;if(getAtlas()?.frame_editor&&!confirm('替换整张图集会移除当前的单格编辑，继续？'))return;const meta=inputs();await mutate(async()=>({image:await readImage(file,{sprite:true,...meta}),...meta}),{resetSelection:true});}});
   async function mutate(change,{resetSelection=false}={}){if(!valid())return;stop();const token=generation,look=getLook();pending++;working();root.setAttribute('aria-busy','true');try{const next=await change();if(token!==generation||!valid()||getLook()!==look)return;setAtlas(next);if(resetSelection)selectedFrame=null;changed();advanced.close();await refresh();}finally{pending--;root.setAttribute('aria-busy',String(pending>0));working();}}
   bindCharacterImageInput(el('frame-file'),{error,guard:capture,onFile:async file=>{if(!valid())return;const slot=key(),old=getAtlas(),look=getLook(),m=meta(),layout={frames:m.frames,row_count:m.rowCount,rows:m.rows,idle_frame:m.idle,walk_order:m.order};await mutate(async()=>{const image=await readImage(file,{sprite:true,frames:1,row_count:1}),atlas=await initializeFrames(old,look,layout,image,action);return replaceFrame(atlas,slot,image);});}});
-  async function align(){const atlas=getAtlas(),e=atlas?.frame_editor;if(!e?.cells[key()])return;const x=Number(el('frame-x').value),y=Number(el('frame-y').value),scale=e.scale*Number(el('frame-scale').value)/100;if(!Number.isInteger(x)||!Number.isInteger(y)||Math.abs(x)>e.width||Math.abs(y)>e.height)throw Error('位置需要在当前格子的宽高范围内');await mutate(()=>replaceFrame(atlas,key(),null,{x,y,scale}));}
+  async function align(){
+    const atlas=getAtlas();if(!atlas)return;const slot=key(),x=Number(el('frame-x').value),y=Number(el('frame-y').value),scale=(atlas.frame_editor?.scale||1)*Number(el('frame-scale').value)/100;
+    if(!Number.isInteger(x)||!Number.isInteger(y)||!Number.isFinite(scale)||scale<=0||scale>16)throw Error('位置需要填写整数，大小需要在有效范围内');
+    await mutate(async()=>{const draft=await editableFrame(atlas,slot),e=draft.frame_editor;if(Math.abs(x)>e.width||Math.abs(y)>e.height)throw Error('位置需要在当前格子的宽高范围内');return replaceFrame(draft,slot,null,{x,y,scale});});
+  }
   for(const n of ['frame-scale','frame-x','frame-y'])el(n).onchange=safe(align);
   el('frame-scale').oninput=()=>{el('scale-value').textContent=el('frame-scale').value+'%';};
   el('align-reset').onclick=safe(()=>{const a=getAtlas();return mutate(()=>replaceFrame(a,key(),null,{x:0,y:0,scale:a.frame_editor.scale}));});
   el('frame-remove').onclick=safe(()=>{const a=getAtlas(),slot=key();return mutate(()=>removeFrame(a,slot));});
   el('reset-sprite').onclick=safe(async()=>{setAtlas(null);changed();advanced.close();await refresh();});
-  calibration=mountCalibration(root,{prefix,canvas:el('sprite'),getAtlas,getLook,key,direction:()=>direction,valid,error,draw,commit:next=>mutate(async()=>next),move:(dx,dy)=>{const a=getAtlas(),cell=a?.frame_editor?.cells[key()];if(!cell)return;return mutate(()=>replaceFrame(a,key(),null,{x:Math.max(-a.frame_editor.width,Math.min(a.frame_editor.width,cell.x+dx)),y:Math.max(-a.frame_editor.height,Math.min(a.frame_editor.height,cell.y+dy))}));}});
+  calibration=mountCalibration(root,{prefix,canvas:el('sprite'),getAtlas,getLook,key,direction:()=>direction,valid,error,draw,commit:next=>mutate(async()=>next),move:(dx,dy)=>{const atlas=getAtlas(),slot=key();return mutate(async()=>{const a=await editableFrame(atlas,slot),e=a.frame_editor,cell=e.cells[slot];return replaceFrame(a,slot,null,{x:Math.max(-e.width,Math.min(e.width,cell.x+dx)),y:Math.max(-e.height,Math.min(e.height,cell.y+dy))});});}});
   adjust.querySelector('p').textContent='仅修正这一帧；以固定素体和半透明站立姿势对照。';
   el('frame-scale').closest('label').firstChild.textContent='这一帧的大小 ';
   return {refresh,stop,draw,isWorking:()=>pending>0};
