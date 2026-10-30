@@ -20,3 +20,4 @@ android/**/build/
 android/app/src/main/assets/resident/
 dist/
 artifacts/
+frontend/piskel-connected-fill.js

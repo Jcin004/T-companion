@@ -3,6 +3,7 @@
 import {syncArchivePortraits,validateArchive} from './character-archive.js';
 import {validateCalibration} from './sprite-calibration.js';
 import {jsonSnapshot as copy} from './json-snapshot.js';
+import {validateDrawingState,drawingChange} from './clothing-project.js';
 const image=s=>typeof s==='string'&&s.length<=1200000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(s);
 export const DIRECTIONS=['down','left','right','up'];
 export const EXPRESSIONS={neutral:'平静',happy:'开心',sad:'难过',angry:'生气',shy:'害羞',surprised:'惊讶',tired:'疲倦',worried:'担心'};
@@ -30,7 +31,7 @@ export function validateAtlas(s){
   }
 }
 function validateSkin(v,nested=false){
-  const allowed=['skin','portraits','portrait','sprite','actions','expressions','gestures','ai_allowed',...(nested?['id','name']:['skins','active_skin_id','auto_skin'])];
+  const allowed=['skin','portraits','portrait','sprite','actions','expressions','gestures','ai_allowed','drawing',...(nested?['id','name']:['skins','active_skin_id','auto_skin'])];
   if(!v||Object.keys(v).some(k=>!allowed.includes(k))||!Number.isInteger(v.skin)||v.skin<0||v.skin>2||!Array.isArray(v.portraits)||v.portraits.length>24||v.portraits.some(p=>!p||typeof p.name!=='string'||p.name.length>40||!image(p.image)||(p.emotion!==undefined&&!key(p.emotion)))||!Number.isInteger(v.portrait)||v.portrait<0||v.portrait>Math.max(0,v.portraits.length-1))throw Error('人物立绘格式或数量错误');
   const entries=(value,label)=>{if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length>16||Object.keys(value).some(k=>!key(k)||['__proto__','constructor','prototype'].includes(k)))throw Error(label+'分类无效');return Object.entries(value);};
   if(v.expressions!==undefined)for(const [id,name]of entries(v.expressions,'自定义表情'))if(Object.prototype.hasOwnProperty.call(EXPRESSIONS,id)||typeof name!=='string'||!name.trim()||name.length>40)throw Error('自定义表情名称无效');
@@ -39,6 +40,7 @@ function validateSkin(v,nested=false){
   const emotions=v.portraits.map(p=>p.emotion).filter(Boolean);if(new Set(emotions).size!==emotions.length)throw Error('一套皮肤的同一表情只能对应一张图');
   if(v.ai_allowed!==undefined&&typeof v.ai_allowed!=='boolean')throw Error('皮肤 AI 权限无效');
   validateAtlas(v.sprite);
+  validateDrawingState(v.drawing);
   if(v.actions!==undefined&&(!v.actions||Array.isArray(v.actions)||Object.keys(v.actions).some(k=>!Object.prototype.hasOwnProperty.call(ACTIONS,k))))throw Error('交互动作分类无效');
   for(const s of Object.values(v.actions||{}))validateAtlas(s);
 }
@@ -57,12 +59,13 @@ export function lookCatalog(data,id){
   const index=id==='user'?0:(data.world?.residents.indexOf(id)??-1)+1;
   return copy({skins:[],active_skin_id:'default',auto_skin:false,ai_allowed:true,...(validateLooks(data)[id]||{skin:Math.max(0,Math.min(2,index)),portraits:[],portrait:0,sprite:null})});
 }
-export function skinChoices(catalog){return [{id:'default',name:'默认皮肤',skin:catalog.skin,portraits:catalog.portraits,portrait:catalog.portrait,sprite:catalog.sprite,actions:catalog.actions||{},...(catalog.expressions?{expressions:catalog.expressions}:{}),...(catalog.gestures?{gestures:catalog.gestures}:{}),ai_allowed:catalog.ai_allowed!==false},...(catalog.skins||[])];}
+export function skinChoices(catalog){return [{id:'default',name:'默认皮肤',skin:catalog.skin,portraits:catalog.portraits,portrait:catalog.portrait,sprite:catalog.sprite,actions:catalog.actions||{},...(catalog.expressions?{expressions:catalog.expressions}:{}),...(catalog.gestures?{gestures:catalog.gestures}:{}),...(catalog.drawing?{drawing:catalog.drawing}:{}),ai_allowed:catalog.ai_allowed!==false},...(catalog.skins||[])];}
 function selectedLook(data,id,skinId,rows){
   const index=id==='user'?0:(data.world?.residents.indexOf(id)??-1)+1;
   const catalog={skins:[],active_skin_id:'default',auto_skin:false,...(rows[id]||{skin:Math.max(0,Math.min(2,index)),portraits:[],portrait:0,sprite:null})};
   const skin=skinChoices(catalog).find(s=>s.id===(skinId||catalog.active_skin_id))||skinChoices(catalog)[0];
-  return copy({...skin,skin_id:skin.id,auto_skin:catalog.auto_skin});
+  const {drawing,...presentation}=skin;
+  return copy({...presentation,skin_id:skin.id,auto_skin:catalog.auto_skin});
 }
 export function lookFor(data,id,skinId){return selectedLook(data,id,skinId,validateLooks(data));}
 export function looksFor(data,ids){
@@ -84,6 +87,23 @@ export class CharacterLooksModule{
   async api(path,method,body){
     const id=decodeURIComponent(path.split('/')[2]||'');
     if(id!=='user'&&!this.host.data.characters.some(c=>c.id===id))throw Error('人物不存在');
+    const parts=path.split('/');
+    if(parts[3]==='drawing'){
+      const skinId=decodeURIComponent(parts[4]||'');
+      const edit=d=>{
+        const catalog=lookCatalog(d,id),skin=skinId==='default'?catalog:catalog.skins.find(s=>s.id===skinId);
+        if(!skin)throw Error('皮肤不存在');
+        if(method==='POST'){
+          const sprite=body?.sprite;
+          validateAtlas(sprite);
+          if(!sprite||sprite.frames!==3||sprite.row_count!==4||sprite.idle_frame!==1||sprite.frame_editor)throw Error('绘画图集格式无效');
+        }
+        const result=drawingChange(skin,method,body===undefined?undefined:copy(body));
+        if(method!=='GET'){d.character_looks={...(d.character_looks||{}),[id]:catalog};validateLooks(d);}
+        return result;
+      };
+      return method==='GET'?copy(edit(this.host.data)):this.host.transact(edit);
+    }
     if(method==='GET')return lookCatalog(this.host.data,id);
     if(path.endsWith('/archive-binding'))return this.host.transact(d=>{
       const catalog=lookCatalog(d,id),skin=body?.skin_id==='default'?catalog:catalog.skins.find(s=>s.id===body?.skin_id);

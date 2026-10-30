@@ -366,3 +366,5 @@
 | vendor/alicization-town-life、resident-runtime-sources.json、新增许可 | 原件、逐文件来源、依赖版本与许可证 |
 | resident-life 测试与 ResidentLifeInstrumentation.java | 合成模型、恢复、隔离、未读、无 Activity Worker 验收 |
 | RESIDENT_LIFE.md | 使用、架构、限制、逐文件复用与验证 |
+
+0.19.0 绘画台：`clothing-template` 拥有固定素体；`clothing-project` 校验工程及版本写入；`pixel-paint` 管理方格笔画和撤销；`clothing-render` 生成可重建图集；`clothing-workbench-ui` 管理触屏/保存队列。原衣橱与 SQLite 保存，见 [使用和接口](CLOTHING_WORKBENCH.md)。

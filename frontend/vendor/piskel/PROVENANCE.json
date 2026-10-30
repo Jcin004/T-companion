@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/piskelapp/piskel",
+  "commit": "d828941fa9fe76464d69d91d5fd862067c98c02c",
+  "upstream_path": "src/js/utils/PixelUtils.js",
+  "upstream_blob": "7aa852d1bcc7628c0b7eedba510ff146f62ab782",
+  "upstream_sha256": "c5b6a68f505ca062b3139b7f706f108632161e9573ba6edeb5aadb7ce4f9972b",
+  "source_lines": [
+    118,
+    227
+  ],
+  "excerpt_sha256": "5fdd4ab94201197a94af02525ea025668a3444ad59923dd1da0f88a86c4705d7",
+  "license": "Apache-2.0",
+  "changes": "Verbatim excerpt of the two connected-fill methods; no edits to retained bytes. External wrapper generated at build time. Line algorithms not imported."
+}

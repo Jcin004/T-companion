@@ -10,6 +10,6 @@ const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Num
  sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['修正调整第二帧时连带改变其他帧的位置问题','拖动默认只移动选中格，整张图导入的格子也能独立调整','整组移动需明确勾选，切换姿势后恢复单格范围；展开数字微调不再改变范围','行走帧共用固定中心和地面参照，拖动时保留站立叠影，方便纠正左右偏移','保留原图、旧皮肤、备份和 SQLite，沿用原包名与签名']};
+ releaseNotes:['衣橱添加皮肤可选择在锁定素体上画衣服，保留原上传方式','方格画笔支持 1、2、4 像素单位，含橡皮、填色、取色、撤销与重做','四方向三姿势独立编辑，共用固定脚底；双指放大和平移画布','绘画草稿自动保存，重启可继续；明确应用后生成原世界可用的行走图集','沿用原 SQLite、备份、包名和签名，新手绘皮肤默认不开放给 AI']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');

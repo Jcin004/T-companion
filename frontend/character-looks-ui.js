@@ -2,6 +2,7 @@
 import {portraitImage,previewSprite} from './world-art.js';
 import {skinChoices,expressionChoices,ACTIONS} from './character-looks.js';
 import {mountAtlasEditor} from './character-atlas-ui.js';
+import {mountClothingWorkbench} from './clothing-workbench-ui.js';
 import {bindCharacterImageInput,readCharacterPicture as readImage} from './character-image-input.js';
 import {jsonSnapshot as copy} from './json-snapshot.js';
 const fingerprint=v=>JSON.stringify(v,(_,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value);
@@ -21,7 +22,8 @@ export function mountCharacterLooksUI({api,refresh,toast,report,pickArchive}){
       <details class="looks-default"><summary>未上传时的示例形象</summary><select id="looks-skin"><option value="0">棕粉开衫</option><option value="1">苔绿毛衣</option><option value="2">蓝灰外套</option></select></details>
     </section></div><footer class="looks-footer" hidden><button id="looks-save" class="primary">保存修改</button><p id="looks-status" role="status"></p></footer>`;
   document.body.append(box);
-  const nameBox=node('dialog');nameBox.id='looks-name-dialog';nameBox.className='world-panel looks-name-dialog';nameBox.innerHTML='<form novalidate><h2 id="looks-name-title"></h2><label>皮肤名称<input id="looks-name-input" maxlength="40" autocomplete="off"></label><p id="looks-name-error" role="status"></p><div class="actions"><button type="button" id="looks-name-cancel">取消</button><button type="submit" class="primary">确定</button></div></form>';document.body.append(nameBox);
+  const painting=mountClothingWorkbench({api,report,toast});
+  const nameBox=node('dialog');nameBox.id='looks-name-dialog';nameBox.className='world-panel looks-name-dialog';nameBox.innerHTML='<form novalidate><h2 id="looks-name-title"></h2><label>皮肤名称<input id="looks-name-input" maxlength="40" autocomplete="off"></label><fieldset id="looks-create-mode" hidden><legend>制作方式</legend><label><input type="radio" name="skin-create-mode" value="upload" checked>上传图片</label><label><input type="radio" name="skin-create-mode" value="draw">在素体上画衣服</label></fieldset><p id="looks-name-error" role="status"></p><div class="actions"><button type="button" id="looks-name-cancel">取消</button><button type="submit" class="primary">确定</button></div></form>';document.body.append(nameBox);
   const el=id=>document.getElementById(id);
   let people=[],owner='',catalog=null,draft=null,original=null,editingSkin='',view='people',tab='portrait',emotion='neutral',actionId=null,actionCategory='object',generation=0,portraitGeneration=0,portraitImport=0,busy=false,resolveClose;
   const current=()=>box.open&&view==='editor'&&!!draft;
@@ -39,7 +41,8 @@ export function mountCharacterLooksUI({api,refresh,toast,report,pickArchive}){
     busy=true;box.setAttribute('aria-busy','true');
     try{const latest=await api('/character-looks/'+owner),body=change(copy(latest));const result=await api('/character-looks/'+owner,'PATCH',body);catalog=result;await refresh({light:true});return result;}finally{busy=false;box.removeAttribute('aria-busy');syncSaveButton();}
   }
-  function askName(text,value='',label='皮肤名称'){
+  function askName(text,value='',label='皮肤名称',creation=false){
+    el('looks-create-mode').hidden=!creation;nameBox.querySelector('[value=upload]').checked=true;
     nameBox.querySelector('label').firstChild.textContent=label;
     el('looks-name-title').textContent=text;el('looks-name-input').value=value;el('looks-name-error').textContent='';nameBox.showModal();el('looks-name-input').focus();
     return new Promise(resolve=>{let result=null;const close=()=>{nameBox.removeEventListener('close',close);resolve(result);};nameBox.addEventListener('close',close);nameBox.querySelector('form').onsubmit=e=>{e.preventDefault();const name=el('looks-name-input').value.trim();if(!name){el('looks-name-error').textContent='请填写'+label;return;}result=name;nameBox.close();};el('looks-name-input').oninput=()=>{el('looks-name-error').textContent='';};el('looks-name-cancel').onclick=()=>nameBox.close();});
@@ -55,7 +58,15 @@ export function mountCharacterLooksUI({api,refresh,toast,report,pickArchive}){
       const card=node('article');card.className='looks-skin-card';card.dataset.skin=s.id;
       const preview=node('div');preview.className='looks-skin-thumbnails';const image=node('img');image.alt=s.name+'立绘';const canvas=node('canvas');canvas.width=96;canvas.height=128;preview.append(image,canvas);
       const heading=node('div');heading.className='looks-skin-heading';heading.append(node('h3',s.name));if(s.id===catalog.active_skin_id){const badge=node('span','使用中');badge.className='looks-current';heading.append(badge);}
-      const controls=node('div');controls.className='looks-card-controls';const use=node('button',s.id===catalog.active_skin_id?'正在使用':'使用'),edit=node('button','编辑');use.disabled=s.id===catalog.active_skin_id;use.onclick=safe(async()=>{await persist(()=>({active_skin_id:s.id}));await renderSkins();toast('已使用'+s.name);});edit.onclick=safe(()=>editSkin(s.id));controls.append(use,edit);card.append(preview,heading,controls);
+      const controls=node('div');controls.className='looks-card-controls';const use=node('button',s.id===catalog.active_skin_id?'正在使用':'使用'),edit=node('button','编辑');use.disabled=s.id===catalog.active_skin_id;use.onclick=safe(async()=>{await persist(()=>({active_skin_id:s.id}));await renderSkins();toast('已使用'+s.name);});edit.onclick=safe(()=>editSkin(s.id));controls.append(use,edit);
+      const paint=node('button',s.drawing?'继续画衣服':'画衣服');paint.className='looks-paint-open';
+      paint.onclick=safe(async()=>{
+        const id=owner;paint.disabled=true;
+        try{await painting.open(id,s.id,(people.find(p=>p.id===id)?.name||'人物')+' · '+s.name);}
+        finally{paint.disabled=false;}
+        if(box.open&&owner===id){await wardrobe(id);await refresh({light:true});}
+      });
+      if(s.drawing)controls.append(paint);card.append(preview,heading,controls);
       if(owner!=='user'){const label=node('label','允许 AI 使用');label.className='looks-checkbox';const input=node('input');input.type='checkbox';input.checked=s.ai_allowed!==false;input.dataset.allowed=s.id;label.prepend(input);input.onchange=safe(async()=>{const value=input.checked;try{await persist(c=>s.id==='default'?{ai_allowed:value}:{skins:c.skins.map(k=>k.id===s.id?{...k,ai_allowed:value}:k)});}catch(e){input.checked=!value;throw e;}});card.append(label);}
       if(s.id!=='default'){const more=node('details');more.className='looks-card-more';more.append(node('summary','更多'));const rename=node('button','改名'),remove=node('button','删除皮肤');rename.onclick=safe(async()=>{const name=await askName('修改皮肤名称',s.name);if(!name)return;await persist(c=>({skins:c.skins.map(k=>k.id===s.id?{...k,name}:k)}));await renderSkins();});remove.onclick=safe(async()=>{if(!confirm('删除“'+s.name+'”及其图片？'))return;await persist(c=>({skins:c.skins.filter(k=>k.id!==s.id),active_skin_id:c.active_skin_id===s.id?'default':c.active_skin_id}));await renderSkins();});more.append(rename,remove);card.append(more);}
       cards.append(card);const src=await portraitImage(s,people.find(p=>p.id===owner)?.avatar);if(token!==generation)return;image.src=src;await previewSprite(canvas,s,'down',s.sprite?.idle_frame||0,()=>token===generation);
@@ -91,7 +102,14 @@ export function mountCharacterLooksUI({api,refresh,toast,report,pickArchive}){
   el('looks-add-gesture').onclick=safe(async()=>{if(Object.keys(draft.gestures||{}).length>=16)throw Error('每套皮肤最多十六个小人动作');const name=await askName('添加小人动作','','动作名称');if(!name||!current())return;const id=resourceId('gesture');draft.gestures={...draft.gestures,[id]:{name,atlas:null}};changed();await openAction(id,name);});
   el('looks-delete-gesture').onclick=safe(async()=>{if(!confirm('删除该小人动作及其图集？'))return;delete draft.gestures[actionId];changed();await actionCards();});
   el('looks-action-back').onclick=safe(actionCards);
-  el('looks-add-skin').onclick=safe(async()=>{if(!catalog)return;const name=await askName('添加皮肤');if(!name)return;const id='skin_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);await persist(c=>{if(c.skins.length>=8)throw Error('每个人物最多八套额外皮肤');return {skins:[...c.skins,{id,name,skin:c.skin,portraits:[],portrait:0,sprite:null,actions:{},ai_allowed:true}]};});await editSkin(id);});
+  el('looks-add-skin').onclick=safe(async()=>{
+    if(!catalog)return;const name=await askName('添加皮肤','','皮肤名称',true);if(!name)return;
+    const draw=nameBox.querySelector('[name=skin-create-mode]:checked').value==='draw';
+    const id='skin_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
+    await persist(c=>{if(c.skins.length>=8)throw Error('每个人物最多八套额外皮肤');return {skins:[...c.skins,{id,name,skin:c.skin,portraits:[],portrait:0,sprite:null,actions:{},ai_allowed:!draw}]};});
+    if(draw){await painting.open(owner,id,(people.find(p=>p.id===owner)?.name||'人物')+' · '+name);await wardrobe();await refresh({light:true});}
+    else await editSkin(id);
+  });
   el('looks-ai-auto').onchange=safe(async()=>{const value=el('looks-ai-auto').checked;try{await persist(()=>({auto_skin:value}));}catch(e){el('looks-ai-auto').checked=!value;throw e;}});
   bindCharacterImageInput(el('looks-portrait-file'),{error,guard:()=>{const value=draft,selected=emotion;return ()=>current()&&draft===value&&emotion===selected;},onFile:safe(async file=>{if(!file||!current())return;const token=generation,importToken=++portraitImport,value=draft,selectedEmotion=emotion;const image=await readImage(file);if(token!==generation||importToken!==portraitImport||!current())return;const old=value.portraits.findIndex(p=>p.emotion===selectedEmotion),entry={name:file.name.replace(/\.[^.]+$/,'').slice(0,40),image,emotion:selectedEmotion};if(old<0){if(value.portraits.length>=24)throw Error('每套皮肤最多二十四张，请先移除不用的图片');value.portraits.push(entry);value.portrait=value.portraits.length-1;}else{value.portraits[old]=entry;value.portrait=old;}changed();await portrait();})});
   el('looks-pick-archive').hidden=!pickArchive;

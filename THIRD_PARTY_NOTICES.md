@@ -186,3 +186,7 @@ Canvas rendering, room geometry, command/observation persistence and UI are orig
 ## Android updater comparison (2026-10-23)
 
 Reviewed qegj567-cloud/SullyOS `utils/androidAppUpdate.ts`, last modifying commit `4ed3c293af89acf89762a892e72e811017c1b9dc`, blob `15e88dabcb2e5bd36f3d56460eb1aba978b14ff9`, author qegj567-cloud / project copyright NMJ. The file uses Capacitor core and Filesystem; its repository license remains SullyOS Source-Available License 1.0. The previously recorded personal noncommercial authorization does not grant public redistribution. T- reuses its existing Java transport/verifier/installer and independently implements shared UI state and Range resume. No SullyOS source file, dependency, private configuration or hosted service is imported. Direct-manifest and page-independent task behavior are design references; see `docs/UPDATE_CHANNEL.md`.
+
+## Piskel connected fill (0.19.0)
+
+Copyright 2017 Julian Descottes and Piskel contributors; Apache-2.0. Fixed commit `d828941fa9fe76464d69d91d5fd862067c98c02c`, source `src/js/utils/PixelUtils.js`. Unmodified connected-fill excerpt and full license: `frontend/vendor/piskel/`. Build-time extraction exposes only connected fill and its traversal helper in an external ES-module wrapper; no upstream UI, art or line algorithm is imported. Our bounded Frame adapter and touch/grid editor are separate. File hashes, extraction boundaries and dependencies: `frontend/vendor/piskel/README.md`, `config/outfit-workshop-sources.json`.
