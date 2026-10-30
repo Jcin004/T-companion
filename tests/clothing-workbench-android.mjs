@@ -19,6 +19,10 @@ async function paint(x,y,toX=x){
  await wait(()=>document.querySelector('.paint-status')?.textContent==='草稿已保存，房间形象尚未改变');
 }
 async function shot(name){await adb('shell','screencap','-p','/sdcard/clothing-native.png');await adb('pull','/sdcard/clothing-native.png','artifacts/clothing-native-'+name+'.png');}
+async function visibleNavigation(){
+ const bounds=await evaluate(()=>['.paint-close','.paint-apply'].map(selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {selector,top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:innerWidth,height:innerHeight};}));
+ for(const r of bounds)assert.ok(r.top>=0&&r.bottom<=r.height&&r.left>=0&&r.right<=r.width,JSON.stringify(r));
+}
 async function wardrobe(owner){
  await tap('[data-app=world]');await wait(()=>document.querySelector('#world-menu-open')?.getBoundingClientRect().height);
  await tap('#world-menu-open');await wait(()=>document.querySelector('.world-menu-grid')?.getBoundingClientRect().height);
@@ -35,12 +39,15 @@ try{
    const owner=before.characters[0].id;await wardrobe(owner);await tap('#looks-add-skin');
    await evaluate(()=>{const e=document.querySelector('#looks-name-input');e.value='paint_trial';e.dispatchEvent(new Event('input',{bubbles:true}));});
    await tap('[name=skin-create-mode][value=draw]');await tap('#looks-name-dialog button[type=submit]');await wait(()=>document.querySelector('#clothing-workbench')?.open);
+   await visibleNavigation();
+   await evaluate(()=>{const scroll=document.querySelector('.paint-scroll');scroll.scrollTop=scroll.scrollHeight;});await visibleNavigation();await shot('scrolled');
+   await evaluate(()=>{document.querySelector('.paint-scroll').scrollTop=0;});
    const data=await read(),skin=data.character_looks[owner].skins.find(s=>s.name==='paint_trial').id;
    await tap('[data-unit="4"]');await tap('[data-color="9"]');await paint(12,50,28);
    let state=(await read()).character_looks[owner].skins.find(s=>s.id===skin);assert.ok(state.drawing?.draft);assert.equal(state.sprite,null);assert.equal(state.drawing.draft.frames[1][48*64+12],'9');assert.equal(state.drawing.draft.frames[0][48*64+12],'0');
    const first=state.drawing.draft.frames[1];await tap('.paint-undo');await wait(()=>document.querySelector('.paint-status').textContent==='草稿已保存，房间形象尚未改变');await tap('.paint-redo');await wait(()=>document.querySelector('.paint-status').textContent==='草稿已保存，房间形象尚未改变');assert.equal((await read()).character_looks[owner].skins.find(s=>s.id===skin).drawing.draft.frames[1],first);
    await tap('[data-pose="0"]');await paint(8,16);state=(await read()).character_looks[owner].skins.find(s=>s.id===skin);assert.equal(state.drawing.draft.frames[0][16*64+8],'9');assert.equal(state.drawing.draft.frames[1],first);
-   await shot('workbench');await tap('.paint-close');const draft=state.drawing.draft;await restart();await ready();assert.deepEqual((await read()).character_looks[owner].skins.find(s=>s.id===skin).drawing.draft,draft);
+   await visibleNavigation();await shot('workbench');await tap('.paint-close');const draft=state.drawing.draft;await restart();await ready();assert.deepEqual((await read()).character_looks[owner].skins.find(s=>s.id===skin).drawing.draft,draft);
    await wardrobe(owner);await tap('.looks-skin-card[data-skin="'+skin+'"] .looks-paint-open');await wait(()=>document.querySelector('#clothing-workbench')?.open);await tap('.paint-apply');await wait(()=>!document.querySelector('#clothing-workbench').open);
    const applied=(await read()).character_looks[owner].skins.find(s=>s.id===skin);assert.deepEqual(applied.drawing.project,draft);assert.equal(applied.drawing.draft,undefined);assert.equal(applied.sprite.frames,3);assert.equal(applied.ai_allowed,false);
    await tap('.looks-skin-card[data-skin="'+skin+'"] .looks-card-controls button:first-child');await tap('#looks-close');await wait(()=>document.querySelector('#world-canvas')?.getBoundingClientRect().height);await shot('world');

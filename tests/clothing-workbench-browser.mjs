@@ -50,7 +50,10 @@ try{
  await page.locator('.paint-pose select').selectOption('1');await page.locator('[data-pose="0"]').tap();await stroke([8,16]);
  const savedDraft=(await drawing()).draft;assert.equal(savedDraft.frames[3][16*64+8],'9');assert.equal(savedDraft.frames[4],base.frames[4]);
  await page.locator('.paint-canvas').scrollIntoViewIfNeeded();await page.screenshot({path:'artifacts/clothing-browser-workbench.png'});
- const close=await page.locator('.paint-close').boundingBox();assert.ok(close.y>=0&&close.y+close.height<850);
+ for(const scrollEnd of [true,false]){
+   await page.locator('.paint-scroll').evaluate((e,end)=>{e.scrollTop=end?e.scrollHeight:0;},scrollEnd);
+   for(const selector of ['.paint-close','.paint-apply']){const r=await page.locator(selector).boundingBox();assert.ok(r.y>=0&&r.y+r.height<=850&&r.x>=0&&r.x+r.width<=430,selector+' stays visible');}
+ }
  await page.locator('.paint-close').tap();await page.reload();await ready();await enter();await page.locator('.looks-paint-open').tap();await page.locator('#clothing-workbench').waitFor();assert.deepEqual((await drawing()).draft,savedDraft);
  await page.locator('.paint-preview summary').tap();await page.locator('.paint-play').tap();await page.waitForTimeout(300);await page.locator('.paint-play').tap();
  await page.locator('.paint-apply').tap();await page.locator('#clothing-workbench').waitFor({state:'hidden'});
