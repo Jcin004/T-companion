@@ -31,3 +31,15 @@
 复用原方格画笔、笔画撤销、Piskel 连通填色、SQLite 事务、备份和世界行走图集接口。沿用既有固定版本研究清单 `config/outfit-workshop-sources.json`：LPC 的部件/帧索引、FashionSense 的体型/偏移及 Outfit Studio 的试穿/应用分离只作设计参考，没有导入新的第三方代码或游戏贴图。LPC 渲染器仍依赖其目录、状态与 Mithril；SMAPI/C# 模块不能在现有 Canvas/Android 执行，因此适配小型坐标映射，没有嵌入另一套引擎。
 
 Node 检查覆盖共享引用、两个身高、脚底、版本冲突、重复重试、保存失败、草稿重启、备份、非法归属/穿戴与世界应用。浏览器测试 `tests/outfit-wardrobe-browser.mjs` 使用合成数据验证实际触屏绘画、保存、重启和继续编辑；`outfit-fit-lab.html` 是共享生产导入/渲染入口的正面适配验证页。原绘画台回归通过。Android 11 / WebView 83 专用模拟器已通过原生触屏本体绘画、应用到世界、原生房间/衣柜截图、SQLite 重启，以及原签名 30→31 覆盖安装的业务数据和凭据指纹比较；测试后恢复原合成存档。曾发现不支持的逻辑赋值语法导致启动失败，已改兼容写法；新建素材 ID 也兼容没有 randomUUID 的 WebView，并有浏览器回归。没有实体手机或真实模型服务验证。154 项 Node、103 项 Python 通过。
+
+## 0.20.0 交付（2026-10-31）
+
+- 产品源码：`c817038c747ea8c93afd36784a297ec9ad9b53df`，versionCode 31，`io.jcin.tcompanion`；原试用证书 SHA-256 `bbe3e752f8e004461e01225a439a3961e4a07783b328eeca6c0c962ff3cb8c5b`。
+- 原签名 APK：`artifacts/T-companion-0.20.0-trial.apk`，81388516 bytes，SHA-256 `83a64d2e1ca23f0d3271826821af543e9cebd9041bf67ab854083011fd17f5cf`；匹配源码 `artifacts/T-companion-0.20.0-source.zip`。
+- [公开试用包、源码与许可](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.20.0)，[草稿 PR #34](https://github.com/Jcin004/T-companion/pull/34)，未合并；[产品提交 CI](https://github.com/Jcin004/T-companion/actions/runs/41141270632) 全部通过。
+- 本机 154 项 Node、103 项 Python、衣柜/原绘画台浏览器回归、提交范围密钥扫描及 diff 检查通过。没有付费模型测试。
+- 专用 Android 11 / WebView 83：系统触屏绘画、原生截图、应用到世界、SQLite 重启、30→31 覆盖安装、业务和凭据指纹保留通过。截图 `artifacts/outfit-native-world.png` 与 `artifacts/outfit-native-wardrobe.png`；测试后恢复原合成存档。未验证真机、真实模型及新版本的设备在线更新请求。
+
+体验：覆盖安装 APK（不要卸载旧版）→ 世界 → 右上角头像 → 衣柜 → 选择人物和类别 → 新建/上传或绘制素材 → 选为本体/穿上 → 调整大小位置 → 补齐四方向 → 应用到世界。以后点“绘制 / 修改”继续编辑。宽袖/长裙遮挡、其他交互动作、独立动作库界面与 AI 组合选衣是下一阶段。
+
+公开发布匿名核验：7 个附件的服务端摘要与本机构建全部一致，main 更新清单与发布清单完全一致。

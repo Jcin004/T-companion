@@ -640,5 +640,20 @@
     "android": "Passed dedicated Android 11 / WebView 83: offline connected fill and actual Canvas frame copy; not a full upstream editor compatibility test.",
     "decision": "Keep existing frame editor for calibration; neither Piskel application nor Cropper UI is needed for foot picking and per-cell drag. Retain fill/frame-copy candidates for the later layered drawing stage."
   },
-  "updated_on": "2026-10-30"
+  "updated_on": "2026-10-30",
+  "modular_outfit_follow_up": {
+    "recorded_on": "2026-10-31",
+    "source_commit": "c817038c747ea8c93afd36784a297ec9ad9b53df",
+    "artwork_provenance": "frontend/assets/body/PROVENANCE.md",
+    "new_third_party_code_imports": [],
+    "reused_local": [
+      "frontend/clothing-workbench-ui.js",
+      "frontend/pixel-paint.js",
+      "frontend/clothing-project.js",
+      "frontend/vendor/piskel/",
+      "frontend/local-service.js"
+    ],
+    "implemented": "Shared editable assets and per-person recipes; first standing/walking coordinate mapping. Existing pinned LPC/FashionSense/Outfit Studio review remains design reference only.",
+    "remaining": "Complex directional occlusion, new action templates, action-library UI and AI composition selection."
+  }
 }
