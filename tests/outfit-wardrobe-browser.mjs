@@ -9,6 +9,7 @@ async function enter(){await page.locator('[data-app=world]').tap();const enter=
 try{
  await page.goto(process.env.T_TEST_URL||'http://127.0.0.1:8016');await ready();await page.evaluate(async()=>{const {BrowserPersistence,emptyData}=await import('/assets/local-service.js'),p=new BrowserPersistence(),d=emptyData();await p.load();d.characters=[{id:'a',name:'林',identity:'合成甲',style:'',avatar:''},{id:'b',name:'雨',identity:'合成乙',style:'',avatar:''}];await p.save(d);});await page.reload();await ready();await enter();
  assert.equal((await read()).assets[0].ready.filter(Boolean).length,4);
+ await page.evaluate(()=>Object.defineProperty(crypto,'randomUUID',{value:undefined,configurable:true}));
  await page.locator('[data-kind=top]').tap();await page.locator('.wardrobe-name').fill('合成绿上衣');await page.locator('.wardrobe-create').tap();await page.locator('.wardrobe-edit:enabled').waitFor();
  const garment=(await read()).assets.find(a=>a.kind==='top');await page.locator('.wardrobe-edit').tap();await page.locator('#outfit-painter[open]').waitFor();
  const canvas=page.locator('#outfit-painter .paint-canvas');await canvas.scrollIntoViewIfNeeded();const r=await canvas.boundingBox(),s=Math.max(1,Math.floor(Math.min(r.width/64,r.height/96))),x=r.x+Math.floor((r.width-64*s)/2)+30.5*s,y=r.y+Math.floor((r.height-96*s)/2)+50.5*s;await page.touchscreen.tap(x,y);
