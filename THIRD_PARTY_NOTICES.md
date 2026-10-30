@@ -190,3 +190,7 @@ Reviewed qegj567-cloud/SullyOS `utils/androidAppUpdate.ts`, last modifying commi
 ## Piskel connected fill (0.19.0)
 
 Copyright 2017 Julian Descottes and Piskel contributors; Apache-2.0. Fixed commit `d828941fa9fe76464d69d91d5fd862067c98c02c`, source `src/js/utils/PixelUtils.js`. Unmodified connected-fill excerpt and full license: `frontend/vendor/piskel/`. Build-time extraction exposes only connected fill and its traversal helper in an external ES-module wrapper; no upstream UI, art or line algorithm is imported. Our bounded Frame adapter and touch/grid editor are separate. File hashes, extraction boundaries and dependencies: `frontend/vendor/piskel/README.md`, `config/outfit-workshop-sources.json`.
+
+## 0.20.0 modular body artwork
+
+`frontend/assets/body/owner-base-front.jpg` is by Jcin004, used with explicit permission for public project APK/source distribution. `generated-standing-directions.png` is an AI-assisted project study derived from the authorized reference. Source, scope, method and SHA-256 are recorded in `frontend/assets/body/PROVENANCE.md`. No Stardew Valley or other game art is imported. Existing Piskel fill reuse and licenses remain unchanged.
