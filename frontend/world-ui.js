@@ -9,6 +9,7 @@ import {mountWorldJoystick} from './world-joystick.js';
 import {installSceneDialogue,mountSceneDialogue} from './world-dialogue-ui.js';
 import {mountCharacterLooksUI} from './character-looks-ui.js';
 import {mountWorldHistory} from './world-history-ui.js';
+import {mountOutfitWardrobe} from './outfit-wardrobe-ui.js';
 const el=id=>document.getElementById(id),node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
 const uid=()=>globalThis.crypto?.randomUUID?.()||'op_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
 function panel(id,title,html){const d=node('dialog');d.id=id;d.className='world-panel';d.innerHTML='<header><h2>'+title+'</h2><button aria-label="关闭">×</button></header>'+html;d.querySelector('header button').onclick=()=>d.close();document.body.append(d);return d;}
@@ -34,6 +35,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
   const button=(text,fn)=>{const b=node('button',text);b.type='button';b.onclick=safe(fn);return b;};
   const lifeUI=mountResidentLifeUI({api,toast,report,refreshWorld:refresh});el('world-life-container').append(el('resident-life'));el('resident-life').open=true;
   const looks=mountCharacterLooksUI({api,getWorld:()=>world,refresh,toast,report,pickArchive});
+  const wardrobe=mountOutfitWardrobe({api,refresh,toast,report});
   const history=mountWorldHistory({api,speak,stopSpeech,toast,report,afterDelete:async()=>{await refresh({light:true});await dialogue.reload();}});
   const dialogue=mountSceneDialogue({api,localReady,getWorld:()=>world,refresh,animate:animateEvents,speak,stopSpeech,toast,report,history,editLook:id=>looks.open(id)});
   const joystick=mountWorldJoystick({element:el('world-joystick'),canStart:()=>!busy&&!dialogue.isBusy()&&!pending&&!el('world').hidden&&!document.querySelector('dialog[open]')&&!!world?.state.residents.length,
@@ -42,8 +44,8 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
   const menu=el('world-menu').querySelector('.world-menu-grid');
   for(const [label,icon,fn] of [
     ['人物','♙',()=>looks.open()],['居民生活','☀',async()=>{await lifeUI.refresh();el('world-life-panel').showModal();}],['世界记录','▤',()=>{renderEvents();el('world-events-panel').showModal();}],
-    ['对话记录','▤',()=>history.open()],['消息','✉',()=>navigate('chat')],['记忆','▣',()=>navigate('memory')],['外观','✿',()=>navigate('appearance')],['模型连接','⌘',()=>{navigate('settings');}],['设置','⚙',()=>el('world-settings-panel').showModal()],['返回桌面','⌂',()=>navigate('home')]
-  ]){const b=button('',async()=>{el('world-menu').close();await fn();}),i=node('span',icon);i.setAttribute('aria-hidden','true');i.className='world-menu-icon';i.textContent='';const n=({'人物':0,'居民生活':1,'世界记录':2,'对话记录':2,'消息':3,'记忆':4,'外观':5,'模型连接':6,'设置':7,'返回桌面':8})[label];i.style.backgroundPosition=(n%3*50)+'% '+(Math.floor(n/3)*50)+'%';b.append(i,node('span',label));menu.append(b);}
+    ['对话记录','▤',()=>history.open()],['消息','✉',()=>navigate('chat')],['记忆','▣',()=>navigate('memory')],['衣柜','✿',()=>wardrobe.open()],['模型连接','⌘',()=>{navigate('settings');}],['设置','⚙',()=>el('world-settings-panel').showModal()],['返回桌面','⌂',()=>navigate('home')]
+  ]){const b=button('',async()=>{el('world-menu').close();await fn();}),i=node('span',icon);i.setAttribute('aria-hidden','true');i.className='world-menu-icon';i.textContent='';const n=({'人物':0,'居民生活':1,'世界记录':2,'对话记录':2,'消息':3,'记忆':4,'衣柜':5,'模型连接':6,'设置':7,'返回桌面':8})[label];i.style.backgroundPosition=(n%3*50)+'% '+(Math.floor(n/3)*50)+'%';b.append(i,node('span',label));menu.append(b);}
   el('world-menu-open').onclick=safe(async()=>{joystick.stop();dialogue.close();el('world-menu').showModal();});
   function stopAnimation(){cancelAnimationFrame(animation);resolveAnimation?.();resolveAnimation=null;}
   async function refresh({light=false,paint=true,keepAnimation=false,snapshot=null}={}){

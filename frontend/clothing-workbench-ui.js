@@ -5,7 +5,7 @@ import {PaintSession,paintLine,fillPixels} from './pixel-paint.js';
 import {clothingAtlas,renderClothingFrame} from './clothing-render.js';
 import {jsonSnapshot as copy} from './json-snapshot.js';
 
-export function mountClothingWorkbench({api,report,toast}){
+export function mountClothingWorkbench({api,report,toast,renderFrame=renderClothingFrame,makeAtlas=clothingAtlas,assetMode=false}){
   const box=document.createElement('dialog');box.id='clothing-workbench';box.className='world-panel clothing-workbench';
   box.innerHTML=`<header><div><h2>画衣服</h2><small class="paint-owner"></small></div><button class="paint-close" aria-label="关闭绘画">× 关闭</button></header>
     <div class="paint-scroll"><p class="paint-note">素体已锁定，画在透明衣服层。每个姿势单独编辑。</p>
@@ -18,6 +18,7 @@ export function mountClothingWorkbench({api,report,toast}){
     <details class="paint-preview"><summary>检查四方向行走</summary><div class="paint-preview-row"><canvas width="64" height="96"></canvas><button class="paint-play">播放行走</button><span>站立 → 迈腿 A → 站立 → 迈腿 B</span></div></details>
     </div><footer><p class="paint-status" role="status"></p><button class="paint-retry" hidden>重试保存草稿</button><button class="paint-apply primary">应用到这套皮肤</button></footer>`;
   document.body.append(box);const el=s=>box.querySelector(s),canvas=el('.paint-canvas'),ctx=canvas.getContext('2d'),layer=document.createElement('canvas');
+  if(assetMode){box.id='outfit-painter';el('h2').textContent='绘制素材';el('.paint-note').textContent='独立透明素材层。编辑本体或衣物；每个方向、姿势可继续修改。';el('.paint-apply').textContent='保存素材';canvas.setAttribute('aria-label','像素素材画布');}
   let session,endpoint='',revision=0,index=1,tool='pen',unit=1,color=2,view={x:0,y:0,scale:1},pointers=new Map(),last=null,gesture=null,needsSave=false,saving=null,closing=false,playing=null,playStep=0,resolveClose;
   const status=text=>{el('.paint-status').textContent=text;};
   const error=e=>{report(e);status(e.message);el('.paint-retry').hidden=false;};
@@ -48,14 +49,14 @@ export function mountClothingWorkbench({api,report,toast}){
     const {x,y,scale:s}=view,p=session.preview();
     ctx.save();ctx.beginPath();ctx.rect(x,y,T.width*s,T.height*s);ctx.clip();
     for(let j=0;j<T.height;j+=4)for(let i=0;i<T.width;i+=4){ctx.fillStyle=(i/4+j/4)%2?'#eddec4':'#f7ecd7';ctx.fillRect(x+i*s,y+j*s,4*s,4*s);}
-    if(el('.paint-onion').checked&&index%3!==1){renderClothingFrame(layer,p,Math.floor(index/3)*3+1);ctx.globalAlpha=.18;ctx.drawImage(layer,x,y,T.width*s,T.height*s);ctx.globalAlpha=1;}
-    renderClothingFrame(layer,p,index);ctx.drawImage(layer,x,y,T.width*s,T.height*s);
+    if(el('.paint-onion').checked&&index%3!==1){renderFrame(layer,p,Math.floor(index/3)*3+1);ctx.globalAlpha=.18;ctx.drawImage(layer,x,y,T.width*s,T.height*s);ctx.globalAlpha=1;}
+    renderFrame(layer,p,index);ctx.drawImage(layer,x,y,T.width*s,T.height*s);
     if(el('.paint-grid').checked){ctx.strokeStyle='#65523c44';ctx.lineWidth=1/dpr;ctx.beginPath();for(let i=0;i<=T.width;i+=unit){ctx.moveTo(x+i*s,y);ctx.lineTo(x+i*s,y+T.height*s);}for(let j=0;j<=T.height;j+=unit){ctx.moveTo(x,y+j*s);ctx.lineTo(x+T.width*s,y+j*s);}ctx.stroke();}
     ctx.strokeStyle='#47705c';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x,y+T.footY*s);ctx.lineTo(x+T.width*s,y+T.footY*s);ctx.stroke();ctx.restore();
     el('.paint-zoom output').textContent=s+'×';
     preview();
   }
-  function preview(){if(el('.paint-preview').open)renderClothingFrame(el('.paint-preview canvas'),session.project,Math.floor(index/3)*3+(playing?T.order[playStep%4]:index%3));}
+  function preview(){if(el('.paint-preview').open)renderFrame(el('.paint-preview canvas'),session.project,Math.floor(index/3)*3+(playing?T.order[playStep%4]:index%3));}
   function zoom(scale,anchor){
     cancel();const r=canvas.getBoundingClientRect(),a=anchor||[r.width/2,r.height/2],next=Math.max(1,Math.min(16,Math.round(scale))),ratio=next/view.scale;
     view={scale:next,x:Math.round(a[0]-(a[0]-view.x)*ratio),y:Math.round(a[1]-(a[1]-view.y)*ratio)};draw();
@@ -79,7 +80,7 @@ export function mountClothingWorkbench({api,report,toast}){
   el('.paint-retry').onclick=safe(flush);
   el('.paint-apply').onclick=safe(async()=>{
     if(closing)return;closing=true;el('.paint-apply').disabled=true;lock(true);cancel();stop();
-    try{await flush();const result=await api(endpoint,'POST',{expected_revision:revision,project:copy(session.project),sprite:clothingAtlas(session.project)});revision=result.revision;toast('已应用到这套皮肤');box.close();}
+    try{await flush();const result=await api(endpoint,'POST',{expected_revision:revision,project:copy(session.project),...(makeAtlas?{sprite:makeAtlas(session.project)}:{})});revision=result.revision;toast(assetMode?'素材已保存':'已应用到这套皮肤');box.close();}
     finally{closing=false;el('.paint-apply').disabled=false;lock(false);}
   });
   for(const b of box.querySelectorAll('[data-tool]'))b.onclick=()=>{cancel();tool=b.dataset.tool;controls();draw();};

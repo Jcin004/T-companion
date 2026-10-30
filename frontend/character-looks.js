@@ -4,6 +4,7 @@ import {syncArchivePortraits,validateArchive} from './character-archive.js';
 import {validateCalibration} from './sprite-calibration.js';
 import {jsonSnapshot as copy} from './json-snapshot.js';
 import {validateDrawingState,drawingChange} from './clothing-project.js';
+import {outfitRequest,validateOutfits} from './outfit-catalog.js';
 const image=s=>typeof s==='string'&&s.length<=1200000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(s);
 export const DIRECTIONS=['down','left','right','up'];
 export const EXPRESSIONS={neutral:'平静',happy:'开心',sad:'难过',angry:'生气',shy:'害羞',surprised:'惊讶',tired:'疲倦',worried:'担心'};
@@ -45,6 +46,7 @@ function validateSkin(v,nested=false){
   for(const s of Object.values(v.actions||{}))validateAtlas(s);
 }
 export function validateLooks(data){
+  validateOutfits(data.outfit_catalog,new Set(['user',...data.characters.map(c=>c.id)]));
   const rows=data.character_looks||{},owners=new Set(['user',...data.characters.map(c=>c.id)]);
   if(!rows||typeof rows!=='object'||Array.isArray(rows))throw Error('人物形象格式错误');
   for(const [id,v] of Object.entries(rows)){
@@ -85,6 +87,20 @@ export function presentationOptions(data,id){
 export class CharacterLooksModule{
   constructor(host){this.host=host;}
   async api(path,method,body){
+    if(path==='/character-looks/user/workshop')return outfitRequest(this.host,method,body);
+    if(path==='/character-looks/user/workshop-apply'){
+      if(method!=='POST')throw Error('应用穿搭需要 POST');
+      return this.host.transact(d=>{
+        const recipe=d.outfit_catalog?.people[body?.owner],assets=d.outfit_catalog?.assets;
+        if(!recipe||body.expected_revision!==d.outfit_catalog.revision)throw Error('穿搭已改变，请重新预览再应用');
+        if([recipe.body,...recipe.wear.map(w=>w.asset)].some(id=>!assets.find(a=>a.id===id)?.ready.every(Boolean)))throw Error('请先补齐本体和已穿衣物的四个方向');
+        validateAtlas(body.sprite);if(!body.sprite||body.sprite.frames!==3||body.sprite.row_count!==4||body.sprite.idle_frame!==1||body.sprite.frame_editor)throw Error('穿搭合成图集无效');
+        const c=lookCatalog(d,body.owner),id='modular_outfit',old=c.skins.find(s=>s.id===id);
+        const skin={id,name:'分层穿搭',skin:c.skin,portraits:old?.portraits||[],portrait:old?.portrait||0,ai_allowed:false,sprite:copy(body.sprite)};
+        if(old)c.skins[c.skins.indexOf(old)]=skin;else{if(c.skins.length>=8)throw Error('额外皮肤已满，请先整理旧皮肤');c.skins.push(skin);}
+        c.active_skin_id=id;d.character_looks={...d.character_looks,[body.owner]:c};validateLooks(d);return c;
+      });
+    }
     const id=decodeURIComponent(path.split('/')[2]||'');
     if(id!=='user'&&!this.host.data.characters.some(c=>c.id===id))throw Error('人物不存在');
     const parts=path.split('/');
