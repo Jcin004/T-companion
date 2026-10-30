@@ -1,6 +1,6 @@
 # T- · 联系人式陪伴聊天
 
-当前 Android 试用版为 0.18.3，修正选帧后位置调整误改整组的问题（见 [逐帧位置](docs/SPRITE_FRAME_POSITION.md)），简化形象编辑并减少图片存档下的移动开销（见 [编辑与行走性能](docs/SPRITE_EDITOR_PERFORMANCE.md)），保留 [固定素体与大小/落地对照](docs/FIXED_SPRITE_REFERENCE.md)，人物形象采用人物列表、皮肤卡片与三个独立编辑分页（见 [人物衣橱](docs/CHARACTER_WARDROBE_UI.md)），整合直接更新清单、断点续传/暂停与跨页面进度（见 [更新渠道](docs/UPDATE_CHANNEL.md)），新增世界全局对话搜索与记忆联动删除、人物皮肤库、表情立绘与可配置方向/站立/交互图集；AI 只选择已允许的资源。使用与边界见 [世界记录与人物呈现](docs/WORLD_EXPRESSION_HISTORY.md)。见 [世界画面与对话](docs/WORLD_VISUAL_DIALOGUE.md)、[摇杆操作](docs/WORLD_JOYSTICK.md)、[居民生活](docs/RESIDENT_LIFE.md) 和 [内置记忆数据流与验证](docs/ANDROID_EMBEDDED_MEMORY.md)。桌面保留聊天、人设名册、设置、外观、运行日志、记忆和自我入口。Android 默认本机独立运行，不依赖 Windows 或 T- 应用服务器；共同后端是另一种可选数据源，没有自动同步。
+当前 Android 试用版为 0.19.0，新增可保存、可继续编辑的方格衣服绘画台（见 [绘画台](docs/CLOTHING_WORKBENCH.md)），修正选帧后位置调整误改整组的问题（见 [逐帧位置](docs/SPRITE_FRAME_POSITION.md)），简化形象编辑并减少图片存档下的移动开销（见 [编辑与行走性能](docs/SPRITE_EDITOR_PERFORMANCE.md)），保留 [固定素体与大小/落地对照](docs/FIXED_SPRITE_REFERENCE.md)，人物形象采用人物列表、皮肤卡片与三个独立编辑分页（见 [人物衣橱](docs/CHARACTER_WARDROBE_UI.md)），整合直接更新清单、断点续传/暂停与跨页面进度（见 [更新渠道](docs/UPDATE_CHANNEL.md)），新增世界全局对话搜索与记忆联动删除、人物皮肤库、表情立绘与可配置方向/站立/交互图集；AI 只选择已允许的资源。使用与边界见 [世界记录与人物呈现](docs/WORLD_EXPRESSION_HISTORY.md)。见 [世界画面与对话](docs/WORLD_VISUAL_DIALOGUE.md)、[摇杆操作](docs/WORLD_JOYSTICK.md)、[居民生活](docs/RESIDENT_LIFE.md) 和 [内置记忆数据流与验证](docs/ANDROID_EMBEDDED_MEMORY.md)。桌面保留聊天、人设名册、设置、外观、运行日志、记忆和自我入口。Android 默认本机独立运行，不依赖 Windows 或 T- 应用服务器；共同后端是另一种可选数据源，没有自动同步。
 
 开始开发先读 [当前架构与数据流](docs/CURRENT_ARCHITECTURE.md)、[术语](GLOSSARY.md)、[维护规范](CONTRIBUTING.md) 和 [AGENTS.md](AGENTS.md)。公开前结论与候选方案见 [公开审计](docs/PUBLICATION_AUDIT.md)。
 
@@ -82,4 +82,4 @@ npm test
 
 人物图片管理：桌面「档案」按人物上传、命名图片并设为表情，世界及衣橱共同使用。见 [人物图片档案](docs/CHARACTER_ARCHIVE.md)。自动生图尚未接入。
 
-服装工作室的后续安排见 [实施流程与开源复用调查](docs/OUTFIT_WORKSHOP_PLAN.md)：大小与脚底校准已实现，素体绘画、服装模板和组合穿搭为后续阶段。
+服装工作室的后续安排见 [实施流程与开源复用调查](docs/OUTFIT_WORKSHOP_PLAN.md)：大小与脚底校准已完成，四方向素体已有试作；整格绘画与可恢复草稿首版已验收，服装自动适配动作和分部件组合穿搭为后续阶段。

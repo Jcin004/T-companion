@@ -47,4 +47,19 @@ Piskel 应用的工具/历史/界面依赖控制器，不能直接承担本项�
 
 `npm test`、Python 仓库检查，以及 `tests/clothing-workbench-browser.mjs`。后者在隔离 IndexedDB 用鼠标、触屏及双指输入验证整格、快速笔画、擦除/填色/镜像、取消、失败重试、逐帧隔离、重启、可编辑工程与合成像素一致。
 
-`tests/clothing-workbench-android.mjs` 仅允许已有合成人物的专用模拟器；先 `--capture` 保存 0.18.3 业务/密文凭据指纹，再原签名覆盖安装 code30。通过原生触摸和系统截图检查画图、撤销、独立姿势、SQLite 重启、应用与世界穿着，结束恢复完整合成业务快照。不是实体手机或真实模型验收。最终结果和发布提交在交付记录补充。
+`tests/clothing-workbench-android.mjs` 仅允许已有合成人物的专用模拟器；先 `--capture` 保存 0.18.3 业务/密文凭据指纹，再原签名覆盖安装 code30。通过原生触摸和系统截图检查画图、撤销、独立姿势、SQLite 重启、应用与世界穿着，结束恢复完整合成业务快照。
+
+## 0.19.0 验收（2026-10-31）
+
+- 代码提交 `3f2487f84fcdc8f1467b42714d41a69d6e3b076f`；原包名 `io.jcin.tcompanion`，versionCode 30。
+- APK 为 `T-companion-0.19.0-trial.apk`，80,146,448 字节，SHA-256 `c5799255b8f48e31a310a0d39df1f740005aac331f32aba956f77c09401a5687`。原签名证书 SHA-256 `bbe3e752f8e004461e01225a439a3961e4a07783b328eeca6c0c962ff3cb8c5b`；源码归档 SHA-256 `cf1e74f11c3e83c17c5952d4df9b81136dd94c0f778c80ffa2f9fb8beecda45c`。
+- 147 项 Node、103 项 Python 检查通过。绘画台、衣橱、单格上传、校准、单帧位置隔离、世界对话、移动和图片档案共 8 条浏览器流程通过；均使用隔离数据和模拟模型。
+- Android 11 / WebView 83 专用模拟器使用原生点击、滑动和系统截图验证整格画笔、撤销/重做、独立姿势、草稿在 SQLite 重启后恢复、应用图集和房间穿着。先从 0.18.3（29）覆盖安装首个 0.19.0（30），再覆盖安装修正窗口定位的最终 0.19.0；每次与同一份原始合成业务及密文凭据指纹核对。测试结束恢复合成存档。
+- 原生截图发现首版绘画窗口偏下，最终版显式固定窗口位置；关闭和应用按钮在内容滚到顶部、底部后都位于视口内。截图保存在本机 `artifacts/clothing-native-workbench.png`、`clothing-native-scrolled.png` 和 `clothing-native-world.png`。
+- 原更新页面在旧 WebView 的共享任务、进度及安装权限返回回归通过。源码快照 529 份 blob 扫描未检出密钥或隐私阻断；Piskel 原样片段和构建包装通过哈希验证。
+- [GitHub CI](https://github.com/Jcin004/T-companion/actions/runs/41108708832) 的 Python/Node、完整可达历史密钥扫描和 Android 应用/原生测试 APK 构建通过。
+- 未进行实体手机及真实模型服务测试。素体四方向/迈腿仍为试作；动作自动映射、分部件组合换装继续按阶段 5、6 实施。
+
+草稿 PR：[人物衣服绘画台 #33](https://github.com/Jcin004/T-companion/pull/33)，未合并。已发布 [0.19.0 试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.19.0)：APK、源码、许可证、第三方声明、构建说明、清单及校验和共 7 个附件；匿名 API 可读，APK/源码摘要与本机一致，默认 raw 清单与发布清单一致。
+
+发布后的 Android 原生默认渠道检查两次失败：最终记录为 raw 清单 DNS 失败、GitHub API 超时，页面如实显示未完成检查。主机可读 raw 清单与公开附件；当前网络下的模拟器未完成在线更新验证，真机网络未测。可从 Release 下载原签名 APK 覆盖安装，不要卸载旧版。
