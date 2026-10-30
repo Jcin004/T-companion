@@ -76,6 +76,6 @@ export function mountOutfitWardrobe({api,report,toast,refresh}){
     if(box.open)return;catalog=await api('/character-looks/user/workshop');people=await api('/characters');owner=id;
     el('.wardrobe-person').replaceChildren(...[{id:'user',name:'我'},...people].map(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name;return o;}));el('.wardrobe-person').value=owner;
     if(!catalog.assets.length){const project=await starterBody(),next=clone(catalog);next.assets.push({id:'owner_base',name:'原创素体',kind:'body',revision:0,template:WALK_TEMPLATE.id,ready:[true,true,true,true],project});next.people[owner]={body:'owner_base',height:80,wear:[]};await save(next);}
-    kind='body';selected=person()?.body||catalog.assets.find(a=>a.kind==='body')?.id||'';direction=0;stop();render();status('素材共享，穿搭按人物保存。侧面和背面需要上传或绘制。');box.showModal();
+    kind='body';selected=person()?.body||catalog.assets.find(a=>a.kind==='body')?.id||'';direction=0;stop();render();status('素材共享，穿搭按人物保存。各方向可上传或绘制，修改后需重新应用。');box.showModal();
   }};
 }
