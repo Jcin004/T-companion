@@ -96,7 +96,7 @@ export class CharacterLooksModule{
         if([recipe.body,...recipe.wear.map(w=>w.asset)].some(id=>!assets.find(a=>a.id===id)?.ready.every(Boolean)))throw Error('请先补齐本体和已穿衣物的四个方向');
         validateAtlas(body.sprite);if(!body.sprite||body.sprite.frames!==3||body.sprite.row_count!==4||body.sprite.idle_frame!==1||body.sprite.frame_editor)throw Error('穿搭合成图集无效');
         const c=lookCatalog(d,body.owner),id='modular_outfit',old=c.skins.find(s=>s.id===id);
-        const skin={id,name:'分层穿搭',skin:c.skin,portraits:old?.portraits||[],portrait:old?.portrait||0,ai_allowed:false,sprite:copy(body.sprite)};
+        const skin={...old,id,name:'分层穿搭',skin:c.skin,portraits:old?.portraits||[],portrait:old?.portrait||0,ai_allowed:false,sprite:copy(body.sprite)};
         if(old)c.skins[c.skins.indexOf(old)]=skin;else{if(c.skins.length>=8)throw Error('额外皮肤已满，请先整理旧皮肤');c.skins.push(skin);}
         c.active_skin_id=id;d.character_looks={...d.character_looks,[body.owner]:c};validateLooks(d);return c;
       });

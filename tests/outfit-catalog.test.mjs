@@ -20,7 +20,7 @@ test('shared clothing and per-person fit persist, restart and backup without dup
 test('CAS, duplicate retry, disk failure and draft recovery preserve applied assets',async()=>{
  const f=await fixture(),c=await seed(f.s),n=clone(c);n.assets[1].draft=blankProject();n.assets[1].draft.frames[1]='2'+'0'.repeat(6143);
  const result=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:n});assert.equal(result.assets[1].project.frames[1][0],'0');
- const duplicate=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:result});assert.equal(duplicate.revision,result.revision);
+ const duplicate=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:n});assert.equal(duplicate.revision,result.revision);
  const conflict=clone(c);conflict.people.a.height=70;await assert.rejects(f.s.api(path,'PUT',{expected_revision:c.revision,catalog:conflict}),/别处修改/);
  f.fail(true);const failed=clone(result);failed.people.a.height=72;await assert.rejects(f.s.api(path,'PUT',{expected_revision:result.revision,catalog:failed}),/disk full/);assert.deepEqual(await f.s.api(path),result);f.fail(false);
  const restored=await new LocalService(f.storage).init();assert.equal((await restored.api(path)).assets[1].draft.frames[1][0],'2');

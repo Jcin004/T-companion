@@ -41,7 +41,9 @@ export function outfitRequest(host,method,body){
   return host.transact(d=>{
     const state=d.outfit_catalog||emptyOutfits(),next=copy(body.catalog);
     validateOutfits(next,new Set(['user',...d.characters.map(c=>c.id)]));
-    const same=(a,b)=>JSON.stringify({...a,revision:0})===JSON.stringify({...b,revision:0});
+    const fingerprint=value=>JSON.stringify(value,(key,v)=>key==='revision'?0:v);
+    const same=(a,b)=>fingerprint(a)===fingerprint(b);
+    if(body.expected_revision>state.revision)throw Error('衣柜版本无效');
     if(same(state,next))return state;
     if(body.expected_revision!==state.revision)throw Error('衣柜已在别处修改，请重新打开；未覆盖已保存内容');
     if(state.revision>=Number.MAX_SAFE_INTEGER)throw Error('衣柜版本已达上限');
