@@ -16,6 +16,8 @@
 frontend/vendor/jsonrepair/** -text
 frontend/vendor/alicization-town/** -text
 frontend/vendor/alicization-town-life/** -text
+frontend/vendor/piskel/connected-fill.inc -text -whitespace
+frontend/vendor/piskel/LICENSE -text -whitespace
 
 # Preserve exact upstream bytes recorded in vendor provenance.
 vendor/** -text -whitespace

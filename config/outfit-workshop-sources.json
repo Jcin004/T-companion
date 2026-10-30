@@ -2,8 +2,8 @@
   "schema_version": 1,
   "reviewed_on": "2026-10-24",
   "baseline_commit": "df2fc1f7a97a62878a06ab1bba588a7a2a05e55e",
-  "scope": "Pinned file/license/dependency review plus isolated probes. No upstream code, artwork or dependency imported into product runtime. Calibration is implemented with existing modules; layered clothing is still planned.",
-  "follow_up": "OUTFIT_WORKSHOP_PLAN.md stages 1-2 first; selected file dependencies and attribution must be completed before vendor import.",
+  "scope": "Pinned review plus Piskel connected-fill excerpt product import. Unchanged excerpt and license retained; external wrapper. No upstream artwork or line algorithm imported.",
+  "follow_up": "Drawing workbench first delivery; garment-to-action mapping and wardrobe part composition remain later stages.",
   "existing_reference_checks": [
     {
       "repository": "https://github.com/Jcin004/Alicization-Town",
@@ -34,7 +34,7 @@
       "api_license": "Apache-2.0",
       "attribution_evidence": "README.md identifies Julian Descottes (2017); preserve upstream notices and per-file history on import.",
       "dependencies_and_adapter": "pskl namespace, Frame API, keyboard/tool events and controllers; no whole-app import; README excludes mobile support.",
-      "status": "selected algorithm probe passed offline Edge/Android 83; full editor untested; not imported",
+      "status": "Imported only the verbatim connected-fill excerpt in 0.19.0; original excerpt retained, external build wrapper, bounded Frame adapter. No other upstream methods imported.",
       "files": [
         {
           "path": "LICENSE",
@@ -43,7 +43,8 @@
           "size": 11358,
           "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/LICENSE",
           "inspection": "License/declared capabilities or build/runtime dependencies; no code import.",
-          "changes": "None; review-only local copy; no product destination."
+          "changes": "None to original bytes. scripts/build-pixel-tools.mjs extracts only connected fill and traversal into an external module; other algorithms excluded from executable output.",
+          "destination": "frontend/vendor/piskel/LICENSE"
         },
         {
           "path": "README.md",
@@ -88,7 +89,8 @@
           "size": 10348,
           "url": "https://github.com/piskelapp/piskel/blob/d828941fa9fe76464d69d91d5fd862067c98c02c/src/js/utils/PixelUtils.js",
           "inspection": "Inspect flood-fill/connected-pixel implementation and Frame dependency; externally cited line algorithms need further provenance before import.",
-          "changes": "None; review-only local copy; no product destination."
+          "changes": "Verbatim excerpt only: connected fill and visitConnectedPixels; see vendor PROVENANCE.json for source lines and SHA-256. External wrapper; no line algorithms imported.",
+          "destination": "frontend/vendor/piskel/connected-fill.inc"
         },
         {
           "path": "src/js/utils/FrameUtils.js",
@@ -126,7 +128,8 @@
           "inspection": "Inspect singleton/event/serialization dependencies; not selected as a second application history service.",
           "changes": "None; review-only local copy; no product destination."
         }
-      ]
+      ],
+      "author_notice": "Copyright 2017 Julian Descottes (upstream README) and Piskel contributors; retained in vendor README and third-party notices."
     },
     {
       "repository": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator",
@@ -636,5 +639,6 @@
     "browser": "Passed offline Edge: enclosed/edge fill, same-color no-op and real Canvas frame copy without stretching.",
     "android": "Passed dedicated Android 11 / WebView 83: offline connected fill and actual Canvas frame copy; not a full upstream editor compatibility test.",
     "decision": "Keep existing frame editor for calibration; neither Piskel application nor Cropper UI is needed for foot picking and per-cell drag. Retain fill/frame-copy candidates for the later layered drawing stage."
-  }
+  },
+  "updated_on": "2026-10-30"
 }
