@@ -21,3 +21,16 @@
 - `paint-resolution.test.mjs`：全部姿势的原格无损转换、半格独立绘画/镜像/填色、撤销重做、无效尺寸拒绝。
 - `paint-navigation-browser.mjs`：真实鼠标滚轮、右键和中键；CDP 多点触摸手势取消；精细笔迹、384×768 图集、相同脚底/世界比例、混合精度衣物细线，以及备份和页面重启。
 - 原绘画台和衣柜浏览器回归通过；163 项 Node、103 项 Python 检查通过。测试使用隔离合成数据，不调用模型。Android 原生精细绘画与覆盖安装结果随交付补充。
+
+## 0.20.2 交付记录（2026-10-31）
+
+- 产品源码 `377ff9a3e83a01de1c3645b9db24fcb459360398`，versionCode 33，原包名 `io.jcin.tcompanion`、原试用签名。
+- APK `artifacts/T-companion-0.20.2-trial.apk`，81380406 bytes，SHA-256 `5e8df43da65781d0ce6c9356d5ba9faa610f443fda93785e3697f829ad35f050`；匹配源码 `artifacts/T-companion-0.20.2-source.zip`。
+- [公开 APK、源码与许可](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.20.2)，[草稿 PR #36](https://github.com/Jcin004/T-companion/pull/36)。分支 `fix/pixel-paint-navigation`，未合并。
+- 163 项 Node、103 项 Python；绘画导航浏览器验收、原绘画台/衣柜浏览器回归、提交范围密钥扫描与 diff 检查通过。没有模型调用。
+- Android 11 / WebView 83 专用模拟器完成系统触屏的 128×192 细化与单格着色、应用到房间、SQLite 重启，以及 32→33 原签名覆盖安装的业务数据和凭据指纹比较。测试后恢复原合成存档。截图：`artifacts/paint-native-world.png`、`artifacts/paint-native-wardrobe.png`。
+- 双指手势为浏览器 CDP 多点触摸验收；原生 Android 实测为单指绘画和按钮操作。未测实体手机、真实模型或本版设备在线更新网络。
+
+使用：世界 → 用户头像 → 衣柜 → 选择素材 → 绘制 / 修改 → 细化画格。选 1 像素画笔即为旧图半格；保存素材后再应用到世界。
+
+公开发布匿名核验：7 个附件摘要与本机完全一致，main 清单与发布清单一致。[产品源码 CI](https://github.com/Jcin004/T-companion/actions/runs/41202210214) 已通过。上传曾遇到解析/连接失败，复用已核对附件后完成；未改变系统网络配置。
