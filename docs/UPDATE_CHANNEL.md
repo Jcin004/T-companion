@@ -1,5 +1,7 @@
 # Android 更新渠道
 
+2026-10-31：已发布 [0.20.2 绘画修正版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.20.2)，versionCode 33，源码 `377ff9a3e83a01de1c3645b9db24fcb459360398`。原签名覆盖安装与精细绘画验收见 [操作及交付记录](PIXEL_PAINT_NAVIGATION.md)。7 附件摘要和匿名 main 清单核验通过；本版设备在线检查更新网络未重测。
+
 2026-10-31：已发布 [0.20.0 试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.20.0)，versionCode 31，产品源码 `c817038c747ea8c93afd36784a297ec9ad9b53df`。原签名分部件衣柜、本体绘画及覆盖安装验收见 [交付记录](MODULAR_OUTFITS.md)。7 个附件摘要与匿名公开 API/main 清单核验通过；本版未重新验证设备在线更新网络，真机未测。
 
 2026-10-31：已发布 [0.19.0 试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.19.0)，versionCode 30，源码 `3f2487f84fcdc8f1467b42714d41a69d6e3b076f`。7 个附件的上传摘要核对通过，匿名发布 API 和主机 raw 清单验证通过，main 清单与发布清单一致。Android 11 专用模拟器的默认原生检查重试后仍为 raw DNS 失败 / API 超时；失败正确显示，未将其算作在线渠道验收通过。原签名覆盖安装及绘画功能验证见 [绘画台验收](CLOTHING_WORKBENCH.md)。实体手机网络未测，可下载 APK 手动覆盖安装。
