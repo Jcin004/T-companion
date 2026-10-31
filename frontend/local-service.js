@@ -18,6 +18,7 @@ import {CharacterLooksModule,validateLooks} from './character-looks.js';
 import {WorldHistoryModule} from './world-history.js';
 import {CharacterArchiveModule,validateArchive} from './character-archive.js';
 import {visitLookImages,imageDigest} from './native-look-images.js';
+import {isOnlineSession,requireMainMemorySession} from './session-mode.js';
 // Preserve the existing import path for callers while the implementation moves.
 export {buildContext} from './local-queries.js';
 import {jsonSnapshot as clone} from './json-snapshot.js';
@@ -214,8 +215,8 @@ export class LocalService {
     }
     if(parts[0]==='contacts'){
       if(parts.length===1){
-        if(method==='POST'){if(!d.characters.some(c=>c.id===body.character_id))throw Error('角色不存在');let c=d.sessions.find(s=>s.character_id===body.character_id&&s.mode!=='world');if(!c){c={id:uid(),character_id:body.character_id,title:d.characters.find(c=>c.id===body.character_id).name,note:'',background:'#eef2f3',voice:'',created_at:now()};d.sessions.push(c);}return clone(c);}
-        return d.sessions.filter(s=>s.mode!=='world').map(s=>{const ms=d.messages.filter(m=>!m.deleted_at&&m.session_id===s.id),last=ms[ms.length-1];return {...s,unread_shares:ms.filter(m=>m.origin==='world_share'&&m.id>(s.read_message_id||0)).length,last_message:last?.content||'',last_time:last?.created_at,last_assistant_id:ms.filter(m=>m.role==='assistant'&&this.message(m).state==='complete').pop()?.id||0};}).reverse();
+        if(method==='POST'){if(!d.characters.some(c=>c.id===body.character_id))throw Error('角色不存在');let c=d.sessions.find(s=>s.character_id===body.character_id&&isOnlineSession(s));if(!c){c={id:uid(),character_id:body.character_id,title:d.characters.find(c=>c.id===body.character_id).name,note:'',background:'#eef2f3',voice:'',created_at:now()};d.sessions.push(c);}return clone(c);}
+        return d.sessions.filter(isOnlineSession).map(s=>{const ms=d.messages.filter(m=>!m.deleted_at&&m.session_id===s.id),last=ms[ms.length-1];return {...s,unread_shares:ms.filter(m=>m.origin==='world_share'&&m.id>(s.read_message_id||0)).length,last_message:last?.content||'',last_time:last?.created_at,last_assistant_id:ms.filter(m=>m.role==='assistant'&&this.message(m).state==='complete').pop()?.id||0};}).reverse();
       }
       const s=d.sessions.find(s=>s.id===parts[1]);if(!s)throw Error('会话不存在');
       if(parts[2]==='read'&&method==='POST'){if(!Number.isSafeInteger(body.message_id)||body.message_id<0)throw Error('已读消息标识无效');s.read_message_id=Math.max(s.read_message_id||0,body.message_id);return {ok:true};}
@@ -249,6 +250,7 @@ export class LocalService {
   async prepareRecall(sid,text,beforeMessageId,signal){
     const owner=this.data.sessions.find(s=>s.id===sid)?.character_id;
     if(!owner)throw Error('会话不存在');
+    requireMainMemorySession(this.data,owner,sid);
     if(this.embeddedMemory){
       const data=this.data,options={sessionId:sid,beforeMessageId};
       if(!data.memory.settings.recall)return recallPlan(data,owner,text,{...options,embedded:{ranked:[]}});
@@ -276,7 +278,9 @@ export class LocalService {
     let partial='',dirty=0,started=false,writeFailure;
     try{
       const accepted=await this.transact(d=>{
-        if(!d.sessions.some(s=>s.id===sid))throw Error('会话不存在');
+        const session=d.sessions.find(s=>s.id===sid);
+        if(!session)throw Error('会话不存在');
+        requireMainMemorySession(d,session.character_id,sid);
         let turn=d.turns.find(t=>t.request_id===rid);
         if(turn?.deleted_at)throw Error('这轮对话已删除，不能重新执行');
         if(turn&&(turn.session_id!==sid||d.messages.find(m=>m.id===turn.user_id)?.content!==text))throw Error('请求标识与原消息不匹配');

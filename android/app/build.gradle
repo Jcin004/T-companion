@@ -9,8 +9,8 @@ android {
         ndk { abiFilters 'arm64-v8a', 'x86_64' }
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode = Integer.parseInt(project.findProperty('trialVersionCode') ?: '31')
-        versionName = project.findProperty('trialVersionName') ?: "0.20.0-trial"
+        versionCode = Integer.parseInt(project.findProperty('trialVersionCode') ?: '32')
+        versionName = project.findProperty('trialVersionName') ?: "0.20.1-trial"
         testInstrumentationRunner = project.findProperty('updateTestRunner') ?: "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
