@@ -1,6 +1,6 @@
 # 记忆房间与月度回顾
 
-本轮对应持续执行文档第 17 节。基线 0.20.2 / code 33，交付目标 0.21.0 / code 34；独立本机网页和 Android，共同后端未增加这些接口。
+本轮对应持续执行文档第 17 节。基线 0.20.2 / code 33，已交付 0.21.0 / code 34（2026-11-01，Asia/Shanghai）；独立本机网页和 Android，共同后端未增加这些接口。
 
 ## 用户操作
 
@@ -66,3 +66,12 @@ SullyOS 有传统档案与宫殿两条兼容路径，本项目不据此再造一
 ## 下一批任务
 
 认知消化的输入窗口、状态/版本、报告和人工保护按持续执行文档第 17 节实施；先有有据可查的状态变化，再评估稳定认知如何参与选择。不用不断给原总结再总结制造“成长”。剧情选段转入和线上处境/可沉默消息按其后续依赖推进。
+
+## 交付记录
+
+- [0.21.0 公开试用](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.21.0) 已发布 code 34，原包名与试用签名。对应产品提交 `0883d18f1680ee43db0f0d7fa284451678f7b10f`；[草稿 PR #37](https://github.com/Jcin004/T-companion/pull/37) 基于 fix/pixel-paint-navigation，未合并。
+- APK 81,388,851 bytes，SHA-256 `16692658927cdef82a0610c75bd26021dff8ab87eee24f24daa817ec674166b8`；源码归档 SHA-256 `fae89601b177f8defa350737f67bf07b320b8da596ba506edc597c1b50dcda9f`。
+- APK、完整源码、LICENSE、第三方声明、构建说明、清单、校验和七个附件全部匿名核对服务端大小与摘要；APK HEAD 200，main/t-update.json 与本地发布清单一致。匹配源码包在无 Git 元数据目录中使用已安装锁定依赖重新构建通过。
+- 最终提交的签名包再次通过 33→34 原生验收；发布后旧 code 33 从默认 raw.githubusercontent.com 单次检查发现 code 34（2,184 ms），再次覆盖回 code 34 后默认检查报告最新（1,011 ms）。两次均核对完整合成业务文档与加密凭据指纹不变；这是此模拟器/网络的单次样本。
+- [产品提交 CI](https://github.com/Jcin004/T-companion/actions/runs/41217327268) 的 tests、secrets、android 全通过。当前源码快照扫描 562 个 blob，Gitleaks 无发现，范围内隐私审计通过。设备/公网证据为 `artifacts/memory-monthly-*-validation.json` 与 `memory-monthly-native-update-33.json`、`memory-monthly-native-update-34.json`，均为忽略的本机测试记录。
+- 发布后文档提交只补交付记录，不替换发布 APK 或 sourceCommit。临时源码校验目录的清理被自动审批策略拦截，目录保留；本次没有删除用户数据。
