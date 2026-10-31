@@ -172,7 +172,7 @@ export class LocalService {
     }
     const queried=queryLocalData(this.data,url,method,body);
     if(queried!==undefined)return queried;
-    if(['memories','summaries','self','memory-settings','memory-sources','memory-links','memory-link-proposals'].includes(route))return this.memoryModule.api(path,method,body);
+    if(['memories','summaries','monthly-summaries','self','memory-settings','memory-sources','memory-links','memory-link-proposals'].includes(route))return this.memoryModule.api(path,method,body);
     if(method==='GET'||pathname==='/settings/test')return this._dispatch(path,method,body);
     return this.transact(async data=>{
       // Reuse domain validation against a private document; never run model work here.
