@@ -1,6 +1,6 @@
 # T- · 联系人式陪伴聊天
 
-当前 Android 试用版为 0.20.0，新增 [可编辑本体与分部件衣柜](docs/MODULAR_OUTFITS.md)，新增可保存、可继续编辑的方格衣服绘画台（见 [绘画台](docs/CLOTHING_WORKBENCH.md)），修正选帧后位置调整误改整组的问题（见 [逐帧位置](docs/SPRITE_FRAME_POSITION.md)），简化形象编辑并减少图片存档下的移动开销（见 [编辑与行走性能](docs/SPRITE_EDITOR_PERFORMANCE.md)），保留 [固定素体与大小/落地对照](docs/FIXED_SPRITE_REFERENCE.md)，人物形象采用人物列表、皮肤卡片与三个独立编辑分页（见 [人物衣橱](docs/CHARACTER_WARDROBE_UI.md)），整合直接更新清单、断点续传/暂停与跨页面进度（见 [更新渠道](docs/UPDATE_CHANNEL.md)），新增世界全局对话搜索与记忆联动删除、人物皮肤库、表情立绘与可配置方向/站立/交互图集；AI 只选择已允许的资源。使用与边界见 [世界记录与人物呈现](docs/WORLD_EXPRESSION_HISTORY.md)。见 [世界画面与对话](docs/WORLD_VISUAL_DIALOGUE.md)、[摇杆操作](docs/WORLD_JOYSTICK.md)、[居民生活](docs/RESIDENT_LIFE.md) 和 [内置记忆数据流与验证](docs/ANDROID_EMBEDDED_MEMORY.md)。桌面保留聊天、人设名册、设置、外观、运行日志、记忆和自我入口。Android 默认本机独立运行，不依赖 Windows 或 T- 应用服务器；共同后端是另一种可选数据源，没有自动同步。
+当前 Android 试用版为 0.20.1（[记忆来源基础](docs/MEMORY_SOURCE_FOUNDATION.md)），新增 [可编辑本体与分部件衣柜](docs/MODULAR_OUTFITS.md)，新增可保存、可继续编辑的方格衣服绘画台（见 [绘画台](docs/CLOTHING_WORKBENCH.md)），修正选帧后位置调整误改整组的问题（见 [逐帧位置](docs/SPRITE_FRAME_POSITION.md)），简化形象编辑并减少图片存档下的移动开销（见 [编辑与行走性能](docs/SPRITE_EDITOR_PERFORMANCE.md)），保留 [固定素体与大小/落地对照](docs/FIXED_SPRITE_REFERENCE.md)，人物形象采用人物列表、皮肤卡片与三个独立编辑分页（见 [人物衣橱](docs/CHARACTER_WARDROBE_UI.md)），整合直接更新清单、断点续传/暂停与跨页面进度（见 [更新渠道](docs/UPDATE_CHANNEL.md)），新增世界全局对话搜索与记忆联动删除、人物皮肤库、表情立绘与可配置方向/站立/交互图集；AI 只选择已允许的资源。使用与边界见 [世界记录与人物呈现](docs/WORLD_EXPRESSION_HISTORY.md)。见 [世界画面与对话](docs/WORLD_VISUAL_DIALOGUE.md)、[摇杆操作](docs/WORLD_JOYSTICK.md)、[居民生活](docs/RESIDENT_LIFE.md) 和 [内置记忆数据流与验证](docs/ANDROID_EMBEDDED_MEMORY.md)。桌面保留聊天、人设名册、设置、外观、运行日志、记忆和自我入口。Android 默认本机独立运行，不依赖 Windows 或 T- 应用服务器；共同后端是另一种可选数据源，没有自动同步。
 
 开始开发先读 [当前架构与数据流](docs/CURRENT_ARCHITECTURE.md)、[术语](GLOSSARY.md)、[维护规范](CONTRIBUTING.md) 和 [AGENTS.md](AGENTS.md)。公开前结论与候选方案见 [公开审计](docs/PUBLICATION_AUDIT.md)。
 
@@ -24,7 +24,7 @@ python -m venv .venv
 
 ## Android 试用
 
-网页资源内置 APK。打开桌面 → 人设名册创建角色 → 设置配置模型 API 并测试 → 发起聊天。无需填写共同后端地址或口令。包名 `io.jcin.tcompanion`，版本 `0.18.3-trial`，versionCode `29`，沿用旧版试用签名，覆盖安装保留本机数据。不要卸载旧版。
+网页资源内置 APK。打开桌面 → 人设名册创建角色 → 设置配置模型 API 并测试 → 发起聊天。无需填写共同后端地址或口令。包名 `io.jcin.tcompanion`，版本 `0.20.1-trial`，versionCode `32`，沿用旧版试用签名，覆盖安装保留本机数据。不要卸载旧版。
 
 架构、构建与数据迁移见 [本机客户端说明](docs/LOCAL-ANDROID.md)，当前记忆功能及验收见 [0.6.0 说明](docs/MEMORY-0.6.md)；早期独立聊天验收见 [0.3.0 交付记录](docs/DELIVERY_LOCAL.md)。旧版后端式 APK 说明保留作历史资料。
 

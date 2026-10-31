@@ -4,6 +4,7 @@ import {sourceMessages,validateEvidence,rosterSource,evidenceProjection} from '.
 import {rankedMemories,MemoryLexicalIndex} from './memory-lexical.js';
 import {recallCues} from './recall-cues.js';
 import {historyLimit} from './context-policy.js';
+import {requireMainMemorySession} from './session-mode.js';
 
 const key=ref=>ref.kind+':'+ref.id;
 const rounded=value=>Math.round(value*10000)/10000;
@@ -12,7 +13,7 @@ const size=plan=>plan.records.length||plan.anchors.length?JSON.stringify(materia
 
 export function recallInputs(data,owner,query,{sessionId,beforeMessageId=Infinity}={}){
   const inputs=[{text:query,weight:1,reason:'lexical'}],cues=recallCues(query);
-  const session=data.sessions.find(s=>s.id===sessionId&&s.character_id===owner);
+  const session=sessionId?requireMainMemorySession(data,owner,sessionId):null;
   const settings=data.memory.settings;
   if(cues.needsContext&&session&&settings.context_messages){
     const count=Math.min(settings.context_messages,historyLimit(data,session.id));
@@ -23,6 +24,7 @@ export function recallInputs(data,owner,query,{sessionId,beforeMessageId=Infinit
 }
 
 export function createRecallPlan(data,owner,query,{settings,sessionId,beforeMessageId=Infinity,embedded}={}){
+  if(sessionId)requireMainMemorySession(data,owner,sessionId);
   const plan={records:[],anchors:[],links:[],trace:{method:'bm25+bounded-links',query_mode:'current',context_message_ids:[],markers:[],candidates:[],excluded:{},used_chars:0,budget:settings.budget,policy:{context_messages:settings.context_messages,use_links:settings.use_links,use_anchors:settings.use_anchors,recall_limit:settings.recall_limit}}};
   const trace=plan.trace,exclude=reason=>{trace.excluded[reason]=(trace.excluded[reason]||0)+1;};
   if(embedded)trace.method='embedded-ob+bounded-links';

@@ -43,6 +43,7 @@ try{
   await page.locator('#memory-editor').getByRole('button',{name:'保存记忆',exact:true}).tap();await page.locator('#memory-editor').waitFor({state:'hidden'});
   await page.reload();await ready();await app('world');
   await page.waitForFunction(()=>document.querySelector('#world-canvas').dataset.drawn==='yes');assert.match(await page.locator('#world-time').textContent(),/2 位居民/);
-  assert.equal(await page.locator('.app-grid [data-app]').count(),8);
+  const desktopApps=await page.locator('.app-grid [data-app]').evaluateAll(items=>items.map(item=>item.dataset.app));
+  assert.deepEqual(desktopApps.sort(),['appearance','archive','chat','logs','memory','roster','self','settings','world'].sort());
   assert.deepEqual(errors,[]);console.log('PASS: mobile touch movement, scene streaming, interactions, typed source/edit, reload and existing desktop entries');
 }finally{await browser.close();}

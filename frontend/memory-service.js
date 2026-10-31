@@ -3,6 +3,7 @@ import {linkValue,linkNode,describeLink,removeNodeLinks} from './memory-links.js
 import {parseModelObject} from './model-json.js';
 import {MemoryLinkProposalService} from './memory-link-proposal-service.js';
 import {acceptWorldMemories} from './world-memory.js';
+import {completedSourceTurns,sourceWorldEvents} from './memory-evidence.js';
 import {copy,newId,ensureMemory,sourceMessages,eventValue,validateMemory,rosterSource,dayKey} from './memory-core.js';
 const stamp=()=>new Date().toISOString();
 const saveVersion=(item)=>{const {versions,...snapshot}=item;item.versions=[...(versions||[]),copy(snapshot)].slice(-10);};
@@ -25,7 +26,7 @@ export class MemoryModule {
    return result??{ok:true};
   });}finally{this.saving=false;}
  }
- pending(owner,limit=40){const sessions=new Set(this.data.sessions.filter(s=>s.character_id===owner).map(s=>s.id)),watermark=this.memory.watermarks[owner]||0;const turns=this.data.turns.filter(t=>!t.deleted_at&&sessions.has(t.session_id)&&t.state==='complete'&&Math.max(t.user_id,t.assistant_id)>watermark).sort((a,b)=>Math.max(a.user_id,a.assistant_id)-Math.max(b.user_id,b.assistant_id)).slice(0,limit);const ids=new Set(turns.flatMap(t=>[t.user_id,t.assistant_id]));return sourceMessages(this.data,owner).filter(m=>ids.has(m.id));}
+ pending(owner,limit=40){const watermark=this.memory.watermarks[owner]||0;const turns=completedSourceTurns(this.data,owner).filter(t=>Math.max(t.user_id,t.assistant_id)>watermark).sort((a,b)=>Math.max(a.user_id,a.assistant_id)-Math.max(b.user_id,b.assistant_id)).slice(0,limit);const ids=new Set(turns.flatMap(t=>[t.user_id,t.assistant_id]));return sourceMessages(this.data,owner).filter(m=>ids.has(m.id));}
  async extract(owner,day,explicit){
   if(explicit&&(!Array.isArray(explicit)||!explicit.length))throw Error('请选择来源消息');
   this.owner(owner);const all=sourceMessages(this.data,owner,day);
@@ -94,7 +95,13 @@ export class MemoryModule {
   if(parts[0]==='memory-settings'){
    if(method==='PATCH'){m.settings={...m.settings,...body};}return {...copy(m.settings),job:this.job};
   }
-  if(parts[0]==='memory-sources'){this.owner(q.get('owner'));return copy(sourceMessages(this.data,q.get('owner'),q.get('day')).slice(-300));}
+  if(parts[0]==='memory-sources'){
+   const owner=q.get('owner');this.owner(owner);
+   const type=q.get('source_type')||'chat_message';
+   if(type==='world_event')return copy(sourceWorldEvents(this.data,owner).slice(-300));
+   if(type!=='chat_message')throw Error('不支持的记忆来源类型');
+   return copy(sourceMessages(this.data,owner,q.get('day')).slice(-300));
+  }
   if(parts[0]==='memories'){
    if(parts[1]==='extract')return this.extract(body.owner_id,body.day,body.source_ids);
    if(method==='GET'){this.owner(q.get('owner'));return copy(m.events.filter(e=>e.owner_id===q.get('owner')&&(!q.get('q')||(e.title+' '+e.content).includes(q.get('q')))).slice().reverse());}

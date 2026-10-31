@@ -1,0 +1,212 @@
+{
+  "repository": "qegj567-cloud/SullyOS",
+  "commit": "8035795e443579ead0f28d1dfe9d5a87ff0b232e",
+  "checked_at": "2026-10-31",
+  "copyright": "NMJ (SullyOS / 手抓糯米机)",
+  "license": "SullyOS Source-Available License 1.0",
+  "purpose": "Dependency audit only; no upstream implementation imported in this stage",
+  "files": [
+    {
+      "path": "utils/memoryPalace/pipeline.ts",
+      "blob": "242ed9a920dfec6ab85eaa1f4b79c4ddf45d0982",
+      "sha256": "ee5600acf46c6f84bf93907c79c5331034a52b96d7ee4504724fd48979e76975",
+      "bytes": 127026,
+      "lines": 2502,
+      "imports": [
+        "./trace",
+        "./maintenanceMode",
+        "./rangeMessagePage",
+        "../chatContextRange",
+        "../../types",
+        "./types",
+        "./bufferCount",
+        "./waterline",
+        "./extraction",
+        "./extraction",
+        "./relatedMemories",
+        "./recallReceipts",
+        "./vectorStore",
+        "./links",
+        "./hybridSearch",
+        "./embedding",
+        "./vectorSearch",
+        "./activation",
+        "./priming",
+        "./formatter",
+        "./consolidation",
+        "./rerank",
+        "./db",
+        "../db",
+        "../messageFormat",
+        "./querySanitizer",
+        "../localDate",
+        "./externalMemory",
+        "./recallRouter",
+        "./explicitEntityRecall",
+        "./eventBoxLightIndex",
+        "./interactionAdaptation",
+        "./deepEngagement",
+        "./conversationEngagement",
+        "./trace",
+        "./highWaterMark"
+      ],
+      "decision": "reference-only: orchestration depends on SullyOS DB, vectors, formatting and context; do not import wholesale",
+      "imported": false
+    },
+    {
+      "path": "utils/memoryPalace/autoArchive.ts",
+      "blob": "d72dd3b1294eeb128b987d6817c4412c979a4b81",
+      "sha256": "595f49ebd405af7511a70d8af1026af023c9b4cb55f0471a10183118387e4936",
+      "bytes": 7391,
+      "lines": 174,
+      "imports": [
+        "../../types",
+        "../db",
+        "./db",
+        "./types",
+        "./pipeline"
+      ],
+      "decision": "reference-only: archive receipt and ordering; adapt to LocalService transactions",
+      "imported": false
+    },
+    {
+      "path": "utils/memoryPalace/extraction.ts",
+      "blob": "dfa611b07a7f0d756fe88b332fa3cabe75b5b1f4",
+      "sha256": "ec58ca2199443643e991bb8c5eb00a881103223e3aeae1ef2b36eed4deb9023a",
+      "bytes": 30639,
+      "lines": 590,
+      "imports": [
+        "../../types",
+        "./types",
+        "./pipeline",
+        "../safeApi",
+        "./jsonUtils",
+        "../messageFormat",
+        "./trace",
+        "./relativeTime",
+        "../localDate"
+      ],
+      "decision": "later candidate: length-aware batching; replace model transport and source conversion",
+      "imported": false
+    },
+    {
+      "path": "utils/memoryPalace/hybridSearch.ts",
+      "blob": "5ca3df7170039d52999efc9c0540db48e47ee79d",
+      "sha256": "57d098e9cc506f652536bfbd15b218190283cffb1f5230ae32364bf3236c964a",
+      "bytes": 10279,
+      "lines": 239,
+      "imports": [
+        "./types",
+        "./types",
+        "./db",
+        "./embedding",
+        "./vectorSearch",
+        "./bm25",
+        "./bm25Index",
+        "./consolidation"
+      ],
+      "decision": "later candidate: scoring policy; requires selected embedding and indexing interface",
+      "imported": false
+    },
+    {
+      "path": "utils/memoryPalace/digestion.ts",
+      "blob": "7caed19094e05ee89d2011ec9ad495c2acce48ba",
+      "sha256": "0ddb49447c4409f319dde5beef2df3d8687b8cd1e3cea941715bc618e0362156",
+      "bytes": 61335,
+      "lines": 1152,
+      "imports": [
+        "./maintenanceMode",
+        "./types",
+        "./types",
+        "./pipeline",
+        "./db",
+        "./types",
+        "./anticipation",
+        "./vectorStore",
+        "../safeApi",
+        "./jsonUtils"
+      ],
+      "decision": "later candidate: lifecycle and report rules; DB, model and progress adapters required",
+      "imported": false
+    },
+    {
+      "path": "utils/memoryPalace/roomPlateCore.ts",
+      "blob": "d1437cfaff849c40a4af4370f06f2670f149b1eb",
+      "sha256": "1633e9026880858bd06ad037ed4a699574868d6f41dd88a56e4cd71e9c0ed0d6",
+      "bytes": 23027,
+      "lines": 447,
+      "imports": [
+        "./types",
+        "./types",
+        "./jsonUtils"
+      ],
+      "decision": "later candidate: bounded stable-cognition merge; types and JSON parser dependencies",
+      "imported": false
+    },
+    {
+      "path": "utils/memoryPalace/roomPlates.ts",
+      "blob": "8845bcaa3d169b868a9db75f3acbf9b859ce1b66",
+      "sha256": "fe8f3fc2694fa95e45bf05cd4023eb4f904a2d7c5f764c2d15a2534aa29e3413",
+      "bytes": 31759,
+      "lines": 623,
+      "imports": [
+        "../context",
+        "./maintenanceMode",
+        "./types",
+        "./types",
+        "./db",
+        "./pipeline",
+        "../safeApi",
+        "./roomPlateCore",
+        "./roomPlateCore",
+        "./roomPlateCore"
+      ],
+      "decision": "reference-only: orchestration; depends on ContextBuilder, DB, model and localStorage",
+      "imported": false
+    },
+    {
+      "path": "utils/memoryPalace/highWaterMark.ts",
+      "blob": "4ac8eee6dcce81fd6b6928fb7afd58f74a84ba36",
+      "sha256": "e7c0cb8ba67e4ad99af20c53ba5fe2e853d482f71b0fba7192296a8b2de8ae6e",
+      "bytes": 5838,
+      "lines": 132,
+      "imports": [
+        "../db"
+      ],
+      "decision": "reference-only: progress semantics; dual localStorage/IndexedDB not used here",
+      "imported": false
+    },
+    {
+      "path": "utils/storyTheaterMemoryConversion.ts",
+      "blob": "71209bf713178f21f88ae91e57199a2632ea33cc",
+      "sha256": "d21c1518de7c366cc4a1d102e8fcc0983730c0d68395311d54b36dfa1beacd61",
+      "bytes": 8667,
+      "lines": 114,
+      "imports": [
+        "../types",
+        "./db",
+        "./localDate",
+        "./memoryPalace/extraction",
+        "./memoryPalace/pipeline",
+        "./memoryPalace/vectorStore",
+        "./memoryPalace/db",
+        "./memoryPalace/bm25Index",
+        "./memoryPalace/nodeChanges",
+        "./memoryPalace/autoArchive",
+        "./memoryPalace/types"
+      ],
+      "decision": "later candidate: recipient/version/idempotent receipt rules; atomic IDB transaction must be adapted",
+      "imported": false
+    },
+    {
+      "path": "LICENSE",
+      "blob": "f9c4d42a3af04c42cb011baaa963327faf88b7f3",
+      "sha256": "22d7d3dc310d2d44830e52b9d1b20e8da9765892f33a019180dcf87a551998ba",
+      "bytes": 6004,
+      "lines": 104,
+      "imports": [],
+      "decision": "license-reference: user personal modification authorization recorded; distribution assessed per imported file",
+      "imported": false
+    }
+  ]
+}

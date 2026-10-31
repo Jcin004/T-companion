@@ -10,6 +10,6 @@ const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Num
  sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['世界用户菜单新增独立衣柜，本体、头发、帽子、配饰、上衣、下装、鞋子分别制作','自己的形象与居民本体均可上传和再次绘画，原方格画笔和草稿恢复保留','共享素材只保存一份，各人物独立调整身高和衣物大小位置','首版部位模板驱动站立与迈步，缺少方向会阻止应用；复杂衣型和其他动作待适配','明确应用生成独立分层穿搭皮肤，保留旧皮肤；原包名、签名、SQLite 与备份不变']};
+ releaseNotes:['统一记忆提取、每日总结、召回和来源定位的资格规则','独立剧情预留会话不混入普通联系人、主动分享或人物主记忆','已撤销和未完成轮次不再进入模型历史或记忆整理','世界事件统一来源查询，保留人物知情范围','保留 0.20.0 衣柜、图片档案、世界和全部旧数据；本阶段未新增剧情界面或认知消化']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');

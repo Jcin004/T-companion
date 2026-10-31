@@ -42,9 +42,13 @@ export function validateWorld(data){
   }
   return w;
 }
+const knownWorldSource=(event,owner)=>event&&!event.deleted_at&&event.observations.some(o=>o.owner_id===owner);
+export function worldSources(data,owner){
+  return copy((data.world?.events||[]).filter(event=>knownWorldSource(event,owner)));
+}
 export function worldSource(data,id,owner){
   const event=data.world?.events.find(e=>e.id===id);
-  if(!event||event.deleted_at||!event.observations.some(o=>o.owner_id===owner))throw Error('人物没有此事件的知情依据');
+  if(!knownWorldSource(event,owner))throw Error('人物没有此事件的知情依据');
   return copy(event);
 }
 export function sceneSnapshot(data,sid){
