@@ -6,15 +6,17 @@ import assert from 'node:assert/strict';
 
 const snapshot='artifacts/memory-source-upgrade-before.json';
 const hash=text=>createHash('sha256').update(text).digest('hex');
+async function appReady(){
+  for(let i=0;i<150;i++){
+    if(await evaluate(()=>document.querySelector('#status')?.textContent==='记录保存在本机'))return;
+    await new Promise(resolve=>setTimeout(resolve,200));
+  }
+  throw Error('App startup must release its initialization write lease');
+}
 try{
   await adb('shell','am','start','-n','io.jcin.tcompanion/.MainActivity');
   await connect();
-  let ready=false;
-  for(let i=0;i<150;i++){
-    if(await evaluate(()=>document.querySelector('#status')?.textContent==='记录保存在本机')){ready=true;break;}
-    await new Promise(resolve=>setTimeout(resolve,200));
-  }
-  assert.equal(ready,true,'App startup must release its initialization write lease');
+  await appReady();
   if(process.argv.includes('--seed')){
     const result=await evaluate(async()=>{
       const {createLocalService}=await import('/assets/local-service.js');
@@ -30,6 +32,7 @@ try{
       await s.api('/world/setup','POST',{character_ids:[a.id,b.id]});
       await s.api('/world/commands','POST',{request_id:'synthetic-wait',type:'advance',actor_id:a.id});
       await s.storage.setKey('synthetic-upgrade-key',s.data.active_profile_id);
+      await s.api('/backup/restore','POST',await s.api('/backup'));
       return {data:await s.api('/backup'),owner:a.id,chat:chat.id};
     });
     const info=await evaluate(()=>Capacitor.Plugins.TUpdate.info());
@@ -42,10 +45,11 @@ try{
     assert.equal((await evaluate(()=>Capacitor.Plugins.TUpdate.info())).versionCode,32);
     const credentials=hash((await adb('shell','run-as','io.jcin.tcompanion','cat','shared_prefs/t-secrets.xml')).stdout);
     assert.equal(credentials,before.credentials);
+    const upgraded=await evaluate(async()=>{const {createLocalService}=await import('/assets/local-service.js');return (await createLocalService(Capacitor.Plugins.TLocal)).api('/backup');});
+    assert.deepEqual(upgraded,before.data,'Upgrade must preserve complete business data');
     const result=await evaluate(async before=>{
       const {createLocalService}=await import('/assets/local-service.js');
       const s=await createLocalService(Capacitor.Plugins.TLocal);
-      if(JSON.stringify(await s.api('/backup'))!==JSON.stringify(before.data))throw Error('Upgrade changed business data');
       let calls=0;
       s.transport=async(settings,key,messages,delta)=>{calls++;delta('合成回复');};
       const base=await s.api('/backup');
@@ -76,6 +80,7 @@ try{
     await adb('shell','am','force-stop','io.jcin.tcompanion');
     await adb('shell','am','start','-n','io.jcin.tcompanion/.MainActivity');
     disconnect();await connect();
+    await appReady();
     const restored=await evaluate(async()=>{const {createLocalService}=await import('/assets/local-service.js');return (await createLocalService(Capacitor.Plugins.TLocal)).api('/backup');});
     assert.deepEqual(restored,before.data);
     result.checks.push('process restart retains restored synthetic fixture');
