@@ -10,6 +10,6 @@ const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Num
  sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['统一记忆提取、每日总结、召回和来源定位的资格规则','独立剧情预留会话不混入普通联系人、主动分享或人物主记忆','已撤销和未完成轮次不再进入模型历史或记忆整理','世界事件统一来源查询，保留人物知情范围','保留 0.20.0 衣柜、图片档案、世界和全部旧数据；本阶段未新增剧情界面或认知消化']};
+ releaseNotes:['电脑绘画支持滚轮定点缩放、右键拖动画布，屏蔽中键误操作','手机使用单指绘画、双指缩放和平移；双指操作不留下笔迹','新增 128×192 精细画布，一格为原来的半格，可撤销细化','旧图保留原样，精细笔画完整保存并用于衣柜与房间，人物大小和落地点不变','保留 0.20.1 记忆来源、衣柜、聊天、备份、原包名和签名']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');

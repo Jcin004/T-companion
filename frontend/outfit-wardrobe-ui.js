@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // UI submits recipes to the existing looks module; it never owns persistence.
 import {OUTFIT_KINDS,outfitDrawingChange} from './outfit-catalog.js';
+import {drawingSize} from './clothing-project.js';
 import {WALK_TEMPLATE} from './outfit-motion.js';
 import {blankProject,importPixels,pixelCanvas,starterBody} from './outfit-image.js';
 import {drawOutfit,outfitAtlas} from './outfit-compose.js';
@@ -45,9 +46,9 @@ export function mountOutfitWardrobe({api,report,toast,refresh}){
     preview();
   }
   function renderLayer(canvas,project,index){
-    canvas.width=64;canvas.height=96;const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
+    const {width,height}=drawingSize(project);canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
     const a=catalog.assets.find(a=>a.id===editing),base=catalog.assets.find(a=>a.id===person()?.body);
-    if(a?.kind!=='body'&&base){ctx.globalAlpha=.25;ctx.drawImage(pixelCanvas(base.project,Math.floor(index/3)*3+1),0,0);ctx.globalAlpha=1;}
+    if(a?.kind!=='body'&&base){ctx.globalAlpha=.25;ctx.drawImage(pixelCanvas(base.project,Math.floor(index/3)*3+1),0,0,width,height);ctx.globalAlpha=1;}
     ctx.drawImage(pixelCanvas(project,index),0,0);return canvas;
   }
   let painter;
@@ -68,7 +69,7 @@ export function mountOutfitWardrobe({api,report,toast,refresh}){
   async function height(delta){if(!person())return;const next=clone(catalog);next.people[owner].height=Math.max(56,Math.min(80,person().height+delta));await save(next);render();}
   el('.wardrobe-short').onclick=safe(()=>height(-2));el('.wardrobe-tall').onclick=safe(()=>height(2));
   for(const input of box.querySelectorAll('[data-fit]')){input.addEventListener('wheel',()=>input.blur(),{passive:true});input.onchange=safe(async()=>{const next=clone(catalog),w=next.people[owner]?.wear.find(w=>w.asset===selected);if(!w)return;w.fit[input.dataset.fit]=Number(input.value)/(input.dataset.fit==='scale'?100:1);await save(next);render();});}
-  el('.wardrobe-upload').onchange=safe(async e=>{const file=e.target.files[0];e.target.value='';if(!file||!asset())return;if(file.size>6000000)throw Error('图片最多 6 MB');const url=URL.createObjectURL(file);try{const frame=await importPixels(url,asset().project.colors,{target:targets[kind]}),next=clone(catalog),a=next.assets.find(a=>a.id===selected);for(let p=0;p<3;p++)a.project.frames[direction*3+p]=frame;a.ready[direction]=true;delete a.draft;await save(next);render();status('此方向已保存，可继续绘制姿势或调整穿戴位置。');}finally{URL.revokeObjectURL(url);}});
+  el('.wardrobe-upload').onchange=safe(async e=>{const file=e.target.files[0];e.target.value='';if(!file||!asset())return;if(file.size>6000000)throw Error('图片最多 6 MB');const url=URL.createObjectURL(file);try{const frame=await importPixels(url,asset().project.colors,{target:targets[kind],pixelScale:drawingSize(asset().project).scale}),next=clone(catalog),a=next.assets.find(a=>a.id===selected);for(let p=0;p<3;p++)a.project.frames[direction*3+p]=frame;a.ready[direction]=true;delete a.draft;await save(next);render();status('此方向已保存，可继续绘制姿势或调整穿戴位置。');}finally{URL.revokeObjectURL(url);}});
   el('.wardrobe-play').onclick=()=>{if(busy)return;if(timer){stop();preview();return;}el('.wardrobe-play').textContent='停止行走';timer=setInterval(()=>{step++;preview();},120);};
   el('.wardrobe-apply').onclick=safe(async()=>{if(!person())throw Error('先选择本体');stop();const sprite=outfitAtlas(catalog,person());await api('/character-looks/user/workshop-apply','POST',{owner,expected_revision:catalog.revision,sprite});await refresh();status('已应用到世界；旧皮肤保留。');toast('穿搭已应用');});
   el('.wardrobe-close').onclick=()=>{if(!busy)box.close();};box.addEventListener('cancel',e=>{if(busy)e.preventDefault();});box.addEventListener('close',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
