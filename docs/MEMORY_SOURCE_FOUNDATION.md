@@ -67,3 +67,12 @@
 SullyOS 原版 `autoArchive` 与 `pipeline` 有兼容传统档案的桥接；这不表示 T-companion 应新增一套独立长期记忆库。日/月回顾和经历之间用来源引用保持一致。
 
 授权：用户已说明有个人非商业二改权，仓库已有相关记录。后续实际复制时逐文件记录授权覆盖、作者/许可/依赖与修改；公开源码/APK 的分发范围另按已有规则核对。本阶段无新增上游实现，因此不会把来源可见许可混入当前 AGPL 产品代码。
+
+## 交付记录
+
+- 0.20.1-trial / versionCode 32 已发布到[原手机试用渠道](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.20.1)。原包名、签名，覆盖安装保留数据。
+- 安装包与匹配源码提交：`11e77514d42dc66d7467d32b8fb709bed8acb8b1`；APK 81,380,406 bytes，SHA-256 `46a8c912d48b4330dd3fbe2bb749519f192cd596484bddd2c8fdf2f5adb35a4a`。
+- APK、完整源码、许可、第三方声明、构建说明、清单和校验和共 7 个附件，匿名读取的服务端摘要均与本地一致；公开 main/t-update.json 与发布清单一致。
+- [产品源码 CI](https://github.com/Jcin004/T-companion/actions/runs/41194422202) 的 tests、secrets、android 全部通过。161 Node、103 Python、两项浏览器流程、8 项原生验收；源码快照 Gitleaks 无发现，范围内隐私检查通过。
+- 最终签名包又完成覆盖和原生来源/OB 验收。发布后 Android 默认渠道单次读取 raw.githubusercontent.com 成功，7,030 ms，报告已是最新；仅此模拟器/网络样本，不代表真机耗时。
+- [草稿 PR #35](https://github.com/Jcin004/T-companion/pull/35) 基于 feat/modular-body-outfit，未合并，不自动合并。后续文档提交只补记录，不替换上述安装包或匹配源码。
