@@ -9,5 +9,6 @@ export function removeSourceMemories(data,messageIds,eventIds){
   const removed=memory.events.filter(depends);memory.events=memory.events.filter(e=>!depends(e));
   for(const m of removed)removeNodeLinks(data,'memory',m.id);
   const summaries=memory.summaries.filter(depends);memory.summaries=memory.summaries.filter(s=>!depends(s));
+  memory.monthly_summaries=memory.monthly_summaries.filter(s=>!depends(s));
   return {memories:removed.length,summaries:summaries.length};
 }

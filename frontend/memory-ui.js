@@ -2,6 +2,8 @@
 import {mountMemoryLinks} from './memory-links-ui.js';
 import {mountExternalMemoryUI} from './external-memory-ui.js';
 import {mountEmbeddedMemoryUI} from './embedded-memory-ui.js';
+import {memoryRooms,memoryRoom} from './memory-rooms.js';
+import {mountMonthlyMemoryUI} from './memory-monthly-ui.js';
 const el=id=>document.getElementById(id);
 const node=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;};
 const kinds={statement:'陈述',promise:'约定',interpretation:'理解',experience:'经历'};
@@ -14,7 +16,9 @@ export function installMemoryShell(){
  }
  const tools=el('memory-tools');tools.innerHTML='<button id="memory-add">＋ 手动记忆</button><button id="memory-extract">整理新消息（最多80条）</button><button id="memory-config">召回与整理设置</button><label>按日期整理<input id="memory-day" type="date"></label><button id="memory-day-extract">整理这一天</button><button id="memory-daily">查看每日总结</button><input id="memory-search" placeholder="搜索记忆标题或正文" aria-label="搜索记忆">';
  el('self-tools').innerHTML='<button id="self-add">＋ 手动标签</button><button id="self-analyze">从名册分析</button>';
- for(const id of ['memory-editor','memory-settings-dialog','daily-dialog','self-editor','memory-versions']){
+ tools.insertAdjacentHTML('beforeend','<label>按月份回顾<input id="memory-month" type="month"></label><button id="memory-monthly">查看月度回顾</button><label>记忆房间<select id="memory-room" aria-label="记忆房间"><option value="">全部房间</option></select></label><p id="memory-room-counts" class="subtle"></p>');
+ for(const room of memoryRooms){const option=node('option','',room.label+' · '+room.description);option.value=room.id;el('memory-room').append(option);}
+ for(const id of ['memory-editor','memory-settings-dialog','daily-dialog','monthly-dialog','self-editor','memory-versions']){
   const d=node('dialog','memory-dialog');d.id=id;d.innerHTML='<header><h2></h2><button type="button" class="icon" aria-label="关闭">×</button></header><div class="memory-dialog-body"></div><p class="memory-status" role="status"></p>';
   d.querySelector('header button').onclick=()=>d.close();document.body.append(d);
  }
@@ -45,12 +49,14 @@ export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toas
  }
  function evidenceLinks(container,evidence,owner){for(const source of evidence){const b=button((source.source_type==='world_event'?'世界事件 #'+source.event_id:'原话 #'+source.message_id)+' · '+source.quote,()=>openSource(source.source_type==='world_event'?source:source.message_id,owner));b.classList.add('memory-source');container.append(b);}}
  function versions(item){const box=dialog('memory-versions','修改记录 · 最近十版');if(!item.versions?.length)box.append(node('p','','尚无旧版本'));for(const v of [...(item.versions||[])].reverse()){const card=node('article','card');card.append(node('small','',v.updated_at||v.created_at||''),node('p','memory-text',v.content||v.interpretation||''));if(v.evidence)evidenceLinks(card,v.evidence,item.owner_id);if(v.quote)card.append(node('blockquote','memory-text',v.quote));box.append(card);}}
+ const openMonthly=mountMonthlyMemoryUI({api,isLocal,dialog,field,button,node,versions,openDaily,openSource,toast});
  async function refresh(which){if(!await available(which))return;const id=await owner(which);if(which==='memory')await renderMemories(id);else await renderSelf(id);}
  async function renderMemories(id){
-  const rows=await api('/memories?owner='+encodeURIComponent(id)+'&q='+encodeURIComponent(el('memory-search').value));const list=el('memory-list');list.replaceChildren();
+  const rows=await api('/memories?owner='+encodeURIComponent(id)+'&q='+encodeURIComponent(el('memory-search').value)+(el('memory-room').value?'&room='+el('memory-room').value:''));const list=el('memory-list');list.replaceChildren();
+  const rooms=await api('/memories/rooms?owner='+encodeURIComponent(id));el('memory-room-counts').textContent=rooms.map(r=>r.label+' '+r.count).join(' · ');
   if(!rows.length)list.append(node('p','subtle','还没有记忆。可以从已完成的聊天选择原话，或让模型整理。'));
   const chars=await api('/characters');
-  for(const item of rows){const card=node('article','card memory-card'+(!item.active?' memory-paused':''));card.dataset.memoryId=item.id;card.append(node('small','',kinds[item.kind]+' · '+(item.origin==='manual'?'人工编辑':'模型整理')+(!item.active?' · 已暂停召回':'')),node('h2','',item.title),node('p','memory-text',item.content));evidenceLinks(card,item.evidence,item.owner_id);
+  for(const item of rows){const card=node('article','card memory-card'+(!item.active?' memory-paused':''));card.dataset.memoryId=item.id;card.append(node('small','',memoryRooms.find(r=>r.id===memoryRoom(item.room)).label+' · '+kinds[item.kind]+' · '+(item.origin==='manual'?'人工编辑':'模型整理')+(!item.active?' · 已暂停召回':'')),node('h2','',item.title),node('p','memory-text',item.content));evidenceLinks(card,item.evidence,item.owner_id);
    if(item.participants.length>1)card.append(node('small','','关联：'+item.participants.map(id=>chars.find(c=>c.id===id)?.name||id).join('、')+'（仅当前人物可召回）'));
    const actions=node('div','actions');actions.append(links.button({kind:'memory',id:item.id},id),button('编辑',()=>editMemory(id,item)),button(item.active?'暂停召回':'启用召回',async()=>{await api('/memories/'+item.id,'PATCH',{active:!item.active});await renderMemories(id);}),button('修改记录',()=>versions(item)),button('删除',async()=>{if(!confirm('删除这条记忆、旧版本及它的关联和候选？来源聊天会保留。'))return;await api('/memories/'+item.id,'DELETE');await renderMemories(id);}));card.append(actions);list.append(card);
   }
@@ -58,10 +64,11 @@ export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toas
  async function editMemory(id,item){
   const sources=[...await api('/memory-sources?owner='+encodeURIComponent(id)),...await api('/world/sources?owner='+encodeURIComponent(id))],chars=await api('/characters'),box=dialog('memory-editor',item?'编辑记忆':'手动保存记忆');if(!sources.length){box.textContent='还没有可引用的已完成聊天或已知世界事件。';return;}
   const title=field('标题','input',item?.title||''),content=field('记忆正文（保留说话者与不确定性）','textarea',item?.content||''),kind=field('性质','select');for(const [value,label] of Object.entries(kinds)){const o=node('option','',label);o.value=value;kind.input.append(o);}kind.input.value=item?.kind||'statement';box.append(title.label,kind.label,content.label);
+  const room=field('记忆房间','select');room.input.id='memory-editor-room';for(const r of memoryRooms){const o=node('option','',r.label+' · '+r.description);o.value=r.id;room.input.append(o);}room.input.value=memoryRoom(item?.room);box.append(room.label);
   const related=node('fieldset');related.append(node('legend','','关联人物（不会自动共享记忆）'));const checks=chars.map(c=>{const l=node('label','',c.name),n=node('input');n.type='checkbox';n.value=c.id;n.checked=c.id===id||item?.participants.includes(c.id);n.disabled=c.id===id;l.prepend(n);related.append(l);return n;});box.append(related);
   const refs=node('div'),entries=[];box.append(node('p','subtle','选择来源并保留连续原话。最近 300 条可直接选择；已有来源始终保留。'),refs);
   function addRef(e){const row=node('div','memory-reference'),select=node('select'),quote=field('引用原话','textarea',e?.quote||'');for(const s of sources){const o=node('option','',`#${s.id} ${s.role==='user'?'我':'角色'}：${s.content.slice(0,65)}`);o.value=s.id;select.append(o);}if(e&&!sources.some(s=>s.id===(e.source_type==='world_event'?e.event_id:e.message_id))){const o=node('option','',`#${(e.source_type==='world_event'?e.event_id:e.message_id)} 已有来源`);o.value=(e.source_type==='world_event'?e.event_id:e.message_id);select.append(o);}if(e)select.value=String((e.source_type==='world_event'?e.event_id:e.message_id));else quote.input.value=sources[0].content.slice(0,4000);select.onchange=()=>quote.input.value=(sources.find(s=>String(s.id)===select.value)?.content||'').slice(0,4000);const entry={select,quote:quote.input,removed:false};entries.push(entry);row.append(select,quote.label,button('移除此引用',()=>{entry.removed=true;row.remove();}));refs.append(row);}
-  (item?.evidence||[null]).forEach(addRef);box.append(button('＋ 添加来源',()=>addRef()),button('保存记忆',async()=>{await api('/memories'+(item?'/'+item.id:''),item?'PATCH':'POST',{owner_id:id,title:title.input.value,content:content.input.value,kind:kind.input.value,active:item?.active??true,participants:checks.filter(c=>c.checked).map(c=>c.value),evidence:entries.filter(e=>!e.removed).map(e=>(/^world_/.test(e.select.value)?{source_type:'world_event',event_id:e.select.value,quote:e.quote.value}:{message_id:Number(e.select.value),quote:e.quote.value}))});el('memory-editor').close();await renderMemories(id);toast('记忆已保存');}));
+  (item?.evidence||[null]).forEach(addRef);box.append(button('＋ 添加来源',()=>addRef()),button('保存记忆',async()=>{await api('/memories'+(item?'/'+item.id:''),item?'PATCH':'POST',{owner_id:id,title:title.input.value,content:content.input.value,kind:kind.input.value,room:room.input.value,active:item?.active??true,participants:checks.filter(c=>c.checked).map(c=>c.value),evidence:entries.filter(e=>!e.removed).map(e=>(/^world_/.test(e.select.value)?{source_type:'world_event',event_id:e.select.value,quote:e.quote.value}:{message_id:Number(e.select.value),quote:e.quote.value}))});el('memory-editor').close();await renderMemories(id);toast('记忆已保存');}));
  }
  async function renderSelf(id){const rows=await api('/self?owner='+encodeURIComponent(id)),list=el('self-list');list.replaceChildren();
   const net=node('div','self-orbits');net.append(node('div','self-person',(await api('/characters')).find(c=>c.id===id)?.name||'TA'));for(const item of rows){const b=button(item.label,()=>el('anchor-'+item.id).scrollIntoView({block:'center',behavior:'smooth'}));b.classList.add('self-orbit');net.append(b);}list.append(net);
@@ -74,6 +81,8 @@ export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toas
   actions.append(button(card?'按原话重写':'生成总结',async()=>{await api('/summaries/generate','POST',{owner_id:id,day});await openDaily(id,day);toast('总结已生成');}));if(card)actions.append(button('保存编辑',async()=>{await api('/summaries','PATCH',{owner_id:id,day,content:content.input.value});await openDaily(id,day);toast('总结已保存');}),button('修改记录',()=>versions(card)),button('删除总结',async()=>{if(!confirm('删除总结及它的旧版本？当天聊天会保留。'))return;await api('/summaries','DELETE',{owner_id:id,day});await openDaily(id,day);}));box.append(actions,node('h3','','当天来源'));for(const m of sources)evidenceLinks(box,[{message_id:m.id,quote:m.content.slice(0,180)}],id);
  }
  for(const which of ['memory','self'])el(which+'-owner').onchange=run(()=>refresh(which));el('memory-search').onchange=run(()=>refresh('memory'));
+ el('memory-room').onchange=run(()=>refresh('memory'));
+ el('memory-monthly').onclick=run(async()=>{if(!el('memory-month').value)throw Error('请先选择月份');await openMonthly(await owner('memory'),el('memory-month').value);});
  el('memory-add').onclick=run(async()=>editMemory(await owner('memory')));el('self-add').onclick=run(async()=>editSelf(await owner('self')));el('memory-config').onclick=run(settings);
  async function extract(day){toast('正在整理记忆，会调用模型…');await api('/memories/extract','POST',{owner_id:await owner('memory'),...(day?{day}:{})});await refresh('memory');toast('整理完成，来源可点击查看');}
  el('memory-extract').onclick=run(()=>extract());el('memory-day-extract').onclick=run(()=>{if(!el('memory-day').value)throw Error('请先选择日期');return extract(el('memory-day').value);});el('memory-daily').onclick=run(async()=>{if(!el('memory-day').value)throw Error('请先选择日期');await openDaily(await owner('memory'),el('memory-day').value);});
