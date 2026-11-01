@@ -1,6 +1,6 @@
 # 当前架构、数据流与扩展路线
 
-3A 工作分支已实现并通过 Node、Python、浏览器及 Android 11 隔离模拟器验证：手动认知消化复用 MemoryModule、事件版本和统一事务；候选/报告/确认由独立 memory-digestion 模块集中负责。等待用户验收，尚未发布；最新正式版本仍为 0.21.0。
+0.22.0 / code 35 已发布手动认知消化试用版：复用 MemoryModule、事件版本和统一事务；候选/报告/确认由独立 memory-digestion 模块集中负责。Node、Python、浏览器、Android 11 及原签名覆盖验证通过，等待用户验收。见 [交付记录](MEMORY_COGNITIVE_DIGESTION.md#0220-试用交付2026-11-01)。
 
 0.21.0：memory-rooms 定义七房间；memory-monthly 负责月度材料/来源校验；MemoryModule 仍独占记忆写入和辅助模型调用。日/月 UI 经同一服务接口、事务和备份，未新增数据库或原生插件。见 [数据与接口](MEMORY_ROOMS_MONTHLY.md)。
 

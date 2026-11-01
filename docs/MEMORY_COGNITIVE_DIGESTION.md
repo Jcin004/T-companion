@@ -1,6 +1,6 @@
 # 3A · 手动认知消化
 
-状态：实现与自动化验证已完成，Android 11 隔离模拟器验收通过，等待用户验收。此阶段只包括手动触发的问题/期盼状态处理，不代表自我认知已接入聊天。
+状态：0.22.0 / code 35 原签名试用版已发布，等待用户验收。此阶段只包括手动触发的问题/期盼状态处理，不代表自我认知已接入聊天。
 
 ## 用户流程
 
@@ -60,4 +60,13 @@ awesome-ai-companion 目录中的参考：[`MIRROW` MIT 的 source review](https
 - `.venv/Scripts/python.exe -m pytest -q -W error`：103 项通过。
 - `tests/memory-digestion-browser.mjs`：浏览器预览隔离、固定模型响应、确认/驳回、重载持久化和原话跳转通过。
 - `tests/memory-digestion-android.mjs`：Android 11 / API 30、WebView 与原生 SQLite；隔离材料、固定模型响应、确认/驳回、持久写入和原话跳转通过。结束后清空临时模拟器应用数据。
-- Debug APK 构建、Web 资源同步及 `git diff --check` 通过。未调用真实模型服务，也未在实体手机上验证；用户验收和正式发布尚未完成。
+- Debug APK 构建、Web 资源同步及 `git diff --check` 通过。未调用真实模型服务，也未在实体手机上验证；用户验收待完成。
+
+## 0.22.0 试用交付（2026-11-01）
+
+- [下载与匹配源码](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.22.0)：原包名、原试用签名、versionCode 35；构建源码 `b946c5efd30db016829fce5bb7592878d579cdb6`，产品源码 [PR #39](https://github.com/Jcin004/T-companion/pull/39) 保持草稿、未合并。
+- APK 为 81,409,713 字节，SHA-256 `da165e93fc27523cecdbb316d35515eba4ac2962c48f92564cd7d0aeb3fc42b7`。源码归档 SHA-256 `8fc737da6fea24605f97ffb0c5993d305bd546cdfefbd07439c6cfafd2b0cdb5`。
+- APK、精确 Git 源码、许可、署名、构建说明、清单及 SHA256SUMS 共七项公开附件全部核对上传摘要；匿名 APK HEAD 200，公开 API main 清单与本地发布清单一致。
+- Android 11 专用模拟器由原签名 0.21.0 / code 34 覆盖到 code 35，完整合成业务文档和加密凭据文件指纹保留；只新增空 digest_reports 默认字段，认知消化页面打开通过。
+- 默认原生更新检查首次超时，重试通过 API 备用入口报告当前为最新（19,681 ms，raw 入口失败）；此结果只代表本轮模拟器网络。实体手机、真实模型和用户主观效果待试用。
+- 产品提交 [CI](https://github.com/Jcin004/T-companion/actions/runs/41317331399) 的测试、密钥扫描及 Android 构建全部通过；后续交付文档提交不替换安装包的构建源码提交。
