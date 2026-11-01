@@ -194,3 +194,11 @@ Copyright 2017 Julian Descottes and Piskel contributors; Apache-2.0. Fixed commi
 ## 0.20.0 modular body artwork
 
 `frontend/assets/body/owner-base-front.jpg` is by Jcin004, used with explicit permission for public project APK/source distribution. `generated-standing-directions.png` is an AI-assisted project study derived from the authorized reference. Source, scope, method and SHA-256 are recorded in `frontend/assets/body/PROVENANCE.md`. No Stardew Valley or other game art is imported. Existing Piskel fill reuse and licenses remain unchanged.
+
+## 3A cognitive-digestion adaptation (2026-11-01)
+
+- SullyOS `utils/memoryPalace/digestion.ts` and `utils/memoryPalace/anticipation.ts`, commit `8035795e443579ead0f28d1dfe9d5a87ff0b232e`, copyright 2024-2026 NMJ. File blobs, source-specific license and adapted areas are recorded in `config/memory-cognitive-sources.json`; the source license is retained at `frontend/licenses/SullyOS-Source-Available-1.0.txt`.
+- The user reported that the author grants public secondary-modification rights for the code used here. This is recorded as an additional source-specific grant for this adaptation; the SullyOS license itself is not relabeled MIT or AGPL. The earlier 2026-10-17 personal noncommercial grant concerned a separate milestone and is not expanded by this entry.
+- Adapted behavior: attic/window target selection, recent living-room/bedroom episode window, and keep/resolve/fulfill/disappoint action semantics. The local memory store, report/approval state machine, evidence handling, version checks, UI and transaction writer are T-companion code. The upstream pipeline is not bundled verbatim; its DB, vector service, automatic triggers, room plates and unreviewed immediate mutations are excluded.
+- `EvelynnYu/MIRROW` `memory_v2/source_reviews.py` (MIT) and `hanamorix/companion-emergence` `brain/soul/review.py` (MIT) were reviewed as design references only. No code from either project is imported. `DasterProkio/awesome-ai-companion` is used only to discover candidate projects; no catalog prose or artwork is copied.
+- Implementation and acceptance scope: `docs/MEMORY_COGNITIVE_DIGESTION.md`. This feature is not tested, packaged or released by this source audit entry.

@@ -66,6 +66,9 @@
 | [frontend/local-queries.js](../frontend/local-queries.js) | 只读人物/名册原文、外观、上下文预览和来源定位；实际聊天共用上下文组装。 |
 | [frontend/local-service.js](../frontend/local-service.js) | 本机命令路由、事务队列、聊天编排及浏览器/Android 存储和传输适配；仍偏大。 |
 | [frontend/memory-core.js](../frontend/memory-core.js) | 来源验证、记忆校验、时间分日、名册原文投影和召回材料规则。 |
+| [frontend/memory-digestion-core.js](../frontend/memory-digestion-core.js) | 认知状态、候选材料窗口、消化报告校验与来源清理规则。 |
+| [frontend/memory-digestion-service.js](../frontend/memory-digestion-service.js) | 消化建议生成、去重、复核、并发版本检查与统一事务写入。 |
+| [frontend/memory-digestion-ui.js](../frontend/memory-digestion-ui.js) | 材料预览、来源跳转、消化报告与逐项确认/驳回界面。 |
 | [frontend/memory-lexical.js](../frontend/memory-lexical.js) | 从 Serein 适配的 BM25 关键词召回与索引缓存。 |
 | [frontend/memory-links.js](../frontend/memory-links.js) | 有向关联、端点归属与版本校验、删除清理的纯规则。 |
 | [frontend/memory-links-ui.js](../frontend/memory-links-ui.js) | 记忆与核心标签关联的创建、查看、编辑和删除界面。 |
@@ -227,6 +230,9 @@
 | [tests/local-transactions.test.mjs](../tests/local-transactions.test.mjs) | 事务、故障隔离和草稿的逻辑回归测试。 |
 | [tests/memory-android.mjs](../tests/memory-android.mjs) | 来源记忆、总结与认同核心的Android 模拟器验收。 |
 | [tests/memory-browser.mjs](../tests/memory-browser.mjs) | 来源记忆、总结与认同核心的浏览器验收。 |
+| [tests/memory-digestion-browser.mjs](../tests/memory-digestion-browser.mjs) | 认知消化预览、人工复核、重载保存与来源跳转的浏览器验收。 |
+| [tests/memory-digestion-android.mjs](../tests/memory-digestion-android.mjs) | Android 11 原生 SQLite 的隔离、人工复核、重载与来源跳转验收。 |
+| [tests/memory-digestion.test.mjs](../tests/memory-digestion.test.mjs) | 认知消化候选、人工决定、隔离、过期、事务失败与备份兼容测试。 |
 | [tests/memory-links.test.mjs](../tests/memory-links.test.mjs) | 关联方向、人物隔离、备份兼容、版本复核和保存回滚测试。 |
 | [tests/memory-links-browser.mjs](../tests/memory-links-browser.mjs) | 关联与标签依据的实际浏览器操作、来源跳转和刷新验收。 |
 | [tests/memory.test.mjs](../tests/memory.test.mjs) | 来源记忆、总结与认同核心的逻辑回归测试。 |

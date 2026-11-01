@@ -10,6 +10,6 @@ const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Num
  sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['记忆按客厅、卧室、书房、用户房、自我房、阁楼、窗台分类，可筛选与人工调整','新增月度回顾：从已有每日总结精炼，保留原话来源和最近十版修改','日总结增删或重写后，月度回顾提示复核；生成失败或材料变化不会覆盖已有内容','旧记忆默认显示在客厅，原文、证据、召回与备份保留','保留 0.20.2 绘画手势、精细画布、衣柜、世界、原包名和签名']};
+ releaseNotes:['新增记忆 → 认知消化：预览当前人物的问题、期盼及独立经历','消化报告展示维持、解决、达成或落空建议，附原话来源、理由和信心','确认后更新记忆状态；驳回保持原样，人工锁定及材料变化均受保护','报告和人工决定随原有本机存档保存；承诺不当作已完成经历','保留七房间、日月回顾、绘画、衣柜和世界；原签名覆盖升级，保留原存档']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');
