@@ -1,0 +1,59 @@
+{
+  "reviewed_on": "2026-11-01",
+  "scope": "Memory cognition digestion milestone 3A",
+  "sources": [
+    {
+      "repository": "https://github.com/Jcin004/SullyOS",
+      "commit": "8035795e443579ead0f28d1dfe9d5a87ff0b232e",
+      "copyright": "2024-2026 NMJ (SullyOS / 手抓糯米机)",
+      "license": "SullyOS Source-Available License 1.0; exact license retained at frontend/licenses/SullyOS-Source-Available-1.0.txt",
+      "additional_permission": "User reports that the author grants public secondary-modification rights for the source used by this project; reported 2026-11-01. This is an additional source-specific grant, not a general MIT/AGPL license.",
+      "use": "Adapted candidate grouping and resolve/fulfill/disappoint/keep action vocabulary. T-companion retains its own event store, evidence validation, review gate, report schema and transaction writer.",
+      "files": [
+        {
+          "path": "utils/memoryPalace/digestion.ts",
+          "blob": "7caed19094e05ee89d2011ec9ad495c2acce48ba",
+          "areas": "gatherDigestMaterial candidate windows, DigestAction state vocabulary, report sections",
+          "not_imported": "The full 1,152-line pipeline, direct database mutations, vectorization, automatic scheduling, self-reflection, and room-plate services are not included."
+        },
+        {
+          "path": "utils/memoryPalace/anticipation.ts",
+          "blob": "9093ed60ded715d8ef5591b545f92c48a992683a",
+          "areas": "active, fulfilled and disappointed anticipation lifecycle semantics",
+          "not_imported": "Separate AnticipationDB, automatic seven-day anchoring, and creation of duplicate memory nodes are not included."
+        },
+        {
+          "path": "LICENSE",
+          "blob": "f9c4d42a3af04c42cb011baaa963327faf88b7f3",
+          "use": "License retained verbatim; additional permission is recorded above."
+        }
+      ]
+    },
+    {
+      "repository": "https://github.com/EvelynnYu/MIRROW",
+      "commit": "8299e033be5631530cfbd0add66abca8b224759c",
+      "license": "MIT",
+      "file": "ai-chat-backend/memory_v2/source_reviews.py",
+      "use": "Reviewed source-version-bound human review design. No code imported; T-companion already uses per-event revisions and rechecks the same principle inside its transaction."
+    },
+    {
+      "repository": "https://github.com/hanamorix/companion-emergence",
+      "commit": "d55635794b1f2e708893ead449439370e1de7b75",
+      "license": "MIT",
+      "file": "brain/soul/review.py",
+      "use": "Reviewed confidence-gated deferred decisions and audit trail. Its autonomous no-human-gate workflow is not imported."
+    },
+    {
+      "repository": "https://github.com/DasterProkio/awesome-ai-companion",
+      "file": "README.md",
+      "license": "CC BY 4.0 for the current directory release",
+      "use": "Discovery index only. No descriptions, catalog text or artwork copied."
+    }
+  ],
+  "local_reuse": [
+    "frontend/memory-service.js: MemoryModule.generate, MemoryModule.write and shared saveMemoryVersion",
+    "frontend/memory-core.js and frontend/memory-evidence.js: existing event model and source qualification",
+    "frontend/local-service.js: existing local API routing and transaction owner",
+    "frontend/memory-ui.js: existing dialogs, owner selection, evidence source links and local-only UI"
+  ]
+}

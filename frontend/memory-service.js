@@ -6,12 +6,14 @@ import {acceptWorldMemories} from './world-memory.js';
 import {completedSourceTurns,sourceWorldEvents} from './memory-evidence.js';
 import {memoryRoom,memoryRooms} from './memory-rooms.js';
 import {monthKey,monthlyMaterial,monthlyStale} from './memory-monthly.js';
-import {copy,newId,ensureMemory,sourceMessages,eventValue,validateMemory,rosterSource,dayKey} from './memory-core.js';
+import {MemoryDigestionService} from './memory-digestion-service.js';
+import {applyManualCognitionStatus,removeDigestionReportsForMemories} from './memory-digestion-core.js';
+import {copy,newId,ensureMemory,sourceMessages,eventValue,validateMemory,rosterSource,dayKey,saveMemoryVersion} from './memory-core.js';
 const stamp=()=>new Date().toISOString();
-const saveVersion=(item)=>{const {versions,...snapshot}=item;item.versions=[...(versions||[]),copy(snapshot)].slice(-10);};
+const saveVersion=saveMemoryVersion;
 
 export class MemoryModule {
- constructor(host){this.host=host;this.job='';this.timer=null;}
+ constructor(host){this.host=host;this.job='';this.timer=null;this.digestionRuns=new Map();}
  get data(){return this.host.data;}
  get memory(){return ensureMemory(this.data);}
  owner(id){const c=this.data.characters.find(c=>c.id===id);if(!c)throw Error('请选择角色');return c;}
@@ -81,6 +83,7 @@ export class MemoryModule {
  }
  schedule(sid){clearTimeout(this.timer);if(!this.memory.settings.auto_extract)return;const owner=this.data.sessions.find(s=>s.id===sid)?.character_id;if(!owner)return;this.timer=setTimeout(async()=>{if(this.host.active||!this.memory.settings.auto_extract)return;const rows=this.pending(owner,Infinity);if(rows.length<this.memory.settings.extract_interval)return;try{await this.extract(owner);}catch(e){this.host.diagnostics?.record('error','自动记忆整理失败',{error:e.message});}},1500);}
  async api(path,method,body={}){
+  if(new URL(path,'https://local').pathname.split('/')[1]==='memory-digestion')return new MemoryDigestionService(this).api(path,method,body);
   if(new URL(path,'https://local').pathname.split('/')[1]==='memory-link-proposals')return new MemoryLinkProposalService(this).api(path,method,body);
   const modelAction=/^\/(memories\/extract|summaries\/generate|monthly-summaries\/generate|self\/analyze)$/.test(new URL(path,'https://local').pathname);
   if(modelAction&&method!=='POST')throw Error('此操作需要 POST');
@@ -127,9 +130,9 @@ export class MemoryModule {
    if(method==='GET'){this.owner(q.get('owner'));const room=q.has('room')?memoryRoom(q.get('room')):null;return copy(m.events.filter(e=>e.owner_id===q.get('owner')&&(!room||memoryRoom(e.room)===room)&&(!q.get('q')||(e.title+' '+e.content).includes(q.get('q')))).slice().reverse().map(e=>({...e,room:memoryRoom(e.room)})));}
 
    const existing=m.events.find(e=>e.id===parts[1]);if(parts[1]&&!existing)throw Error('记忆不存在');
-   if(method==='DELETE'){m.events=m.events.filter(e=>e.id!==existing.id);removeNodeLinks(this.data,'memory',existing.id);}
+   if(method==='DELETE'){m.events=m.events.filter(e=>e.id!==existing.id);removeNodeLinks(this.data,'memory',existing.id);removeDigestionReportsForMemories(m,[existing.id]);}
    else if(method==='PATCH'&&Object.keys(body).length===1&&typeof body.active==='boolean'){saveVersion(existing);existing.revision++;existing.active=body.active;existing.updated_at=stamp();}
-   else{const owner=existing?.owner_id||body.owner_id;this.owner(owner);const value=eventValue(this.data,owner,{...body,room:body.room===undefined?existing?.room:body.room});if(existing){saveVersion(existing);existing.revision++;Object.assign(existing,value,{origin:'manual',updated_at:stamp()});}else{if(m.events.length>=5000)throw Error('记忆达到上限');m.events.push({id:newId(),...value,origin:'manual',created_at:stamp(),updated_at:stamp(),versions:[]});}}
+   else{const owner=existing?.owner_id||body.owner_id;this.owner(owner);const value=eventValue(this.data,owner,{...body,room:body.room===undefined?existing?.room:body.room});if(existing){saveVersion(existing);existing.revision++;Object.assign(existing,value,{origin:'manual',updated_at:stamp()});applyManualCognitionStatus(existing,body.cognition_status,existing.room,body.cognition_locked,stamp());}else{if(m.events.length>=5000)throw Error('记忆达到上限');const item={id:newId(),...value,origin:'manual',created_at:stamp(),updated_at:stamp(),versions:[]};applyManualCognitionStatus(item,body.cognition_status,item.room,body.cognition_locked,stamp());m.events.push(item);}}
    return {ok:true};
   }
   if(parts[0]==='summaries'){
