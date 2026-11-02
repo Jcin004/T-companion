@@ -10,6 +10,6 @@ const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Num
  sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['新增记忆 → 认知消化：预览当前人物的问题、期盼及独立经历','消化报告展示维持、解决、达成或落空建议，附原话来源、理由和信心','确认后更新记忆状态；驳回保持原样，人工锁定及材料变化均受保护','报告和人工决定随原有本机存档保存；承诺不当作已完成经历','保留七房间、日月回顾、绘画、衣柜和世界；原签名覆盖升级，保留原存档']};
+ releaseNotes:['衣柜改为中央镜子、两侧穿戴格和公共衣物列表，支持转身及行走预览','公共衣物原版共用，人物分别保存位置、大小和局部绘画，脱下再穿仍保留','更新公共原版保留人物原有适配，可主动使用新版重新适配','当前衣物组合可保存为整套搭配，其他人物共用衣物并保留自身适配','上传与绘画收进制作入口；保留原绘画手势、世界、聊天和记忆功能']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');

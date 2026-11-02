@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import {resolvedGarment} from './outfit-adaptation.js';
 // Visual assets are separate from roster identity and model context.
 import {syncArchivePortraits,validateArchive} from './character-archive.js';
 import {validateCalibration} from './sprite-calibration.js';
@@ -93,7 +94,7 @@ export class CharacterLooksModule{
       return this.host.transact(d=>{
         const recipe=d.outfit_catalog?.people[body?.owner],assets=d.outfit_catalog?.assets;
         if(!recipe||body.expected_revision!==d.outfit_catalog.revision)throw Error('穿搭已改变，请重新预览再应用');
-        if([recipe.body,...recipe.wear.map(w=>w.asset)].some(id=>!assets.find(a=>a.id===id)?.ready.every(Boolean)))throw Error('请先补齐本体和已穿衣物的四个方向');
+        if([recipe.body,...recipe.wear.map(w=>w.asset)].some(id=>!resolvedGarment(assets.find(a=>a.id===id),recipe)?.ready.every(Boolean)))throw Error('请先补齐本体和已穿衣物的四个方向');
         validateAtlas(body.sprite);if(!body.sprite||body.sprite.frames!==3||body.sprite.row_count!==4||body.sprite.idle_frame!==1||body.sprite.frame_editor)throw Error('穿搭合成图集无效');
         const c=lookCatalog(d,body.owner),id='modular_outfit',old=c.skins.find(s=>s.id===id);
         const skin={...old,id,name:'分层穿搭',skin:c.skin,portraits:old?.portraits||[],portrait:old?.portrait||0,ai_allowed:false,sprite:copy(body.sprite)};
