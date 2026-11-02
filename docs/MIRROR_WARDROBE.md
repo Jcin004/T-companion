@@ -34,4 +34,6 @@
 - `tests/mirror-wardrobe-browser.mjs`：手机尺寸真实触屏穿搭/绘画、套装共用、原版更新保持适配、世界应用、重载和截图；合成数据，无模型。
 - 原衣柜、绘画台与绘画导航浏览器回归保留。
 
-Android、构建和发布结果在完成后补充。
+已通过：182 项 Node、103 项 Python；镜子衣柜、原衣柜、原绘画台及绘画导航浏览器验证。专用 Android 11 / WebView 83 的原生触屏试穿、个人绘画、套装、脱下再穿、应用到世界、SQLite 重启均通过；系统截图 `artifacts/mirror-native-wardrobe.png`、`artifacts/mirror-native-world.png` 已人工检查。
+
+原包名 `io.jcin.tcompanion`、原签名、versionCode 36。覆盖 0.22.0/code35 → 0.23.0/code36 后，完整合成业务文档与独立加密凭据指纹一致。测试结束恢复原合成测试存档。未验证实体手机、真实模型和本版设备在线更新网络。APK、精确源码与公开渠道发布结果另补。

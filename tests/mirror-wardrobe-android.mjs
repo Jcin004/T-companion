@@ -13,7 +13,7 @@ async function tap(selector){
  if(!inset){await adb('shell','uiautomator','dump','/sdcard/outfit-window.xml');const xml=(await adb('shell','cat','/sdcard/outfit-window.xml')).stdout,m=xml.match(/class="android.webkit.WebView"[^>]*bounds="\[(\d+),(\d+)\]/);assert.ok(m);inset={x:+m[1],y:+m[2]};}
  await adb('shell','input','tap',String(Math.round(point.x+inset.x)),String(Math.round(point.y+inset.y)));await pause(200);
 }
-async function enter(){await tap('[data-app=world]');await wait(()=>document.querySelector('#world-menu-open')?.getBoundingClientRect().height);await tap('#world-menu-open');await tap('.world-menu-grid button:nth-child(7)');await wait(()=>document.querySelector('#outfit-wardrobe')?.open);}
+async function enter(){await tap('[data-app=world]');await wait(()=>document.querySelector('#world-menu-open')?.getBoundingClientRect().height||document.querySelector('#world-setup button')?.getBoundingClientRect().height);if(await evaluate(()=>!!document.querySelector('#world-setup button')?.getBoundingClientRect().height))await tap('#world-setup button');await wait(()=>document.querySelector('#world-menu-open')?.getBoundingClientRect().height);await tap('#world-menu-open');await tap('.world-menu-grid button:nth-child(7)');await wait(()=>document.querySelector('#outfit-wardrobe')?.open);}
 try{
  await adb('shell','am','start','-n','io.jcin.tcompanion/.MainActivity');await connect();await ready();const state=await read();assert.deepEqual(state.characters.map(c=>c.name),['林','雨'],'Dedicated synthetic fixture required');
  const credentials=digest((await adb('shell','run-as','io.jcin.tcompanion','cat','shared_prefs/t-secrets.xml')).stdout);
