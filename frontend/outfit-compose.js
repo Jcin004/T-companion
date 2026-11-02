@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Disposable renderer; no persistence or character identity access.
 import {bodyPose,garmentCommands,paintGarment,WALK_TEMPLATE as T} from './outfit-motion.js';
+import {resolvedGarment} from './outfit-adaptation.js';
 import {drawingSize} from './clothing-project.js';
 import {pixelCanvas} from './outfit-image.js';
 const slots={top:['torso','leftArm','rightArm'],bottom:['leftLeg','rightLeg'],shoes:['leftLeg','rightLeg'],hair:['head'],hat:['head'],accessory:['torso']};
 const rect=r=>[r.x,r.y,r.width,r.height];
-function outputScale(catalog,person){return Math.max(1,...[person.body,...person.wear.map(w=>w.asset)].map(id=>drawingSize(catalog.assets.find(a=>a.id===id)?.project||{}).scale));}
+function outputScale(catalog,person){return Math.max(1,...[person.body,...person.wear.map(w=>w.asset)].map(id=>drawingSize(resolvedGarment(catalog.assets.find(a=>a.id===id),person).project).scale));}
 export function drawOutfit(canvas,catalog,person,direction=0,pose=1){
   const scale=outputScale(catalog,person);canvas.width=64*scale;canvas.height=96*scale;const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.scale(scale,scale);
   const body=catalog.assets.find(a=>a.id===person.body);if(!body?.ready[direction])return false;
@@ -15,7 +16,7 @@ export function drawOutfit(canvas,catalog,person,direction=0,pose=1){
   else for(const [part,r]of Object.entries(target))ctx.drawImage(source,...rect(rest[part]).map(n=>n*bodyScale),...rect(r));
   for(const kind of ['shoes','bottom','top','hair','hat','accessory']){
     const worn=person.wear.find(w=>catalog.assets.find(a=>a.id===w.asset)?.kind===kind);if(!worn)continue;
-    const a=catalog.assets.find(a=>a.id===worn.asset);if(!a.ready[direction])continue;
+    const a=resolvedGarment(catalog.assets.find(a=>a.id===worn.asset),person);if(!a.ready[direction])continue;
     const explicit=/[^0]/.test(a.project.frames[base+pose])&&a.project.frames[base+pose]!==a.project.frames[base+1];
     const image=pixelCanvas(a.project,base+(explicit?pose:1));
     const parts=slots[kind].map(slot=>({slot,source:rect(rest[slot])}));
@@ -29,7 +30,7 @@ export function drawOutfit(canvas,catalog,person,direction=0,pose=1){
 }
 export function outfitAtlas(catalog,person){
   const used=[person.body,...person.wear.map(w=>w.asset)];
-  if(used.some(id=>!catalog.assets.find(a=>a.id===id)?.ready.every(Boolean)))throw Error('本体或已穿衣物缺少方向，请先补齐下、左、右、上');
+  if(used.some(id=>!resolvedGarment(catalog.assets.find(a=>a.id===id),person)?.ready.every(Boolean)))throw Error('本体或已穿衣物缺少方向，请先补齐下、左、右、上');
   const scale=outputScale(catalog,person),atlas=document.createElement('canvas'),frame=document.createElement('canvas');atlas.width=192*scale;atlas.height=384*scale;
   for(let row=0;row<4;row++)for(let pose=0;pose<3;pose++){drawOutfit(frame,catalog,person,row,pose);atlas.getContext('2d').drawImage(frame,pose*64*scale,row*96*scale);}
   return {image:atlas.toDataURL('image/png'),frames:3,row_count:4,rows:{down:0,left:1,right:2,up:3},idle_frame:1,walk_order:[...T.order],calibration:{version:1,foot_x:.5,foot_y:88/96,body_height:person.height/96,world_height:.2*person.height/80}};

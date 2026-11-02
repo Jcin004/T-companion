@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {LocalService,emptyData,validateBackup} from '../frontend/local-service.js';
+import {resolvedGarment,ensureAdaptation,wearGarment,adaptationDrawingChange} from '../frontend/outfit-adaptation.js';
 import {emptyOutfits,validateOutfits,outfitDrawingChange} from '../frontend/outfit-catalog.js';
 import {blankProject} from '../frontend/outfit-image.js';
 import {WALK_TEMPLATE} from '../frontend/outfit-motion.js';
@@ -33,5 +34,36 @@ test('world apply preserves old skins, blocks missing directions and checks save
  await s.api('/character-looks/a','PATCH',{skins:[{id:'old',name:'旧衣服',skin:1,portraits:[],portrait:0,sprite:null}]});
  await s.api('/character-looks/user/workshop-apply','POST',{owner:'a',expected_revision:c.revision,sprite});const look=await s.api('/character-looks/a');assert.equal(look.active_skin_id,'modular_outfit');assert.equal(look.skins.length,2);assert.equal(look.skins[0].id,'old');
  await assert.rejects(s.api('/character-looks/user/workshop-apply','POST',{owner:'a',expected_revision:0,sprite}),/已改变/);
- const n=clone(c);n.assets[1].ready[3]=false;const latest=await s.api(path,'PUT',{expected_revision:c.revision,catalog:n});await assert.rejects(s.api('/character-looks/user/workshop-apply','POST',{owner:'a',expected_revision:latest.revision,sprite}),/四个方向/);
+ const n=clone(c);n.assets[1].ready[3]=false;let latest=await s.api(path,'PUT',{expected_revision:c.revision,catalog:n});const reset=clone(latest);delete reset.people.a.adaptations;latest=await s.api(path,'PUT',{expected_revision:latest.revision,catalog:reset});await assert.rejects(s.api('/character-looks/user/workshop-apply','POST',{owner:'a',expected_revision:latest.revision,sprite}),/四个方向/);
+});
+
+test('shared original versions and wearer paintings survive source edits, removal, restart and backup',async()=>{
+ const f=await fixture();let c=await seed(f.s),next=clone(c);
+ for(const p of Object.values(next.people))ensureAdaptation(p,next.assets[1]);
+ c=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:next});
+ const picture=clone(c.assets[1].project);picture.frames[1]='3'+picture.frames[1].slice(1);
+ next=adaptationDrawingChange(c,'a','shirt','POST',{expected_revision:c.revision,project:picture});
+ c=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:next});
+ assert.equal(c.assets[1].project.frames[1][0],'0');assert.equal(resolvedGarment(c.assets[1],c.people.a).project.frames[1][0],'3');assert.equal(resolvedGarment(c.assets[1],c.people.user).project.frames[1][0],'0');
+ next=clone(c);next.assets[1].project.frames.fill('4'+'0'.repeat(6143));
+ const request={expected_revision:c.revision,catalog:next,request_id:'synthetic_original_update'};
+ c=await f.s.api(path,'PUT',request);assert.deepEqual(await f.s.api(path,'PUT',request),c);
+ assert.equal(c.assets[1].editions.length,1);assert.equal(c.assets[1].project.frames[1][0],'4');assert.equal(resolvedGarment(c.assets[1],c.people.user).project.frames[1][0],'0');assert.equal(resolvedGarment(c.assets[1],c.people.a).project.frames[1][0],'3');
+ next=clone(c);next.people.a.wear=[];c=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:next});
+ next=clone(c);wearGarment(next.people.a,next.assets[1]);c=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:next});assert.equal(c.people.a.wear[0].fit.x,1);assert.equal(resolvedGarment(c.assets[1],c.people.a).project.frames[1][0],'3');
+ const restarted=await new LocalService(f.storage).init();assert.deepEqual(await restarted.api(path),c);assert.deepEqual(validateBackup(f.read()).outfit_catalog,c);
+ // Adopt latest on one wearer; the other keeps their original version.
+ next=clone(c);delete next.people.a.adaptations.shirt;ensureAdaptation(next.people.a,next.assets[1]);
+ c=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:next});assert.equal(resolvedGarment(c.assets[1],c.people.a).project.frames[1][0],'4');assert.equal(resolvedGarment(c.assets[1],c.people.user).project.frames[1][0],'0');
+});
+test('adaptation drafts, concurrent writes and persistence failures do not leak between people',async()=>{
+ const f=await fixture();let c=await seed(f.s);const picture=clone(c.assets[1].project);picture.frames[1]='5'+picture.frames[1].slice(1);
+ const next=adaptationDrawingChange(c,'a','shirt','PATCH',{expected_revision:c.revision,project:picture});
+ f.fail(true);await assert.rejects(f.s.api(path,'PUT',{expected_revision:c.revision,catalog:next}),/disk full/);assert.deepEqual(await f.s.api(path),c);f.fail(false);
+ c=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:next});const restarted=await new LocalService(f.storage).init(),read=await restarted.api(path);assert.equal(read.people.a.adaptations.shirt.draft.frames[1][0],'5');assert.equal(resolvedGarment(read.assets[1],read.people.a).project.frames[1][0],'0');assert.equal(read.people.user.adaptations,undefined);
+ const updates=[1,2].map(x=>{const n=clone(c);n.people.a.height=64+x;return f.s.api(path,'PUT',{expected_revision:c.revision,catalog:n});});const results=await Promise.allSettled(updates);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(results.filter(r=>r.status==='rejected').length,1);
+});
+test('sets reuse references and reject duplicate slots, missing originals and invalid adaptation revisions',async()=>{
+ const f=await fixture(),c=await seed(f.s),owners=new Set(['user','a']);let n=clone(c);n.sets=[{id:'daily',name:'日常装',assets:['shirt']}];validateOutfits(n,owners);const saved=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:n});assert.equal(saved.assets.length,2);
+ for(const mutate of [n=>n.sets[0].assets.push('shirt'),n=>n.sets[0].assets=['missing'],n=>{ensureAdaptation(n.people.a,n.assets[1]).revision=999;},n=>{ensureAdaptation(n.people.a,n.assets[1]).project=blankProject();}]){n=clone(saved);mutate(n);assert.throws(()=>validateOutfits(n,owners));}
 });
