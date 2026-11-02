@@ -21,3 +21,7 @@ frontend/vendor/piskel/LICENSE -text -whitespace
 
 # Preserve exact upstream bytes recorded in vendor provenance.
 vendor/** -text -whitespace
+
+# Retain original GPL source/fragment bytes and upstream whitespace.
+frontend/vendor/lpc/** -text -whitespace
+frontend/vendor/fashion-sense/** -text -whitespace
