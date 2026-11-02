@@ -25,15 +25,15 @@ export function validateOutfits(value,owners){
   if(value.last_operation!==undefined&&(!key(value.last_operation?.id)||!Number.isSafeInteger(value.last_operation.base_revision)||value.last_operation.base_revision<0||Object.keys(value.last_operation).some(k=>!['id','base_revision'].includes(k))))throw Error('衣柜操作记录无效');
   const ids=new Map();
   for(const a of value.assets){
-    if(!a||!key(a.id)||['__proto__','constructor','prototype'].includes(a.id)||ids.has(a.id)||!Object.prototype.hasOwnProperty.call(OUTFIT_KINDS,a.kind)||typeof a.name!=='string'||!a.name.trim()||a.name.length>40||!Number.isSafeInteger(a.revision)||a.revision<0||a.template!==WALK_TEMPLATE.id||!Array.isArray(a.ready)||a.ready.length!==4||a.ready.some(x=>typeof x!=='boolean')||Object.keys(a).some(k=>!['id','name','kind','revision','template','ready','project','draft','editions'].includes(k)))throw Error('衣物或本体素材无效');
-    validateDrawing(a.project);if(a.draft!==undefined)validateDrawing(a.draft);
+    if(!a||!key(a.id)||['__proto__','constructor','prototype'].includes(a.id)||ids.has(a.id)||!Object.prototype.hasOwnProperty.call(OUTFIT_KINDS,a.kind)||typeof a.name!=='string'||!a.name.trim()||a.name.length>40||!Number.isSafeInteger(a.revision)||a.revision<0||a.template!==WALK_TEMPLATE.id||!Array.isArray(a.ready)||a.ready.length!==4||a.ready.some(x=>typeof x!=='boolean')||Object.keys(a).some(k=>!['id','name','kind','revision','template','ready','project','draft','editions','draw_order'].includes(k)))throw Error('衣物或本体素材无效');
+    validateDrawOrder(a.draw_order);validateDrawing(a.project);if(a.draft!==undefined)validateDrawing(a.draft);
     if(a.ready.some((ready,d)=>ready&&!/[^0]/.test(a.project.frames[d*3+1])))throw Error('已完成方向缺少站立像素');
     if(a.editions!==undefined){
       if(!Array.isArray(a.editions)||a.editions.length>128)throw Error('衣物原版历史无效');
       const versions=new Set();
       for(const e of a.editions){
-        if(!e||!Number.isSafeInteger(e.revision)||e.revision<0||e.revision>=a.revision||versions.has(e.revision)||Object.keys(e).some(k=>!['revision','project','ready'].includes(k)))throw Error('衣物原版历史无效');
-        versions.add(e.revision);validateDrawing(e.project);validateReady(e.ready,e.project);
+        if(!e||!Number.isSafeInteger(e.revision)||e.revision<0||e.revision>=a.revision||versions.has(e.revision)||Object.keys(e).some(k=>!['revision','project','ready','draw_order'].includes(k)))throw Error('衣物原版历史无效');
+        versions.add(e.revision);validateDrawOrder(e.draw_order);validateDrawing(e.project);validateReady(e.ready,e.project);
       }
     }
     ids.set(a.id,a);
@@ -65,6 +65,7 @@ export function validateOutfits(value,owners){
     }
   }
 }
+function validateDrawOrder(value){if(value!==undefined&&(!Array.isArray(value)||value.length!==4||value.some(v=>!['default','behind','front'].includes(v))))throw Error('图层遮挡设置无效');}
 function validateReady(ready,project){
   if(!Array.isArray(ready)||ready.length!==4||ready.some((v,d)=>typeof v!=='boolean'||v&&!/[^0]/.test(project.frames[d*3+1])))throw Error('方向完成状态无效');
 }
@@ -93,9 +94,9 @@ export function outfitRequest(host,method,body){
       if(old&&a.revision!==old.revision){
         // Pin existing wearers before changing the shared source. Draft-only changes
         // also retain the referenced revision so recovery never loses its base.
-        for(const p of Object.values(next.people))if((JSON.stringify(a.project)!==JSON.stringify(old.project)||JSON.stringify(a.ready)!==JSON.stringify(old.ready))&&a.kind!=='body'&&p.wear.some(w=>w.asset===a.id))ensureAdaptation(p,old);
+        for(const p of Object.values(next.people))if((JSON.stringify(a.project)!==JSON.stringify(old.project)||JSON.stringify(a.ready)!==JSON.stringify(old.ready)||JSON.stringify(a.draw_order)!==JSON.stringify(old.draw_order))&&a.kind!=='body'&&p.wear.some(w=>w.asset===a.id))ensureAdaptation(p,old);
         if(Object.values(next.people).some(p=>p.adaptations?.[a.id]?.revision===old.revision)){
-          a.editions=[...(a.editions||[]),{revision:old.revision,project:copy(old.project),ready:copy(old.ready)}];
+          a.editions=[...(a.editions||[]),{revision:old.revision,project:copy(old.project),ready:copy(old.ready),...(old.draw_order?{draw_order:copy(old.draw_order)}:{})}];
         }
         if(a.editions)a.editions=a.editions.filter(e=>Object.values(next.people).some(p=>p.adaptations?.[a.id]?.revision===e.revision));
       }

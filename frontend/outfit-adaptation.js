@@ -10,7 +10,7 @@ export function resolvedGarment(asset, person) {
   const adjustment = person?.adaptations?.[asset.id];
   if (!adjustment) return asset;
   const original = originalEdition(asset, adjustment.revision);
-  return {...asset, project: adjustment.project || original.project, ready: adjustment.ready || original.ready};
+  return {...asset, project: adjustment.project || original.project, ready: adjustment.ready || original.ready, draw_order: original.draw_order};
 }
 export function ensureAdaptation(person, asset) {
   if (!person) throw Error('先为人物选择本体');

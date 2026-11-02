@@ -5,11 +5,11 @@ import {PaintSession,paintLine,fillPixels} from './pixel-paint.js';
 import {clothingAtlas,renderClothingFrame} from './clothing-render.js';
 import {jsonSnapshot as copy} from './json-snapshot.js';
 
-export function mountClothingWorkbench({api,report,toast,renderFrame=renderClothingFrame,makeAtlas=clothingAtlas,assetMode=false}){
+export function mountClothingWorkbench({api,report,toast,renderFrame=renderClothingFrame,makeAtlas=clothingAtlas,assetMode=false,editorId}){
   const box=document.createElement('dialog');box.id='clothing-workbench';box.className='world-panel clothing-workbench';
   box.innerHTML=`<header><div><h2>画衣服</h2><small class="paint-owner"></small></div><button class="paint-close" aria-label="关闭绘画">× 关闭</button></header>
     <div class="paint-scroll"><p class="paint-note">素体已锁定，画在透明衣服层。每个姿势单独编辑。</p>
-    <div class="paint-pose"><label>朝向<select aria-label="绘画朝向">${['向下','向左','向右','向上'].map((s,i)=>`<option value="${i}">${s}</option>`).join('')}</select></label><div role="group" aria-label="绘画姿势">${['迈腿 A','站立','迈腿 B'].map((s,i)=>`<button data-pose="${i}" aria-pressed="${i===1}">${s}</button>`).join('')}</div></div>
+    <div class="paint-pose"><label>朝向<select aria-label="绘画朝向">${['向下','向左','向右','向上'].map((s,i)=>`<option value="${i}">${s}</option>`).join('')}</select></label><div role="group" aria-label="绘画姿势">${['迈腿 A','站立','迈腿 B'].map((s,i)=>`<button data-pose="${i}" aria-pressed="${i===1}">${s}</button>`).join('')}</div><button class="paint-copy-idle">复制站立到此帧</button></div>
     <div class="paint-tools" role="toolbar" aria-label="绘画工具">${[['pen','画笔'],['erase','橡皮'],['fill','填色'],['pick','取色'],['pan','移动画布']].map(([id,s])=>`<button data-tool="${id}" aria-pressed="${id==='pen'}">${s}</button>`).join('')}<button class="paint-undo">撤销</button><button class="paint-redo">重做</button></div>
     <div class="paint-units"><span>笔格</span>${[1,2,4].map(n=>`<button data-unit="${n}" aria-pressed="${n===1}">${n} 像素</button>`).join('')}<span class="paint-zoom"><button class="paint-minus" aria-label="缩小画布">−</button><output></output><button class="paint-plus" aria-label="放大画布">＋</button><button class="paint-fit">适合窗口</button></span></div>
     <p class="paint-navigation">电脑：左键绘画，滚轮缩放，右键拖动画布。手机：单指绘画，双指缩放和平移；也可选“移动画布”。</p><div class="paint-resolution"><output></output><button class="paint-refine">细化画格（128×192）</button></div><canvas class="paint-canvas" aria-label="像素衣服画布"></canvas>
@@ -18,7 +18,7 @@ export function mountClothingWorkbench({api,report,toast,renderFrame=renderCloth
     <details class="paint-preview"><summary>检查四方向行走</summary><div class="paint-preview-row"><canvas width="64" height="96"></canvas><button class="paint-play">播放行走</button><span>站立 → 迈腿 A → 站立 → 迈腿 B</span></div></details>
     </div><footer><p class="paint-status" role="status"></p><button class="paint-retry" hidden>重试保存草稿</button><button class="paint-apply primary">应用到这套皮肤</button></footer>`;
   document.body.append(box);const el=s=>box.querySelector(s),canvas=el('.paint-canvas'),ctx=canvas.getContext('2d'),layer=document.createElement('canvas');
-  if(assetMode){box.id='outfit-painter';el('h2').textContent='绘制素材';el('.paint-note').textContent='独立透明素材层。编辑本体或衣物；每个方向、姿势可继续修改。';el('.paint-apply').textContent='保存素材';canvas.setAttribute('aria-label','像素素材画布');}
+  if(assetMode){box.id=editorId||'outfit-painter';el('h2').textContent='绘制素材';el('.paint-note').textContent='独立透明素材层。编辑本体或衣物；每个方向、姿势可继续修改。';el('.paint-apply').textContent='保存素材';canvas.setAttribute('aria-label','像素素材画布');}
   let session,endpoint='',revision=0,index=1,tool='pen',unit=1,color=2,view={x:0,y:0,scale:1},pointers=new Map(),last=null,gesture=null,needsSave=false,saving=null,closing=false,playing=null,playStep=0,resolveClose;
   const size=()=>drawingSize(session.project);
   const zoomLevels=[.25,.5,.75,1,1.5,2,3,4,6,8,12,16,24,32];
@@ -33,6 +33,10 @@ export function mountClothingWorkbench({api,report,toast,renderFrame=renderCloth
     for(const b of box.querySelectorAll('[data-tool]'))b.setAttribute('aria-pressed',String(b.dataset.tool===tool));
     for(const b of box.querySelectorAll('[data-unit]'))b.setAttribute('aria-pressed',String(+b.dataset.unit===unit));
     for(const b of box.querySelectorAll('[data-pose]'))b.setAttribute('aria-pressed',String(+b.dataset.pose===index%3));
+    for(const b of box.querySelectorAll('[data-pose]')){
+      const i=+b.dataset.pose,previewCanvas=document.createElement('canvas');renderFrame(previewCanvas,session.project,Math.floor(index/3)*3+i);b.replaceChildren(previewCanvas,document.createTextNode(['迈腿 A','站立','迈腿 B'][i]));
+    }
+    el('.paint-copy-idle').hidden=index%3===1;
     el('.paint-undo').disabled=!session.undoStack.length;el('.paint-redo').disabled=!session.redoStack.length;
     el('.paint-zoom output').textContent=view.scale+'×';
     el('.paint-color').value=session.project.colors[color];
@@ -82,6 +86,7 @@ export function mountClothingWorkbench({api,report,toast,renderFrame=renderCloth
   el('.paint-close').onclick=safe(close);box.addEventListener('cancel',e=>{e.preventDefault();safe(close)();});
   box.addEventListener('close',()=>{cancel();stop();resolveClose?.();resolveClose=null;});
   el('.paint-retry').onclick=safe(flush);
+  el('.paint-copy-idle').onclick=()=>{cancel();stop();session.begin(index);session.stroke.pixels=Uint8Array.from(session.project.frames[Math.floor(index/3)*3+1],n=>parseInt(n,16));if(session.finish())changed();};
   el('.paint-apply').onclick=safe(async()=>{
     if(closing)return;closing=true;el('.paint-apply').disabled=true;lock(true);cancel();stop();
     try{await flush();const result=await api(endpoint,'POST',{expected_revision:revision,project:copy(session.project),...(makeAtlas?{sprite:makeAtlas(session.project)}:{})});revision=result.revision;toast(assetMode?'素材已保存':'已应用到这套皮肤');box.close();}

@@ -1,5 +1,7 @@
 # 当前架构、数据流与扩展路线
 
+0.24.0：衣柜、衣物制作、本体编辑拥有独立上下文；LPC 帧复制、Fashion Sense 相对层序适配及 Piskel 逐帧呈现，仍走原目录/事务。见 [接入与验证](WARDROBE_STUDIO_INTEGRATION.md)。
+
 0.23.0：镜子试穿式公共衣柜，原版版本与人物适配分开；整套搭配引用公共衣物，原版更新保留已有穿着。模块与验证见 [镜子衣柜](MIRROR_WARDROBE.md)。
 
 0.22.0 / code 35 已发布手动认知消化试用版：复用 MemoryModule、事件版本和统一事务；候选/报告/确认由独立 memory-digestion 模块集中负责。Node、Python、浏览器、Android 11 及原签名覆盖验证通过，等待用户验收。见 [交付记录](MEMORY_COGNITIVE_DIGESTION.md#0220-试用交付2026-11-01)。

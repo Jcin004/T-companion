@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator",
+  "commit": "86160e7507d6841259cff624a51a63c1d4847ee3",
+  "path": "sources/canvas/draw-frames.ts",
+  "blob": "db67c98ebf245a1b3ea5b0a0470b7da62c937293",
+  "sha256": "ec3f84b53dbc18d7ab4d9dba2bb6f9e9402929d8f7e4a1ffa7e76d2fadbaf8fc",
+  "cache": "data\\reference-sources\\wardrobe-integration\\lpc\\sources\\canvas\\draw-frames.ts",
+  "license": "GPL-3.0",
+  "destination": "frontend/vendor/lpc/frame-copy.inc.ts",
+  "excerpt_sha256": "33c83ad7eb52f69896d7ec906095ac0c24b67375d69c9719e31f06b7c0a2f6ea",
+  "changes": "Verbatim drawFrameToFrame excerpt; TypeScript annotations compiled externally, square adapter outside vendor.",
+  "source_lines": [
+    11,
+    47
+  ],
+  "authors": "Universal LPC Spritesheet Character Generator contributors"
+}

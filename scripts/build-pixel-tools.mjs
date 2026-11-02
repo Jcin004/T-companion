@@ -1,3 +1,4 @@
+import './build-outfit-tools.mjs';
 // SPDX-License-Identifier: AGPL-3.0-only
 // Keep upstream untouched; expose only its reviewed connected-fill methods.
 import {readFile,writeFile} from 'node:fs/promises';
