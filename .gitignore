@@ -21,3 +21,5 @@ android/app/src/main/assets/resident/
 dist/
 artifacts/
 frontend/piskel-connected-fill.js
+
+/frontend/lpc-frame-copy.js

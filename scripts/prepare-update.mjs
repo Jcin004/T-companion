@@ -10,6 +10,6 @@ const manifest={schemaVersion:1,packageName:'io.jcin.tcompanion',versionCode:Num
  sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
  apkUrl:`https://github.com/Jcin004/T-companion-updates/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(basename(apk))}`,
  sha256:createHash('sha256').update(await readFile(apk)).digest('hex'),sizeBytes:(await stat(apk)).size,
- releaseNotes:['衣柜改为中央镜子、两侧穿戴格和公共衣物列表，支持转身及行走预览','公共衣物原版共用，人物分别保存位置、大小和局部绘画，脱下再穿仍保留','更新公共原版保留人物原有适配，可主动使用新版重新适配','当前衣物组合可保存为整套搭配，其他人物共用衣物并保留自身适配','上传与绘画收进制作入口；保留原绘画手势、世界、聊天和记忆功能']};
+ releaseNotes:['衣柜、衣物制作和人物本体编辑分为独立页面，不再共用类别和选中状态','制作页固定显示正在编辑的素材，四方向点选上传，草稿与保存原版分开','接入 LPC 帧复制与 Fashion Sense 相对图层排序，可分方向设置身体后方或最前','Piskel 填色继续复用；绘画姿势显示缩略图，新增可撤销的站立帧复制','保留共用原版、人物适配、整套搭配、聊天和记忆；原签名覆盖升级']};
 await writeFile('artifacts/t-update.json',JSON.stringify(manifest,null,2)+'\n');
 console.log('Prepared artifacts/t-update.json; no release was published.');

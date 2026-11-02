@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-11-02",
+  "sources": [
+    {
+      "repository": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator",
+      "commit": "86160e7507d6841259cff624a51a63c1d4847ee3",
+      "license": "GPL-3.0",
+      "files": [
+        {
+          "path": "LICENSE",
+          "blob": "94a9ed024d3859793618152ea559a168bbcbb5e2",
+          "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+          "size": 35147,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/86160e7507d6841259cff624a51a63c1d4847ee3/LICENSE",
+          "usage": "License retained"
+        },
+        {
+          "path": "sources/canvas/draw-frames.ts",
+          "blob": "db67c98ebf245a1b3ea5b0a0470b7da62c937293",
+          "sha256": "ec3f84b53dbc18d7ab4d9dba2bb6f9e9402929d8f7e4a1ffa7e76d2fadbaf8fc",
+          "size": 4111,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/86160e7507d6841259cff624a51a63c1d4847ee3/sources/canvas/draw-frames.ts",
+          "usage": "Verbatim drawFrameToFrame excerpt compiled externally"
+        },
+        {
+          "path": "sources/canvas/preview-animation.ts",
+          "blob": "106117bc6be38a9e1c50ea78e7c47e8c2a25ce31",
+          "sha256": "cebceac87f7e32dfb01053670495bb1796e38f9b6c13432e5e3db8245fa3262d",
+          "size": 7576,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/86160e7507d6841259cff624a51a63c1d4847ee3/sources/canvas/preview-animation.ts",
+          "usage": "Read-only dependency/model/UI inspection; not imported"
+        },
+        {
+          "path": "sources/canvas/renderer.ts",
+          "blob": "7d6e4b1f5b8fe867dddea38e531ed58dd6a4c92f",
+          "sha256": "2da2d818de9091b88c1ba71105c78505e12ea2f023b713f0901dc7b2fc96ad31",
+          "size": 36052,
+          "url": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator/blob/86160e7507d6841259cff624a51a63c1d4847ee3/sources/canvas/renderer.ts",
+          "usage": "Read-only dependency/model/UI inspection; not imported"
+        }
+      ],
+      "dependencies": "Full renderer needs Mithril/state/catalog; selected frame copier only requires a Canvas context. Rectangular sprites tiled externally without stretching."
+    },
+    {
+      "repository": "https://github.com/Floogen/FashionSense",
+      "commit": "39e9e9e13c9f9a78416172e73a229cf8703ddb59",
+      "license": "GPL-3.0",
+      "files": [
+        {
+          "path": "FashionSense/Framework/Managers/LayerManager.cs",
+          "blob": "e7cfba5aa3ce0757cc588f2a2ab89b53a307a6b1",
+          "sha256": "010b1545cba98740600b8b723597ad3a3b8a2f5226a14f88269c463486d4ef9a",
+          "size": 17660,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/FashionSense/Framework/Managers/LayerManager.cs",
+          "usage": "Verbatim source retained; relative move port in external outfit-layer-order.js"
+        },
+        {
+          "path": "FashionSense/Framework/Models/Appearances/AppearanceModel.cs",
+          "blob": "7bb3049a8fb3925cf6bc728bd05ce36255057852",
+          "sha256": "5485713093f3ca55fa33650412c71dc3f516e826d71542db618acbe30011df59",
+          "size": 10268,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/FashionSense/Framework/Models/Appearances/AppearanceModel.cs",
+          "usage": "Read-only dependency/model/UI inspection; not imported"
+        },
+        {
+          "path": "FashionSense/Framework/Models/Appearances/Generic/DrawOrder.cs",
+          "blob": "dbba5e89d527186e40a001de68f4b090b065e693",
+          "sha256": "4b9d79703269c0b4277d38b7cc62b32990c55b8a5506c5a8160af9943c3b702d",
+          "size": 506,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/FashionSense/Framework/Models/Appearances/Generic/DrawOrder.cs",
+          "usage": "Read-only dependency/model/UI inspection; not imported"
+        },
+        {
+          "path": "LICENSE",
+          "blob": "e62ec04cdeece724caeeeeaeb6ae1f6af1bb6b9a",
+          "sha256": "605e9047a563c5c8396ffb18232aa4304ec56586aee537c45064c6fb425e44ad",
+          "size": 35129,
+          "url": "https://github.com/Floogen/FashionSense/blob/39e9e9e13c9f9a78416172e73a229cf8703ddb59/LICENSE",
+          "usage": "License retained"
+        }
+      ],
+      "dependencies": "Full framework needs C#, SMAPI, XNA and Stardew. Only relative layer ordering translated; no runtime/game assets."
+    },
+    {
+      "repository": "https://github.com/piskelapp/piskel",
+      "commit": "32252c3a1305608911622bc40a67bb636b18fae1",
+      "license": "Apache-2.0",
+      "files": [
+        {
+          "path": "LICENSE",
+          "blob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "size": 11358,
+          "url": "https://github.com/piskelapp/piskel/blob/32252c3a1305608911622bc40a67bb636b18fae1/LICENSE",
+          "usage": "Read-only dependency/model/UI inspection; not imported"
+        },
+        {
+          "path": "src/js/controller/FramesListController.js",
+          "blob": "c5d61055a771e76775740c470b3c8860e7d0926d",
+          "sha256": "b695722229c9a89efaa2ac7dd1b65c3dee0cbfdf5956f7f6c4e668f25ac422f9",
+          "size": 13555,
+          "url": "https://github.com/piskelapp/piskel/blob/32252c3a1305608911622bc40a67bb636b18fae1/src/js/controller/FramesListController.js",
+          "usage": "Read-only dependency/model/UI inspection; not imported"
+        },
+        {
+          "path": "src/js/model/Frame.js",
+          "blob": "926f3f33dc541603f98cff04e234fd66708bbcbc",
+          "sha256": "68d84e3c0374bdb2e8719bf7843cba7b78880b9c8091d9ed46693376a601f55c",
+          "size": 4338,
+          "url": "https://github.com/piskelapp/piskel/blob/32252c3a1305608911622bc40a67bb636b18fae1/src/js/model/Frame.js",
+          "usage": "Read-only dependency/model/UI inspection; not imported"
+        },
+        {
+          "path": "src/js/utils/FrameUtils.js",
+          "blob": "246183793e25a996eccb5536aaeb7588606c3bf5",
+          "sha256": "38af7f5b528648f34d08983d5162b649fbb7772bcbed44521c1b1892ac407551",
+          "size": 11071,
+          "url": "https://github.com/piskelapp/piskel/blob/32252c3a1305608911622bc40a67bb636b18fae1/src/js/utils/FrameUtils.js",
+          "usage": "Read-only dependency/model/UI inspection; not imported"
+        }
+      ],
+      "dependencies": "Existing connected fill stays at d828941f; current frame UI/model examined, existing PaintSession supplies undo/draft/touch. No full app or new source copied."
+    }
+  ],
+  "artwork": "No upstream sprite or screenshot imports. Original body permission unchanged.",
+  "existing_imports": "config/outfit-workshop-sources.json; Piskel excerpt retained unchanged",
+  "runtime_destinations": [
+    "frontend/vendor/lpc/frame-copy.inc.ts",
+    "frontend/outfit-frame-copy.js",
+    "frontend/outfit-layer-order.js"
+  ],
+  "build": "scripts/build-outfit-tools.mjs checks excerpt hash and compiles ES module for Chrome83"
+}

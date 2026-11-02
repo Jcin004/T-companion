@@ -67,3 +67,9 @@ test('sets reuse references and reject duplicate slots, missing originals and in
  const f=await fixture(),c=await seed(f.s),owners=new Set(['user','a']);let n=clone(c);n.sets=[{id:'daily',name:'日常装',assets:['shirt']}];validateOutfits(n,owners);const saved=await f.s.api(path,'PUT',{expected_revision:c.revision,catalog:n});assert.equal(saved.assets.length,2);
  for(const mutate of [n=>n.sets[0].assets.push('shirt'),n=>n.sets[0].assets=['missing'],n=>{ensureAdaptation(n.people.a,n.assets[1]).revision=999;},n=>{ensureAdaptation(n.people.a,n.assets[1]).project=blankProject();}]){n=clone(saved);mutate(n);assert.throws(()=>validateOutfits(n,owners));}
 });
+
+test('per-direction original layering is pinned with old editions and validates in backups',async()=>{
+ const {s}=await fixture();let c=await seed(s),n=clone(c);n.assets[1].draw_order=['behind','front','default','default'];c=await s.api(path,'PUT',{expected_revision:c.revision,catalog:n});
+ assert.equal(resolvedGarment(c.assets[1],c.people.a).draw_order,undefined);assert.deepEqual(c.assets[1].draw_order,['behind','front','default','default']);
+ n=clone(c);n.assets[1].draw_order=['anything'];assert.throws(()=>validateOutfits(n,new Set(['user','a'])));
+});

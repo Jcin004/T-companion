@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/Floogen/FashionSense",
+  "commit": "39e9e9e13c9f9a78416172e73a229cf8703ddb59",
+  "path": "FashionSense/Framework/Managers/LayerManager.cs",
+  "blob": "e7cfba5aa3ce0757cc588f2a2ab89b53a307a6b1",
+  "sha256": "010b1545cba98740600b8b723597ad3a3b8a2f5226a14f88269c463486d4ef9a",
+  "cache": "data\\reference-sources\\wardrobe-integration\\fashion-sense\\FashionSense\\Framework\\Managers\\LayerManager.cs",
+  "license": "GPL-3.0",
+  "destination": "frontend/vendor/fashion-sense/LayerManager.cs",
+  "changes": "Source retained verbatim for port provenance. Only relative layer movement is translated in external outfit-layer-order.js; no SMAPI/XNA runtime or artwork.",
+  "authors": "Floogen and FashionSense contributors"
+}
