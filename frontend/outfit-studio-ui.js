@@ -20,10 +20,10 @@ export function mountOutfitStudio({getCatalog,save,report,toast}){
       <details class="source-more"><summary>更多</summary><button class="source-copy">另存一件</button><button class="source-delete">删除原版</button></details>
     </section></div><footer><p class="source-status" role="status"></p><button class="source-save primary" hidden>保存原版</button></footer>`;
   document.body.append(box);const el=s=>box.querySelector(s);
-  let mode='garment',kind='top',selected='',owner='user',direction=0,busy=false,painter,resolveClose,name='',order=[];
+  let mode='garment',kind='top',selected='',owner='user',direction=0,busy=false,focusNew=false,painter,resolveClose,name='',order=[];
   const catalog=()=>getCatalog(),asset=()=>catalog().assets.find(a=>a.id===selected);
   const message=value=>el('.source-status').textContent=value;
-  const safe=fn=>async(...args)=>{if(busy)return;busy=true;lock();try{await fn(...args);}catch(e){report(e);message(e.message);}finally{busy=false;lock();}};
+  const safe=fn=>async(...args)=>{if(busy)return;busy=true;lock();try{await fn(...args);}catch(e){report(e);message(e.message);}finally{busy=false;lock();if(focusNew){focusNew=false;el('.source-name').focus();el('.source-name').select();}}};
   function lock(){for(const c of box.querySelectorAll('button,input,select'))c.disabled=busy;}
   function loadFields(){name=asset()?.name||'';order=copy(asset()?.draw_order||['default','default','default','default']);el('.source-name').value=name;}
   function unsaved(){return !!asset()&&(el('.source-name').value!==name||JSON.stringify(order)!==JSON.stringify(asset().draw_order||['default','default','default','default']));}
@@ -72,7 +72,7 @@ export function mountOutfitStudio({getCatalog,save,report,toast}){
   el('.source-close').onclick=()=>{if(!busy&&leave())box.close();};box.addEventListener('cancel',e=>{e.preventDefault();el('.source-close').click();});box.addEventListener('close',()=>{resolveClose?.();resolveClose=null;});
   el('.source-order').onchange=()=>{order[direction]=el('.source-order').value;message('遮挡调整待保存');};
   el('.source-save').onclick=safe(saveOriginal);
-  el('.source-create').onclick=safe(async()=>{const next=copy(catalog());selected=uid();next.assets.push({id:selected,name:'未命名'+OUTFIT_KINDS[kind],kind,revision:0,template:WALK_TEMPLATE.id,ready:[false,false,false,false],project:blankProject()});await save(next);direction=0;loadFields();render();el('.source-name').focus();el('.source-name').select();message('起个名字，再点击方向上传或绘制');});
+  el('.source-create').onclick=safe(async()=>{const next=copy(catalog());selected=uid();next.assets.push({id:selected,name:'未命名'+OUTFIT_KINDS[kind],kind,revision:0,template:WALK_TEMPLATE.id,ready:[false,false,false,false],project:blankProject()});await save(next);direction=0;loadFields();render();focusNew=true;message('起个名字，再点击方向上传或绘制');});
   el('.source-upload').onchange=safe(async e=>{
     const file=e.target.files[0];e.target.value='';if(!file||!asset())return;if(file.size>6000000)throw Error('图片最多 6 MB');
     const url=URL.createObjectURL(file);try{

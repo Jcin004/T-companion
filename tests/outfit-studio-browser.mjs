@@ -17,7 +17,7 @@ try{
  assert.equal(await page.locator('.wardrobe-management').count(),0);
  await page.locator('.wardrobe-manage-open').tap();await page.locator('#outfit-studio[open]').waitFor();
  assert.equal(await page.locator('.source-body-controls').isVisible(),false);assert.equal(await page.locator('.source-save').isVisible(),false);assert.equal(await page.locator('#outfit-studio .wardrobe-apply').count(),0);
- await page.locator('[data-source-kind=hair]').tap();await page.locator('.source-create').tap();await page.locator('.source-name').fill('合成头发');assert.equal(await page.locator('.source-body-controls').isVisible(),false);
+ await page.locator('[data-source-kind=hair]').tap();await page.locator('.source-create').tap();assert.equal(await page.locator('.source-name').evaluate(e=>e===document.activeElement&&!e.disabled),true);await page.locator('.source-name').fill('合成头发');assert.equal(await page.locator('.source-body-controls').isVisible(),false);
  const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=32;c.height=32;const x=c.getContext('2d');x.fillStyle='#c04030';x.fillRect(0,0,32,32);return c.toDataURL().split(',')[1];});
  await page.locator('.source-upload').setInputFiles({name:'synthetic-hair.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await page.waitForFunction(()=>document.querySelector('.source-status').textContent.includes('上传草稿已保存'));
  let c=await read(),hair=c.assets.find(a=>a.kind==='hair');assert.ok(hair.draft);assert.equal(hair.ready[0],false);
