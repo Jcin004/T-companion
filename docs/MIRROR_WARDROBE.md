@@ -37,3 +37,14 @@
 已通过：182 项 Node、103 项 Python；镜子衣柜、原衣柜、原绘画台及绘画导航浏览器验证。专用 Android 11 / WebView 83 的原生触屏试穿、个人绘画、套装、脱下再穿、应用到世界、SQLite 重启均通过；系统截图 `artifacts/mirror-native-wardrobe.png`、`artifacts/mirror-native-world.png` 已人工检查。
 
 原包名 `io.jcin.tcompanion`、原签名、versionCode 36。覆盖 0.22.0/code35 → 0.23.0/code36 后，完整合成业务文档与独立加密凭据指纹一致。测试结束恢复原合成测试存档。未验证实体手机、真实模型和本版设备在线更新网络。APK、精确源码与公开渠道发布结果另补。
+
+
+## 0.23.0 交付（2026-11-02）
+
+- 发布源码：`45f24c7274156518c04c86860c73dfc76b8306f7`；功能提交 `91519b9f422ae981a47212bedfbb0c520cf2d306`。分支 `feat/shared-mirror-wardrobe`，[草稿 PR #40](https://github.com/Jcin004/T-companion/pull/40)，基于 `feat/memory-digestion-3a`，未合并。
+- 原签名 APK：`artifacts/T-companion-0.23.0-trial.apk`，81417992 bytes，SHA-256 `a655dc9429e877f69fd37e811a93aa8d10f7c57e22a97c83eeff6c80beb66a60`；源码 `artifacts/T-companion-0.23.0-source.zip` 是发布源码的精确 Git 快照。
+- [公开 APK、源码与许可](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.23.0)。七项附件服务端摘要与本机一致；匿名 API 读取 main 更新清单与发布清单一致。本机 raw.githubusercontent.com 在匿名核对时连接重置，未将其记为 raw 可达；手机自动检查更新网络未重测。
+- [发布源码 CI](https://github.com/Jcin004/T-companion/actions/runs/41460843368) 全部通过。182 Node、103 Python、四套浏览器流程、最终包 Android 原生触屏/截图/SQLite 重启、原签名 35→36 覆盖安装验证通过。格式与提交范围密钥扫描通过。无付费模型请求；实体手机未测。
+- 验收脚本在专用模拟器先安装 0.22.0，覆盖 0.23.0，核对完整合成业务文档与凭据指纹；后续穿搭使用单独合成素材。最终恢复覆盖前的合成存档。
+
+体验：直接覆盖安装（不要卸载）→ 世界 → 右上角头像 → 衣柜 → 选择人物 → 点两侧部位 → 点公共衣服试穿 → 调整我的穿着。可保存一套搭配后切换人物试穿。修改某个人穿着用个人适配绘画；制作公共衣服从「制作 / 管理衣物」进入。确认后应用到世界。
