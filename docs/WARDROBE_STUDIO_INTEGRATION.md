@@ -32,4 +32,15 @@
 
 `wardrobe-reuse.test.mjs` 验证上游字节、许可证、LPC 两种分辨率无拉伸、分方向稳定排序；`outfit-catalog.test.mjs` 追加旧版遮挡固定及备份校验。`outfit-studio-browser.mjs` 验证类别隔离、上传草稿/保存、逐帧复制撤销、本体身高、实际 Canvas 遮挡像素与导出、重载。原衣柜、镜子人物隔离、绘画台和手势浏览器流程保留。
 
-构建、Android 和发布结果完成后补充。
+## 0.24.0 交付（2026-11-03）
+
+- 功能提交 `a5d5f4e`；跨平台原样字节修正 `449c249`；发布源码 `0406768d1e70962935a9d8da4687bd749db2322e` 修正新建素材后在控件恢复可用时聚焦名称，Android 原生键盘可正常输入。
+- 分支 `feat/wardrobe-studio-reuse`，[草稿 PR #41](https://github.com/Jcin004/T-companion/pull/41)，基于 `feat/shared-mirror-wardrobe`，未合并。
+- 原包名 `io.jcin.tcompanion`、原签名，versionCode 37。APK `artifacts/T-companion-0.24.0-trial.apk`，81488627 bytes，SHA-256 `5a4df3523098e13e90ee7883a17f13e075f71f86502255cab6174552f04ebfcc`。精确源码 `artifacts/T-companion-0.24.0-source.zip`。
+- [公开 APK、源码及许可](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.24.0) 已发布；七附件摘要与本机一致，匿名 API 读取 main 更新清单与发布清单一致。本机 raw 主机仍连接重置，未把它记为可达；设备自动检查更新网络本版未测。
+- 186 Node、103 Python，通过独立制作页、原衣柜、镜子人物隔离、原绘画台和导航手势共五套浏览器流程；格式与范围密钥扫描通过。[发布源码 CI](https://github.com/Jcin004/T-companion/actions/runs/41476192802) 全部通过。
+- Android 11 / WebView 83 专用模拟器：原签名 0.23.0/code36 → 0.24.0/code37 覆盖保留完整合成业务文档、加密凭据指纹；原生新建、键盘输入名称、原版绘画保存、本体页面隔离、个人绘画适配、套装、脱下再穿、世界应用、SQLite 重启通过。原生截图 `artifacts/studio-native-source.png`、`studio-native-wardrobe.png`、`studio-native-world.png` 已检查。测试后恢复原合成存档。
+- 没有付费模型请求；没有实体手机验证。复杂衣物版型遮挡、额外交互动作映射和自动骨骼绑定仍不在此版完成范围。
+
+体验：覆盖安装 → 世界 → 头像 → 衣柜。挑衣服在衣柜；创建或修改公共原版点「衣物制作」；修改身体点「编辑人物本体」。原版保存不等于穿上，回衣柜确认并应用到世界。
+

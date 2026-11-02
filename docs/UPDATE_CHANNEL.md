@@ -1,5 +1,7 @@
 # Android 更新渠道
 
+2026-11-03：已发布 [0.24.0 独立制作页与模块接入](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.24.0)，versionCode 37，源码 `0406768d1e70962935a9d8da4687bd749db2322e`。七附件摘要与匿名 API main 清单一致；本机 raw 连接重置，设备自动更新网络未重测。原签名覆盖与原生验收见 [交付记录](WARDROBE_STUDIO_INTEGRATION.md#0240-交付2026-11-03)。
+
 2026-11-02：已发布 [0.23.0 镜子衣柜试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.23.0)，versionCode 36，源码 `45f24c7274156518c04c86860c73dfc76b8306f7`。七附件摘要及匿名 API main 清单一致；本机 raw 入口连接重置，设备自动更新网络未重测。原签名覆盖、原生操作和使用见 [交付记录](MIRROR_WARDROBE.md#0230-交付2026-11-02)。
 
 2026-11-01：已发布 [0.22.0 手动认知消化试用版](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.22.0)，versionCode 35，产品源码 `b946c5efd30db016829fce5bb7592878d579cdb6`。七项附件摘要、匿名 APK HEAD 200 和公开 API main 清单一致；原签名 34→35 覆盖保留完整合成业务文档及加密凭据。默认原生检查首次超时，重试通过 API 备用入口报告已是最新。详见 [交付记录](MEMORY_COGNITIVE_DIGESTION.md#0220-试用交付2026-11-01)。用户验收、真机和真实模型待完成。
