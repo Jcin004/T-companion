@@ -10,7 +10,7 @@ export function completedSourceTurns(data,owner){
 export function sourceMessages(data,owner,day){
  const sessions=new Set(data.sessions.filter(s=>s.character_id===owner&&isMainMemorySession(s)).map(s=>s.id));
  const complete=new Set(completedSourceTurns(data,owner).flatMap(t=>[t.user_id,t.assistant_id]));
- return data.messages.filter(m=>!m.deleted_at&&sessions.has(m.session_id)&&(complete.has(m.id)||m.origin==='world_share'&&m.source_owner_id===owner)&&(!day||dayKey(m.created_at,data.settings.timezone)===day)).sort((a,b)=>a.id-b.id);
+ return data.messages.filter(m=>!m.deleted_at&&sessions.has(m.session_id)&&(m.origin!=='world_inbox'||!!m.read_at)&&(complete.has(m.id)||m.origin==='world_share'&&m.source_owner_id===owner)&&(!day||dayKey(m.created_at,data.settings.timezone)===day)).sort((a,b)=>a.id-b.id);
 }
 export function sourceWorldEvents(data,owner){
  return worldSources(data,owner).map(e=>({...e,source_type:'world_event',event_id:e.id,role:'world'}));

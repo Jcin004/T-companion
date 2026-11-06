@@ -15,7 +15,7 @@ public final class TResidentWorker extends Worker {
             JSONObject life=new JSONObject(doc.getString("data")).getJSONObject("world").optJSONObject("life");
             if(life==null||!life.getJSONObject("settings").optBoolean("enabled")||!life.getJSONObject("settings").optBoolean("background")){WorkManager.getInstance(context).cancelUniqueWork(NAME);return;}
             int minutes=life.getJSONObject("settings").getInt("interval_minutes");
-            Constraints constraints=new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).setRequiresBatteryNotLow(true).build();
+            Constraints constraints=new Constraints.Builder().setRequiresBatteryNotLow(true).build();
             PeriodicWorkRequest request=new PeriodicWorkRequest.Builder(TResidentWorker.class,minutes,TimeUnit.MINUTES).setInitialDelay(minutes,TimeUnit.MINUTES).setConstraints(constraints).addTag(NAME).build();
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(NAME,ExistingPeriodicWorkPolicy.UPDATE,request);
         }

@@ -1,6 +1,7 @@
 import './build-legal.mjs';
 import './build-resident.mjs';
 import './build-pixel-tools.mjs';
+import './build-resident-phone.mjs';
 import {mkdir, copyFile, readdir, cp, writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 await mkdir('dist/assets', {recursive: true});

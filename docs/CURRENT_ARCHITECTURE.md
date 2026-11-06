@@ -1,5 +1,7 @@
 # 当前架构、数据流与扩展路线
 
+0.25.0：三地点/最多三居民；resident-plans 执行 A-Life Clock/GOAP/Schedule 有限计划，resident-life-core 仅对重要变化唤醒模型并保留恢复/预算。world-communication 适配原 SullyOS 线程；用户聊天仍由原会话拥有。UI 只读快照/提交命令，人物手机用一个 React 挂载入口。原生模型等待不持 SQLite 写租约；升级前备份同事务保留。当前决定与进度以 [核心约定](PROJECT_CORE.md)、[迁入计划](MIGRATION_PLAN.md) 为准。
+
 0.24.0：衣柜、衣物制作、本体编辑拥有独立上下文；LPC 帧复制、Fashion Sense 相对层序适配及 Piskel 逐帧呈现，仍走原目录/事务。见 [接入与验证](WARDROBE_STUDIO_INTEGRATION.md)。
 
 0.23.0：镜子试穿式公共衣柜，原版版本与人物适配分开；整套搭配引用公共衣物，原版更新保留已有穿着。模块与验证见 [镜子衣柜](MIRROR_WARDROBE.md)。

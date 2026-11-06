@@ -28,3 +28,7 @@ test('vendor bytes match pinned upstream Git blobs; no edited vendor algorithm',
  const provenance=JSON.parse(await readFile('config/world-probe-sources.json','utf8'));
  for(const file of provenance.files){const bytes=await readFile(file.local);const hash=createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex');assert.equal(hash,file.blob,file.local);assert.equal(createHash('sha256').update(bytes).digest('hex'),file.sha256,file.local);}
 });
+test('neighborhood Schedule and actual phone excerpts remain unedited at recorded versions',async()=>{
+ const provenance=JSON.parse(await readFile('config/neighborhood-sources.json','utf8'));
+ for(const file of provenance.files){const bytes=await readFile(file.local);assert.equal(createHash('sha256').update(bytes).digest('hex'),file.sha256,file.local);if(file.retained.startsWith('entire'))assert.equal(createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex'),file.blob);}
+});

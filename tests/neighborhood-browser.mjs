@@ -1,0 +1,43 @@
+import {chromium} from '@playwright/test';
+import assert from 'node:assert/strict';
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+const ready=()=>page.waitForFunction(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
+const app=id=>page.locator('.app-grid [data-app="'+id+'"]').tap();
+try{
+ await page.goto(process.env.T_TEST_URL||'http://127.0.0.1:8014');await ready();
+ await page.evaluate(async()=>{
+  const {BrowserPersistence,emptyData}=await import('/assets/local-service.js');
+  const {ensureWorld}=await import('/assets/world-core.js');const {ensureLife,acceptResidentPlan}=await import('/assets/resident-life-core.js');
+  const {sendCharacterMessage}=await import('/assets/world-communication.js');
+  const store=new BrowserPersistence(),d=emptyData(),at=new Date().toISOString();await store.load();
+  d.characters=['a','b','c'].map((id,i)=>({id,name:['林','雨','岚'][i],identity:'',style:'',avatar:''}));
+  const w=ensureWorld(d);w.residents=['a','b','c'];w.positions={user:{x:5,y:8},a:{x:4,y:6},b:{x:9,y:10},c:{x:7,y:8}};w.facing={user:'down',a:'down',b:'down',c:'down'};
+  ensureLife(d);for(const id of w.residents)acceptResidentPlan(d,id,{title:'庭院散步',steps:[{location_id:'courtyard',activity:'walk',duration_minutes:30}]},'seed_'+id,at);
+  sendCharacterMessage(d,{request_id:'fixture-message',actor_id:'a',to_id:'b',text:'我打算去庭院看看。'+('这是一条长消息。'.repeat(100)),at});
+  w.version=1;delete w.locations;await store.save(d);
+ });await page.reload();await ready();
+ assert.deepEqual(await page.locator('.app-grid [data-app]').evaluateAll(bs=>bs.slice(0,3).map(b=>b.dataset.app)),['world','chat','roster']);
+ await page.screenshot({path:'artifacts/neighborhood-desktop.png'});
+ await app('world');await page.locator('#world-location-tabs button').first().waitFor();
+ await page.getByRole('button',{name:'庭院',exact:true}).tap();
+ await page.waitForFunction(()=>document.querySelector('#world-location-state')?.textContent.includes('正在查看庭院 · 我在暖木小屋'));
+ await page.screenshot({path:'artifacts/neighborhood-world.png'});
+ await page.locator('#home-button').tap();await app('roster');await page.locator('.resident-status').first().waitFor();
+ await page.locator('#characters article').nth(1).getByRole('button',{name:'查看手机'}).tap();
+ await page.locator('.resident-phone-reader').waitFor();await page.getByText('林', {exact:true}).last().tap();
+ await page.getByText(/我打算去庭院看看/).waitFor();
+ assert.equal(await page.locator('#resident-phone textarea').count(),0);
+ await page.screenshot({path:'artifacts/neighborhood-phone.png'});
+ await page.evaluate(()=>document.documentElement.style.setProperty('--font','22px'));
+ await page.setViewportSize({width:320,height:720});await page.screenshot({path:'artifacts/neighborhood-phone-large.png'});
+ assert.equal(await page.evaluate(()=>document.querySelector('.reader-content').scrollWidth<=document.querySelector('.reader-content').clientWidth),true);
+ assert.ok(await page.locator('.reader-content .text-\\[16px\\]').first().evaluate(e=>parseFloat(getComputedStyle(e).fontSize)>=22));
+ const read=await page.evaluate(async()=>{const {BrowserPersistence}=await import('/assets/local-service.js');const store=new BrowserPersistence(),data=await store.load();if((await store.preUpgrade())?.world.version!==1)throw Error('Atomic browser upgrade backup missing');return data.world.communication.read;});assert.deepEqual(read,{});
+ await page.getByRole('button',{name:'‹ 返回',exact:true}).tap();await page.locator('#roster').waitFor();
+ await page.locator('#home-button').tap();await app('wardrobe');await page.locator('#outfit-wardrobe').waitFor();
+ await page.locator('#outfit-wardrobe .wardrobe-close').tap();await page.locator('#home').waitFor();
+ await app('world-history-dialog');await page.locator('#world-history-dialog').waitFor();
+ assert.deepEqual(errors,[]);console.log('PASS: separate desktop/world/phone/wardrobe/records, long messages, large text, observer does not read');
+}finally{await browser.close();}

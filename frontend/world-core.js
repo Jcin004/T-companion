@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // World facts/observations only. Identity, interpretation and model work live elsewhere.
-import {ROOM,FURNITURE,collision,distance} from './world-map.js';
+import {ROOM,FURNITURE,LOCATIONS,locationOf,furnitureFor,collision,distance} from './world-map.js';
+import {ensureCommunication,validateCommunication,messageKnown,threadMessage} from './world-communication.js';
 import {findPath} from './world-pathfinding.js';
 import {sceneActionCandidate,sceneActionSteps} from './world-scene-actions.js';
 import {selectSkin,lookFor} from './character-looks.js';
@@ -13,18 +14,23 @@ export function ensureWorld(data){
   if(data.world.curtain===undefined)data.world.curtain=false;
   if(!data.world.facing)data.world.facing={};
   for(const id of Object.keys(data.world.positions))if(!data.world.facing[id])data.world.facing[id]='down';
+  if(data.world.version===1){data.world.version=2;data.world.locations=LOCATIONS.map(r=>({...r}));}
+  ensureCommunication(data);
   return data.world;
 }
-const point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.x>0&&p.x<11&&p.y>=3&&p.y<12&&!collision()[p.y*12+p.x];
+const point=p=>p&&LOCATIONS.some(r=>r.id===locationOf(p))&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.x>0&&p.x<11&&p.y>=3&&p.y<12&&!collision({},'user',locationOf(p))[p.y*12+p.x];
 export function validateWorld(data){
   const w=ensureWorld(data),owners=new Set(data.characters.map(c=>c.id));
-  if(w.version!==1||w.room_id!==ROOM.id||!Number.isSafeInteger(w.tick)||w.tick<0||typeof w.lamp!=='boolean'||!Array.isArray(w.residents)||![0,2].includes(w.residents.length)||new Set(w.residents).size!==w.residents.length||w.residents.some(id=>!owners.has(id)||id==='user')||!w.positions||!Array.isArray(w.events)||w.events.length>20000)throw Error('世界备份格式错误');
+  if(w.version!==2||w.room_id!==ROOM.id||!Number.isSafeInteger(w.tick)||w.tick<0||typeof w.lamp!=='boolean'||!Array.isArray(w.residents)||w.residents.length>3||new Set(w.residents).size!==w.residents.length||w.residents.some(id=>!owners.has(id)||id==='user')||!w.positions||!Array.isArray(w.events)||w.events.length>20000)throw Error('世界备份格式错误');
+  if(!Array.isArray(w.locations)||w.locations.length!==3||LOCATIONS.some(r=>!w.locations.some(l=>l.id===r.id&&typeof l.name==='string'&&l.name.trim()&&l.name.length<=40)))throw Error('世界地点格式错误');
+  validateCommunication(data);
   const actors=['user',...w.residents];
   if(typeof w.curtain!=='boolean'||actors.some(id=>!['up','down','left','right'].includes(w.facing[id])))throw Error('世界朝向或窗帘状态错误');
-  if(Object.keys(w.positions).length!==actors.length||actors.some(id=>!point(w.positions[id]))||new Set(Object.values(w.positions).map(p=>p.x+','+p.y)).size!==actors.length)throw Error('世界位置无效或重叠');
+  if(Object.keys(w.positions).length!==actors.length||actors.some(id=>!point(w.positions[id]))||new Set(Object.values(w.positions).map(p=>locationOf(p)+':'+p.x+','+p.y)).size!==actors.length)throw Error('世界位置无效或重叠');
   const ids=new Set(),requests=new Set();
   for(const e of w.events){
-    if(!e||typeof e.id!=='string'||ids.has(e.id)||typeof e.request_id!=='string'||requests.has(e.request_id)||typeof e.fingerprint!=='string'||!Number.isFinite(Date.parse(e.created_at))||e.location!==ROOM.id||!point(e.position)||typeof e.content!=='string'||!e.content||e.content.length>210000||!Array.isArray(e.participants)||e.participants.some(id=>id!=='user'&&!owners.has(id))||!Array.isArray(e.observations)||new Set(e.observations.map(o=>o.owner_id)).size!==e.observations.length||e.observations.some(o=>!owners.has(o.owner_id)||!['witness','heard'].includes(o.kind)||!point(o.position))||!['user_command','completed_dialogue','resident_action','resident_dialogue','scene_action'].includes(e.source?.type))throw Error('世界事件或知情范围格式错误');
+    if(!e||typeof e.id!=='string'||ids.has(e.id)||typeof e.request_id!=='string'||requests.has(e.request_id)||typeof e.fingerprint!=='string'||!Number.isFinite(Date.parse(e.created_at))||!LOCATIONS.some(r=>r.id===e.location)||!point(e.position)||typeof e.content!=='string'||!e.content||e.content.length>210000||!Array.isArray(e.participants)||e.participants.some(id=>id!=='user'&&!owners.has(id))||!Array.isArray(e.observations)||new Set(e.observations.map(o=>o.owner_id)).size!==e.observations.length||e.observations.some(o=>!owners.has(o.owner_id)||!['witness','heard'].includes(o.kind)||!point(o.position))||!['user_command','completed_dialogue','resident_action','resident_dialogue','scene_action','life_activity','world_message'].includes(e.source?.type))throw Error('世界事件或知情范围格式错误');
+    if(e.source.type==='world_message'&&!e.deleted_at)threadMessage(data,e.source);
     if(e.source.type==='completed_dialogue'){
       const t=data.turns.find(t=>t.request_id===e.source.request_id&&t.state==='complete');
       if(!t||t.user_id!==e.source.message_ids?.[0]||t.assistant_id!==e.source.message_ids?.[1])throw Error('世界对话来源未完成');
@@ -35,33 +41,35 @@ export function validateWorld(data){
     }
     ids.add(e.id);requests.add(e.request_id);
   }
-  for(const s of data.sessions)if(s.mode==='world'&&(s.room_id!==ROOM.id||!owners.has(s.character_id)))throw Error('场景会话引用错误');
+  for(const s of data.sessions)if(s.mode==='world'&&(!LOCATIONS.some(r=>r.id===s.room_id)||!owners.has(s.character_id)))throw Error('场景会话引用错误');
   for(const t of data.turns)if(data.sessions.find(s=>s.id===t.session_id)?.mode==='world'){
     const owner=data.sessions.find(s=>s.id===t.session_id).character_id,scene=t.scene;
-    if(!scene||scene.mode!=='world'||scene.room_id!==ROOM.id||!point(scene.position)||!Array.isArray(scene.nearby)||!scene.nearby.some(c=>c.id===owner&&point(c.position))||!Array.isArray(scene.facts)||!Number.isSafeInteger(scene.tick)||scene.tick<0)throw Error('场景对话快照无效');
+    if(!scene||scene.mode!=='world'||!LOCATIONS.some(r=>r.id===scene.room_id)||!point(scene.position)||!Array.isArray(scene.nearby)||!scene.nearby.some(c=>c.id===owner&&point(c.position))||!Array.isArray(scene.facts)||!Number.isSafeInteger(scene.tick)||scene.tick<0)throw Error('场景对话快照无效');
   }
   return w;
 }
-const knownWorldSource=(event,owner)=>event&&!event.deleted_at&&event.observations.some(o=>o.owner_id===owner);
+const knownWorldSource=(data,event,owner)=>event&&!event.deleted_at&&(event.source.type==='world_message'?messageKnown(data,event.source,owner):event.observations.some(o=>o.owner_id===owner));
+function sourceProjection(data,event){const e=copy(event);if(e.source.type==='world_message'){const {message}=threadMessage(data,e.source);e.content=message.fromName+'说：'+message.text;}return e;}
 export function worldSources(data,owner){
-  return copy((data.world?.events||[]).filter(event=>knownWorldSource(event,owner)));
+  return (data.world?.events||[]).filter(event=>knownWorldSource(data,event,owner)).map(e=>sourceProjection(data,e));
 }
 export function worldSource(data,id,owner){
   const event=data.world?.events.find(e=>e.id===id);
-  if(!knownWorldSource(event,owner))throw Error('人物没有此事件的知情依据');
-  return copy(event);
+  if(!knownWorldSource(data,event,owner))throw Error('人物没有此事件的知情依据');
+  return sourceProjection(data,event);
 }
 export function sceneSnapshot(data,sid){
   const s=data.sessions.find(s=>s.id===sid);
   if(s?.mode!=='world')return null;
   const w=ensureWorld(data),p=w.positions[s.character_id];
   if(!w.residents.includes(s.character_id)||distance(w.positions.user,p)>3)throw Error('请走近人物后再对话');
-  const people=w.residents.map(id=>({id,name:data.characters.find(c=>c.id===id).name,position:copy(w.positions[id])}));
-  return {mode:'world',location:ROOM.name,room_id:ROOM.id,tick:w.tick,position:copy(w.positions.user),room_occupants:people,nearby:people.filter(c=>distance(w.positions.user,c.position)<=3),heard_by:people.filter(c=>c.id===s.character_id||distance(p,c.position)<=3),facts:['这是没有内部分隔的小房间，名单中的居民当前都在房间里，可以看见他们。附近交谈者不等于房间全部人员。','用户与当前交谈人物在同一房间、近处交流。','房间有书架、书桌、床铺、盆栽和窗帘。',w.lamp?'台灯亮着。':'台灯熄灭。',w.curtain?'窗帘合上。':'窗帘拉开。'],dialogue:'近处居民（三格内）能听到；看见某人在场不代表知道他的私人记忆。人物陈述不自动改变世界事实。'};
+  const room=w.locations.find(r=>r.id===locationOf(p));
+  const people=w.residents.filter(id=>locationOf(w.positions[id])===room.id).map(id=>({id,name:data.characters.find(c=>c.id===id).name,position:copy(w.positions[id])}));
+  return {mode:'world',location:room.name,room_id:room.id,tick:w.tick,position:copy(w.positions.user),room_occupants:people,nearby:people.filter(c=>distance(w.positions.user,c.position)<=3),heard_by:people.filter(c=>c.id===s.character_id||distance(p,c.position)<=3),facts:['这是没有内部分隔的当前地点，名单中的居民当前都在此处，可以看见他们。附近交谈者不等于全部人员。','用户与当前交谈人物在同一地点、近处交流。','这里有'+furnitureFor(room.id).map(f=>f.name).join('、')+'。',w.lamp?'台灯亮着。':'台灯熄灭。'],dialogue:'近处居民（三格内）能听到；看见某人在场不代表知道他的私人记忆。人物陈述不自动改变世界事实。'};
 }
 export function appendWorldEvent(w,command,content,position,participants,observations,source,at=new Date().toISOString()){
   if(w.events.length>=20000)throw Error('世界事件已达容量，请先导出备份');
-  const event={id:'world_'+command.request_id,request_id:command.request_id,fingerprint:JSON.stringify(command),created_at:at,tick:w.tick,location:ROOM.id,position:copy(position),participants,content,source,observations};
+  const event={id:'world_'+command.request_id,request_id:command.request_id,fingerprint:JSON.stringify(command),created_at:at,tick:w.tick,location:locationOf(position),position:copy(position),participants,content,source,observations};
   w.events.push(event);return copy(event);
 }
 export function faceEachOther(w,a,b){
@@ -83,15 +91,27 @@ export function applyWorldCommand(data,input,options={}){
   let content;
   const name=actor==='user'?'用户':data.characters.find(c=>c.id===actor).name;
   if(command.type==='move'){
-    if(!point(command.target))throw Error('那里是墙壁或家具，请点地板');
+    if(command.target?.location_id&&command.target.location_id!==locationOf(p))throw Error('跨地点移动请使用前往地点');
+    const target={...command.target,...(p.location_id?{location_id:p.location_id}:{})};
+    if(!point(target))throw Error('那里是墙壁或家具，请点地板');
     const result=findPath(collision(w.positions,actor),ROOM.width,ROOM.height,p.x,p.y,command.target.x,command.target.y);
     if(!result.reachable||result.path.length<2)throw Error('无法走到那里，或已经在这里');
     let prev=p;
-    for(const step of result.path){if(step.x!==prev.x||step.y!==prev.y)w.facing[actor]=step.x>prev.x?'right':step.x<prev.x?'left':step.y>prev.y?'down':'up';w.positions[actor]=copy(step);observe(step);prev=step;}
+    for(const step of result.path){if(step.x!==prev.x||step.y!==prev.y)w.facing[actor]=step.x>prev.x?'right':step.x<prev.x?'left':step.y>prev.y?'down':'up';w.positions[actor]={...copy(step),...(p.location_id?{location_id:p.location_id}:{})};observe(w.positions[actor]);prev=step;}
     content=name+'从 ('+p.x+','+p.y+') 走到 ('+command.target.x+','+command.target.y+')。';
+  }else if(command.type==='travel'){
+    if(!LOCATIONS.some(r=>r.id===command.location_id)||command.location_id===locationOf(p))throw Error('目标地点无效或已经在这里');
+    const cells=collision(w.positions,actor,command.location_id);let target;
+    for(let y=8;y<12&&!target;y++)for(let x=2;x<10&&!target;x++)if(!cells[y*12+x])target={x,y,location_id:command.location_id};
+    if(!target)throw Error('目标地点没有空位');
+    observe(p);w.positions[actor]=target;observe(target);content=name+'前往了'+w.locations.find(r=>r.id===command.location_id).name+'。';
+  }else if(command.type==='rename_location'){
+    const room=w.locations.find(r=>r.id===command.location_id);
+    if(actor!=='user'||!room||typeof command.name!=='string'||!command.name.trim()||command.name.length>40)throw Error('地点名称无效');
+    room.name=command.name.trim();observe(p);content='地点已更名为'+room.name+'。';
   }else if(command.type==='interact'){
-    const f=FURNITURE.find(f=>f.id===command.target_id);
-    if(!f||Math.min(...Array.from({length:f.w*f.h},(_,i)=>distance(p,{x:f.x+i%f.w,y:f.y+Math.floor(i/f.w)})))>2)throw Error('请先走近这个地点');
+    const f=furnitureFor(locationOf(p)).find(f=>f.id===command.target_id);
+    if(!f||Math.min(...Array.from({length:f.w*f.h},(_,i)=>distance(p,{x:f.x+i%f.w,y:f.y+Math.floor(i/f.w),location_id:locationOf(p)})))>2)throw Error('请先走近这个地点');
     observe(p);if(f.id==='lamp')w.lamp=!w.lamp;
     if(f.id==='window')w.curtain=!w.curtain;
     const dx=f.x+f.w/2-p.x,dy=f.y+f.h/2-p.y;w.facing[actor]=Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
@@ -103,7 +123,7 @@ export function applyWorldCommand(data,input,options={}){
   }else if(command.type==='change_skin'){
     const skin=selectSkin(data,actor,command.skin_id,options.ai===true);observe(p);content=name+'换上了「'+skin+'」皮肤。';
   }else if(command.type==='advance'){
-    observe(p);content=name+'在暖木小屋停留了片刻。';
+    observe(p);content=name+'在'+w.locations.find(r=>r.id===locationOf(p)).name+'停留了片刻。';
   }else throw Error('不支持的世界命令');
   w.tick++;
   return appendWorldEvent(w,command,content,w.positions[actor],actor==='user'?['user']:[actor],[...witnesses.values()],{type:options.sourceType||'user_command',command:copy(command),...(options.jobId?{job_id:options.jobId}:{})},options.at);

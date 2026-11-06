@@ -9,12 +9,23 @@ export const FURNITURE = Object.freeze([
   {id:'plant',name:'盆栽',x:1,y:9,w:1,h:2,action:'给盆栽浇了水。'},
   {id:'window',name:'窗帘',x:7,y:1,w:3,h:2,action:'拉动了窗帘。'}
 ]);
-export function collision(positions={},except='user'){
+export const LOCATIONS=Object.freeze([
+  ROOM,{id:'courtyard',name:'庭院',width:12,height:13,tile:24},
+  {id:'common-room',name:'公共活动室',width:12,height:13,tile:24}
+]);
+export const locationOf=p=>p?.location_id||ROOM.id;
+export const sameLocation=(a,b)=>locationOf(a)===locationOf(b);
+export function furnitureFor(id=ROOM.id){
+  if(id==='courtyard')return FURNITURE.filter(f=>f.id==='plant').map(f=>({...f,x:1,y:9}));
+  if(id==='common-room')return FURNITURE.filter(f=>['books','desk','lamp'].includes(f.id));
+  return FURNITURE;
+}
+export function collision(positions={},except='user',locationId=locationOf(positions[except])){
   const cells=Array.from({length:ROOM.width*ROOM.height},(_,i)=>{
     const x=i%ROOM.width,y=Math.floor(i/ROOM.width);
-    return x===0||x===11||y<3||y===12||FURNITURE.some(f=>x>=f.x&&x<f.x+f.w&&y>=f.y&&y<f.y+f.h)?1:0;
+    return x===0||x===11||y<3||y===12||furnitureFor(locationId).some(f=>x>=f.x&&x<f.x+f.w&&y>=f.y&&y<f.y+f.h)?1:0;
   });
-  for(const [id,p] of Object.entries(positions))if(id!==except)cells[p.y*ROOM.width+p.x]=1;
+  for(const [id,p] of Object.entries(positions))if(id!==except&&locationOf(p)===locationId)cells[p.y*ROOM.width+p.x]=1;
   return cells;
 }
-export const distance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+export const distance=(a,b)=>sameLocation(a,b)?Math.abs(a.x-b.x)+Math.abs(a.y-b.y):Infinity;

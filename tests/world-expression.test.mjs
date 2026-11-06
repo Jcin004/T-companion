@@ -4,7 +4,7 @@ import {LocalService,emptyData,validateBackup} from '../frontend/local-service.j
 import {copy,worldSource,validateWorld,appendWorldEvent} from '../frontend/world-core.js';
 import {atlasMeta,lookFor,selectSkin} from '../frontend/character-looks.js';
 import {presentationLines,presentationText} from '../frontend/scene-presentation.js';
-import {ensureLife,beginLifeRun,nextLifeJob,reserveLifeRequest,recordLifeResponse,applyLifeResponse,lifeTime,lifePrompt} from '../frontend/resident-life-core.js';
+import {ensureLife,beginLifeRun,nextLifeJob,reserveLifeRequest,recordLifeResponse,applyLifeResponse,lifeTime,lifePrompt,acceptResidentPlan,wakeResident} from '../frontend/resident-life-core.js';
 import {sourceMessages,dayKey} from '../frontend/memory-evidence.js';
 import {deliverWorldShare} from '../frontend/proactive-messages.js';
 const image='data:image/png;base64,AAAA',skin=(id,allowed=true)=>({id,name:id,skin:2,portrait:0,portraits:[{name:'笑',image,emotion:'happy'}],sprite:{image,frames:3,row_count:4,rows:{down:0,right:1,up:2,left:3},idle_frame:1,walk_order:[1,0,1,2]},ai_allowed:allowed,actions:{plant:{image,frames:4,row_count:1}}});
@@ -39,7 +39,7 @@ test('disabled, foreign or unapproved skins and interrupted replies cannot chang
 });
 test('headless resident can choose an authorized skin through the same reducer and request budget',async()=>{
  const {s}=await fixture();await s.api('/character-looks/a','PATCH',{skins:[skin('night')],auto_skin:true});
- await s.transact(d=>{const t=lifeTime(d);ensureLife(d).settings={...d.world.life.settings,enabled:true,quiet_start:0,quiet_end:0,max_actions:1};beginLifeRun(d,'skin_batch',t);const j=nextLifeJob(d,'skin_batch',t),prompt=lifePrompt(d,j);assert.match(JSON.stringify(prompt),/night/);assert.doesNotMatch(JSON.stringify(prompt),/乙私有身份|base64/);reserveLifeRequest(d,j.id,t,prompt);recordLifeResponse(d,j.id,{actor_id:'a',type:'change_skin',skin_id:'night'},t);applyLifeResponse(d,j.id,t);applyLifeResponse(d,j.id,t);assert.equal(d.world.life.daily.requests,1);});
+ await s.transact(d=>{ensureLife(d).settings={...d.world.life.settings,enabled:true,quiet_start:0,quiet_end:0,max_actions:1};const t=lifeTime(d);for(const id of d.world.residents)acceptResidentPlan(d,id,{steps:[{location_id:'warm-room',activity:'rest',duration_minutes:60}]},id,t.iso);wakeResident(d,'a','encounter','skin-test');beginLifeRun(d,'skin_batch',t);const j=nextLifeJob(d,'skin_batch',t),prompt=lifePrompt(d,j);assert.match(JSON.stringify(prompt),/night/);assert.doesNotMatch(JSON.stringify(prompt),/乙私有身份|base64/);reserveLifeRequest(d,j.id,t,prompt);recordLifeResponse(d,j.id,{actor_id:'a',messages:[],skin_id:'night'},t);applyLifeResponse(d,j.id,t);applyLifeResponse(d,j.id,t);assert.equal(d.world.life.daily.requests,1);});
  assert.equal(lookFor(s.data,'a').skin_id,'night');assert.equal(s.data.world.events.filter(e=>e.source.command?.type==='change_skin').length,1);
 });
 test('global archive includes resident exchange and all scene speakers, filters without granting knowledge',async()=>{

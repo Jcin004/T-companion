@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Only completed scene replies may propose a bounded world action.
-import {FURNITURE,collision,distance,ROOM} from './world-map.js';
+import {FURNITURE,collision,distance,ROOM,furnitureFor,locationOf} from './world-map.js';
 import {findPath} from './world-pathfinding.js';
 const marker=/\[世界行动:([^\n]+)\]/g;
 export const sceneText=text=>String(text).replace(marker,'').replace(/\[世界行动:[\s\S]*$/,'').trim();
@@ -13,7 +13,7 @@ export function sceneActionCandidate(text){
   return value;
 }
 export function sceneActionSteps(data,owner,action){
-  const w=data.world,p=w.positions[owner],f=FURNITURE.find(f=>f.id===action.target_id);
+  const w=data.world,p=w.positions[owner],f=furnitureFor(locationOf(p)).find(f=>f.id===action.target_id);
   if(!p||!f)throw Error('动作地点或人物不存在');
   const cells=collision(w.positions,owner),spots=[];
   for(let y=3;y<12;y++)for(let x=1;x<11;x++)if(!cells[y*ROOM.width+x]&&Math.min(...Array.from({length:f.w*f.h},(_,i)=>distance({x,y},{x:f.x+i%f.w,y:f.y+Math.floor(i/f.w)})))<=2){

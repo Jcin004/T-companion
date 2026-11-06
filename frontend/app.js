@@ -11,6 +11,7 @@ import {mountDialogNavigation} from './dialog-navigation.js';
 import {mountAppUpdate} from './app-update.js';
 import {DiagnosticStore,diagnosticPersistence,mountDiagnostics} from './diagnostics.js';
 import {installArchiveShell,mountArchiveUI} from './character-archive-ui.js';
+import {installNeighborhoodShell,mountNeighborhoodUI} from './neighborhood-ui.js';
 
 // Android 11's bundled WebView predates this DOM convenience method.
 if(!Element.prototype.replaceChildren)Object.defineProperty(Element.prototype,'replaceChildren',{configurable:true,writable:true,value:function(...nodes){while(this.firstChild)this.removeChild(this.firstChild);this.append(...nodes);}});
@@ -18,6 +19,12 @@ if(!Element.prototype.replaceChildren)Object.defineProperty(Element.prototype,'r
 installMemoryShell();
 installWorldShell();
 installArchiveShell();
+installNeighborhoodShell();
+let neighborhoodUI=null;
+const screenHistory=[],screenScroll=new Map();
+function returnScreen(){const target=screenHistory.pop()||'home';app(target,{back:true});}
+window.addEventListener('t-open-screen',e=>app(e.detail.name,e.detail.options));
+window.addEventListener('t-back-screen',returnScreen);
 let memoryUI;
 let worldUI;
 let archiveUI;
@@ -79,16 +86,20 @@ function avatar(c, user = false) {
   return a;
 }
 const dialogs=mountDialogNavigation({canReturn:()=>activeApp==='chat'&&chatOpen});
-function app(name) {
+function app(name,options={}) {
+  if(name==='wardrobe'){worldUI?.openWardrobe();return;}
+  if(name!==activeApp){screenScroll.set(activeApp,document.getElementById(activeApp)?.scrollTop||0);if(!options.back&&name!=='home')screenHistory.push(activeApp);if(name==='home')screenHistory.length=0;}
   dialogs.dismissAll();
   if(name==='chat')refreshContacts().catch(e=>{reportError(e);toast(e.message);});
   worldUI?.leave();
   archiveUI?.leave();
   if(name==='archive')archiveUI?.refresh().catch(e=>{reportError(e);toast(e.message);});
   if(name==='world')worldUI?.refresh().catch(e=>{reportError(e);toast(e.message);});
-  if(name==='memory'||name==='self')memoryUI?.refresh(name);
+  if(name==='memory'||name==='self')memoryUI?.refresh(name,options.owner);
   saveDraft();activeApp=name;document.querySelector('.phone').classList.toggle('on-desktop',name==='home');
-  for (const page of document.querySelectorAll('.screen')) page.hidden = page.id !== name;
+  for (const page of document.querySelectorAll('.screen')){page.hidden=page.id!==name;if(page.tagName==='SECTION'&&page.showModal){page.open=page.id===name;page.toggleAttribute('open',page.id===name);}}
+  if(document.getElementById(name))document.getElementById(name).scrollTop=screenScroll.get(name)||0;
+  neighborhoodUI?.open(name,options).catch(e=>{reportError(e);toast(e.message);});
   for (const button of document.querySelectorAll('[data-app]')) button.classList.toggle('active', button.dataset.app === name);
   document.querySelector('.phone').classList.toggle('in-chat', name === 'chat' && chatOpen);
   if(name==='settings'&&device)device.voices().then(data=>{nativeVoices=data.voices;voiceOptions(el('voice'),prefs.voice);}).catch(()=>{});
@@ -112,11 +123,13 @@ function renderCharacters() {
   el('characters').replaceChildren();
   for (const c of characters) {
     const card = node('article','card'), top = node('div','character-top'); top.append(avatar(c),node('h2','',c.name));
+    card.dataset.characterId=c.id;
     const actions = node('div','actions'), talk = node('button','primary','发起聊天'), edit = node('button','','编辑资料');
     talk.onclick = guard(async () => { if (busy) throw Error('请等待当前回复完成'); const contact = await api('/contacts','POST',{character_id:c.id}); await refreshContacts(); await openContact(contact); });
     edit.onclick = () => editCharacter(c);
     actions.append(talk,edit); card.append(top,node('p','identity-preview',c.identity || '身份尚未填写'),actions); el('characters').append(card);
   }
+  neighborhoodUI?.roster().catch(reportError);
 }
 function renderHeader() {
   el('title').textContent = (current.mode==='world'?'场景 · ':'')+(current.note || character()?.name || current.title);
@@ -140,6 +153,7 @@ function makeMessage(m) {
   if(m.role==='assistant')renderReply(bubble,m.content,m.chat_style||current?.chat_style,m.state==='generating');
   const visibleText=m.role==='assistant'?replyParts(m.content,m.chat_style||current?.chat_style).map(p=>p.text).join('\n\n'):m.content;
   const copy = node('button','','复制'); copy.type = 'button'; copy.onclick = guard(async () => { await copyText(visibleText); toast('已复制'); });
+  if(m.origin==='world_inbox')tools.append(node('small','',m.read_at?'人物已查看':'已送达 · 人物尚未查看'));
   tools.append(node('span','state',m.role==='user' ? ({generating:'正在生成',failed:'生成失败',cancelled:'已停止',interrupted:'上次生成中断',sending:'发送中',complete:'已发送'}[m.state] || '已发送') : (m.state&&m.state!=='complete'?({generating:'正在生成',failed:'部分回复 · 未完成',cancelled:'已停止 · 未完成',interrupted:'中断 · 未完成'}[m.state]||m.state):time(m.created_at))),copy);
   if(m.origin==='world_share'){
     tools.append(node('small','','主动分享'));
@@ -232,7 +246,7 @@ async function sendMessage(content, rid = requestId()) {
   const deadline=abortAfter(190000);
   const accepted=()=>{pending.state='generating';for(const row of el('messages').querySelectorAll('.message.user'))if(row.dataset.id===String(pending.id)){row.querySelector('.state').textContent='正在生成';row.querySelector('.retry')?.remove();}status('正在生成回复');};
   try {
-    if(mode==='local'){await (await localReady).stream(sid,pending.content,rid,(kind,data)=>{if(kind==='accepted'){liveStyle=data.chat_style||liveStyle;accepted();}if(kind==='memory-status')toast(data.message);if(kind==='delta'){const box=el('messages'),stick=box.scrollHeight-box.scrollTop-box.clientHeight<100;appendChunk(data.text);if(stick)box.scrollTop=box.scrollHeight;}if(kind==='complete')complete=true;});}
+    if(mode==='local'){await (await localReady).stream(sid,pending.content,rid,(kind,data)=>{if(kind==='accepted'){if(data.queued){live.remove();status('消息已送达，等待人物查看');}else{liveStyle=data.chat_style||liveStyle;accepted();}}if(kind==='memory-status')toast(data.message);if(kind==='delta'){const box=el('messages'),stick=box.scrollHeight-box.scrollTop-box.clientHeight<100;appendChunk(data.text);if(stick)box.scrollTop=box.scrollHeight;}if(kind==='complete')complete=true;});}
     else {
     diagnostics.rememberSecret(token);remoteLog=diagnostics.begin({source:'remote',session_id:sid,request_id:rid,context_omitted:'等待后端返回实际请求快照'});
     const response = await fetch(backend+`/api/v1/contacts/${sid}/stream`,{method:'POST',headers:headers(),body:JSON.stringify({message:pending.content,request_id:rid,capture_context:diagnostics.state.capture_context}),signal:deadline.signal});
@@ -350,6 +364,7 @@ async function exportBlob(blob,name){
   const url=URL.createObjectURL(blob),link=node('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 el('backup').onclick=guard(async()=>{const data=await api('/backup');await exportBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'t-chat-'+todayMonth()+'.json');toast('备份已导出');});
+const preUpgradeBackup=node('button','','导出小邻里升级前备份');preUpgradeBackup.onclick=guard(async()=>{const data=await api('/backup/pre-upgrade');await exportBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'t-before-neighborhood.json');toast('升级前备份已导出');});el('backup').after(preUpgradeBackup);
 async function restoreData(data){if(!confirm('恢复将替换当前数据源全部角色和记录。请先导出备份。继续恢复？'))return;await api('/backup/restore','POST',data);current=null;chatOpen=false;epoch++;await initialize();items=[];for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k.startsWith('t.'+(mode==='local'?'local':backend)+'.'))localStorage.removeItem(k);}app('settings');el('messages').replaceChildren();el('input').disabled=true;el('send').disabled=true;el('title').textContent='请选择联系人';el('backup-result').textContent='恢复成功；密钥保留当前设备配置';}
 el('restore').onchange=guard(async()=>{const file=el('restore').files[0];el('restore').value='';if(!file)return;if(file.size>20000000)throw Error('备份文件超过 20 MB');await restoreData(JSON.parse(await file.text()));});
 if(device){el('restore').closest('label').style.display='none';const importButton=node('button','','选择备份恢复');importButton.id='native-restore';importButton.onclick=guard(async()=>{if(busy)throw Error('请先停止生成再恢复');const file=await device.importFile();await restoreData(JSON.parse(file.data));});el('backup').after(importButton);}
@@ -368,7 +383,7 @@ mountDiagnostics({store:diagnostics,exportFile:exportBlob,report:e=>{reportError
   return api(`/contacts/${current.id}/context-preview`,'POST',{message:el('input').value});
 }});
 diagnosticsReady.then(()=>diagnostics.record('system','应用启动',{version:'0.16.0-trial',platform:native?'android':'browser'}));
-window.tGoBack=()=>{const dialog=last([...document.querySelectorAll('dialog[open]')]);if(dialog){if(dialog.dispatchEvent(new Event('cancel',{cancelable:true})))dialog.close();return true;}const phone=document.querySelector('.phone');if(phone.classList.contains('in-chat')){chatOpen=false;app('chat');return true;}if(activeApp!=='home'){app('home');return true;}return false;};
+window.tGoBack=()=>{const dialog=last([...document.querySelectorAll('dialog[open]')]);if(dialog){if(dialog.dispatchEvent(new Event('cancel',{cancelable:true})))dialog.close();return true;}const phone=document.querySelector('.phone');if(phone.classList.contains('in-chat')){chatOpen=false;app('chat',{back:true});return true;}if(activeApp!=='home'){returnScreen();return true;}return false;};
 async function refreshSettings(){
  prefs=await api('/settings');showPreferences();await preferences.refresh(prefs);
  await refreshContacts();if(current&&!busy){renderHeader();renderMessages();}
@@ -379,6 +394,7 @@ const chatSettings=mountChatSettings({api,isLocal:()=>mode==='local',isBusy:()=>
 const preferences=mountPreferences({api,localReady,isLocal:()=>mode==='local',isBusy:()=>busy,updated:refreshSettings,toast});
 archiveUI=mountArchiveUI({api,localReady,isLocal:()=>mode==='local',toast,report:e=>reportError(e,'档案操作失败'),editLooks:id=>worldUI.editLooks(id)});
 worldUI=mountWorldUI({api,localReady,isLocal:()=>mode==='local',toast,report:e=>reportError(e,'世界操作失败'),navigate:app,pickArchive:id=>archiveUI.pick(id),speak:(text,voice)=>speak(text,voice||prefs.voice),stopSpeech:()=>{if(device)device.stopSpeech().catch(()=>{});else window.speechSynthesis?.cancel();}});
+neighborhoodUI=mountNeighborhoodUI({api,localReady,isLocal:()=>mode==='local',navigate:app,goBack:returnScreen,worldUI,toast,report:e=>reportError(e,'小邻里操作失败')});
 memoryUI=mountMemoryUI({api,localReady,isLocal:()=>mode==='local',getCurrent:()=>current,toast,report:e=>reportError(e,'记忆操作失败'),openSource:async (id,owner)=>{
   if(id?.source_type==='world_event')return showWorldSource(api,id,owner);
  const {contact}=await api(`/memory-sources/${id}/location?owner=${encodeURIComponent(owner)}`);

@@ -79,5 +79,5 @@ export function mountSceneDialogue({api,localReady,getWorld,refresh,animate,spea
   el('world-dialogue-retry').onclick=safe(()=>failedTurn&&send(failedTurn.text,failedTurn.id));
   el('world-history-save').onclick=safe(async()=>{const raw=el('world-history-limit').value;session=await api('/contacts/'+session.id,'PATCH',{history_limit:raw===''?null:Number(raw)});toast('场景上下文设置已保存');});
   el('world-preview').onclick=safe(async()=>{const v=await api('/contacts/'+session.id+'/context-preview','POST',{message:el('world-input').value});el('world-preview-text').textContent=JSON.stringify(v.messages,null,2);});
-  return {open,reload:()=>session&&lines(),isBusy:()=>busy,close(){if(el('world-history-dialog').open)el('world-history-dialog').close();if(el('world-dialogue').open)el('world-dialogue').close();stopSpeech();}};
+  return {open,reload:()=>session&&lines(),isBusy:()=>busy,close(){if(el('world-history-dialog') instanceof HTMLDialogElement&&el('world-history-dialog').open)el('world-history-dialog').close();if(el('world-dialogue').open)el('world-dialogue').close();stopSpeech();}};
 }

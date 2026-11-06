@@ -52,7 +52,7 @@ export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toas
  function evidenceLinks(container,evidence,owner){for(const source of evidence){const b=button((source.source_type==='world_event'?'世界事件 #'+source.event_id:'原话 #'+source.message_id)+' · '+source.quote,()=>openSource(source.source_type==='world_event'?source:source.message_id,owner));b.classList.add('memory-source');container.append(b);}}
  function versions(item){const box=dialog('memory-versions','修改记录 · 最近十版');if(!item.versions?.length)box.append(node('p','','尚无旧版本'));for(const v of [...(item.versions||[])].reverse()){const card=node('article','card');card.append(node('small','',v.updated_at||v.created_at||''),node('p','memory-text',v.content||v.interpretation||''));if(v.evidence)evidenceLinks(card,v.evidence,item.owner_id);if(v.quote)card.append(node('blockquote','memory-text',v.quote));box.append(card);}}
  const openMonthly=mountMonthlyMemoryUI({api,isLocal,dialog,field,button,node,versions,openDaily,openSource,toast});
- async function refresh(which){if(!await available(which))return;const id=await owner(which);if(which==='memory')await renderMemories(id);else await renderSelf(id);}
+ async function refresh(which,requestedOwner){if(!await available(which))return;if(requestedOwner&&[...el(which+'-owner').options].some(o=>o.value===requestedOwner))el(which+'-owner').value=requestedOwner;const id=await owner(which);if(which==='memory')await renderMemories(id);else await renderSelf(id);}
  async function renderMemories(id){
   const rows=await api('/memories?owner='+encodeURIComponent(id)+'&q='+encodeURIComponent(el('memory-search').value)+(el('memory-room').value?'&room='+el('memory-room').value:''));const list=el('memory-list');list.replaceChildren();
   const rooms=await api('/memories/rooms?owner='+encodeURIComponent(id));el('memory-room-counts').textContent=rooms.map(r=>r.label+' '+r.count).join(' · ');
@@ -93,5 +93,5 @@ export function mountMemoryUI({api,localReady,isLocal,getCurrent,openSource,toas
  el('memory-extract').onclick=run(()=>extract());el('memory-day-extract').onclick=run(()=>{if(!el('memory-day').value)throw Error('请先选择日期');return extract(el('memory-day').value);});el('memory-daily').onclick=run(async()=>{if(!el('memory-day').value)throw Error('请先选择日期');await openDaily(await owner('memory'),el('memory-day').value);});
  el('self-analyze').onclick=run(async()=>{toast('正在分析名册，会调用模型…');await api('/self/analyze','POST',{owner_id:await owner('self')});await refresh('self');toast('名册分析完成，人工标签已保留');});
  for(const which of ['memory','self']){const stop=button('停止整理 / 分析',async()=>{const service=await localReady;if(service.auxTask)service.cancel();});stop.onclick=async()=>{const service=await localReady;if(service.auxTask){service.cancel();toast('已请求停止');}};el(which+'-tools').append(stop);}
- return {refresh:which=>run(()=>refresh(which))(),openDaily};
+ return {refresh:(which,requestedOwner)=>run(()=>refresh(which,requestedOwner))(),openDaily};
 }

@@ -10,8 +10,9 @@ import {mountOutfitStudio} from './outfit-studio-ui.js';
 import {mountClothingWorkbench} from './clothing-workbench-ui.js';
 const clone=v=>JSON.parse(JSON.stringify(v));
 const targets={body:[8,8,48,80],hair:[14,8,36,36],hat:[14,8,36,36],accessory:[24,44,16,20],top:[18,44,28,20],bottom:[24,64,16,24],shoes:[24,82,16,6]};
-export function mountOutfitWardrobe({api,report,toast,refresh}){
-  const box=document.createElement('dialog');box.id='outfit-wardrobe';box.className='world-panel outfit-wardrobe';
+export function mountOutfitWardrobe({api,report,toast,refresh,navigate}){
+  const box=document.createElement(navigate?'section':'dialog');box.id='outfit-wardrobe';box.className=navigate?'screen page outfit-wardrobe':'world-panel outfit-wardrobe';
+  if(navigate){box.hidden=true;box.showModal=()=>navigate('outfit-wardrobe');box.close=()=>{box.open=false;box.removeAttribute('open');window.dispatchEvent(new Event('t-back-screen'));};}
   box.innerHTML=`<header><h2>衣柜</h2><button class="wardrobe-close">× 关闭</button></header><div class="wardrobe-scroll">
     <label class="wardrobe-person-label">试穿人物<select class="wardrobe-person"></select></label><button class="wardrobe-body-open">编辑人物本体</button>
     <div class="wardrobe-dressing"><nav class="wardrobe-slots wardrobe-slots-left" aria-label="头部穿戴"></nav>
@@ -27,7 +28,7 @@ export function mountOutfitWardrobe({api,report,toast,refresh}){
     </section>
     <section class="wardrobe-sets" hidden><div class="wardrobe-set-list"></div><label>搭配名称<input class="wardrobe-set-name" maxlength="40" placeholder="例如：日常装"></label><button class="wardrobe-set-save">将当前穿搭存成一套</button><p>搭配共用衣物，每个人保留自己的适配。</p></section>
     </div><footer><p class="wardrobe-status" role="status"></p><button class="wardrobe-apply primary">穿好并应用到世界</button></footer>`;
-  document.body.append(box);const el=s=>box.querySelector(s);
+  (navigate?document.querySelector('.phone'):document.body).append(box);const el=s=>box.querySelector(s);
   let catalog,people=[],owner='user',kind='top',selected='',direction=0,timer=null,step=0,busy=false,editing='',page='clothes';
   const person=()=>catalog.people[owner],asset=()=>catalog.assets.find(a=>a.id===selected);
   const status=s=>el('.wardrobe-status').textContent=s;

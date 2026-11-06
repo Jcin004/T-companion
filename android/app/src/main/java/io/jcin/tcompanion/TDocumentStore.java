@@ -22,6 +22,7 @@ final class TDocumentStore extends SQLiteOpenHelper {
         db.execSQL("INSERT OR IGNORE INTO document_revision VALUES(1,0)");
         db.execSQL("CREATE TABLE IF NOT EXISTS document_lease(id INTEGER PRIMARY KEY, owner TEXT, expires INTEGER)");
         db.execSQL("CREATE TABLE IF NOT EXISTS look_assets(id TEXT PRIMARY KEY, data TEXT NOT NULL)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS upgrade_backups(id INTEGER PRIMARY KEY, data TEXT NOT NULL)");
         if(processStarted.compareAndSet(false,true))db.delete("document_lease",null,null);
         prepared=db;
         return db;
@@ -64,9 +65,14 @@ final class TDocumentStore extends SQLiteOpenHelper {
         try {
             try(Cursor c=db.rawQuery("SELECT revision FROM document_revision WHERE id=1",null)){c.moveToFirst();if(revision!=c.getLong(0))throw new IllegalStateException("数据版本已更新，请重新操作");}
             try(Cursor c=db.rawQuery("SELECT owner,expires FROM document_lease WHERE id=1",null)){if(c.moveToFirst()&&!owner.equals(c.getString(0))&&c.getLong(1)>System.currentTimeMillis())throw new IllegalStateException("居民正在推进，请稍后操作");}
+            JSONObject nextWorld=new JSONObject(value).optJSONObject("world");
+            if(nextWorld!=null&&nextWorld.optInt("version")==2){try(Cursor c=db.rawQuery("SELECT data FROM documents WHERE id=1",null)){if(c.moveToFirst()){String previous=c.getString(0);JSONObject oldWorld=new JSONObject(previous).optJSONObject("world");if(oldWorld!=null&&(oldWorld.optInt("version")==1||(oldWorld.optJSONObject("life")!=null&&oldWorld.getJSONObject("life").optInt("version")==1))){ContentValues backup=new ContentValues();backup.put("id",1);backup.put("data",previous);db.insertWithOnConflict("upgrade_backups",null,backup,SQLiteDatabase.CONFLICT_IGNORE);}}}}
             ContentValues row=new ContentValues();row.put("id",1);row.put("data",TLookAssets.encode(db,value,images));
             if(db.insertWithOnConflict("documents",null,row,SQLiteDatabase.CONFLICT_REPLACE)==-1)throw new java.io.IOException();
             db.execSQL("UPDATE document_revision SET revision=revision+1 WHERE id=1");db.setTransactionSuccessful();return revision+1;
         } finally { db.endTransaction(); }
+    }
+    synchronized JSONObject preUpgrade() throws Exception {
+        try(Cursor c=ready().rawQuery("SELECT data FROM upgrade_backups WHERE id=1",null)){JSONObject result=new JSONObject();if(c.moveToFirst())result.put("data",TLookAssets.decode(ready(),c.getString(0)));return result;}
     }
 }

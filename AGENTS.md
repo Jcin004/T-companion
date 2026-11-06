@@ -5,6 +5,7 @@
 ## 开始任务
 
 - 先读 `docs/PROJECT_CORE.md`，沿用已确认愿景、手机补算决定及逐文件代码复用要求；实验结果见 `docs/WORLD_PROBE.md`。
+- 当前迁入进度只维护 `docs/MIGRATION_PLAN.md`，不另建竞争计划；本阶段复用清单见 `config/neighborhood-sources.json`。
 - 先看 git 状态、当前分支和未提交修改，保护用户正在做的工作。
 - 阅读 `docs/CURRENT_ARCHITECTURE.md`、`GLOSSARY.md`；公开或分发还需看 `docs/PUBLICATION_AUDIT.md`。
 - 涉及 SullyOS 迁移、剧情记忆或线上消息改造时，先读 `docs/STORY_MEMORY_EXECUTION_PLAN.md`，区分已确认需求、实施建议和待定项。
