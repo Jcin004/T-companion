@@ -1,5 +1,13 @@
 # Third-party code and reference audit
 
+## 2026-11-06 isolated headless world experiment
+
+SullyOS `utils/worldHome/threads.ts` at `8035795e443579ead0f28d1dfe9d5a87ff0b232e`, copyright NMJ, is retained verbatim under `frontend/vendor/sullyos-world/` with its original Source-Available License 1.0. This adaptation uses the additional source-specific public secondary-modification permission reported by the user on 2026-11-01 (see the 3A entry below); the original license is not relabeled. Type-only imports are erased at build time. The original module handles DM creation/append/deduplication/read projection; adapter receipts and native persistence are outside vendor. No upstream characters, prompts, artwork, private accounts or hosted services are imported.
+
+A-Life SDK `eurusik/alife-sdk` at `b2328099cd8756d4c775255cdebbdf7fd132665d`, copyright 2026 Eugene Rusakov, MIT: original Clock, GOAPPlanner, GOAPAction, WorldState and IEntity files are retained under `frontend/vendor/alife-core/` with LICENSE. The hourly catch-up slicing and JSON state adapter are external; the original multi-day callback behavior is documented rather than silently patched. No engine or Node dependency is added.
+
+Per-file blobs, hashes, authors, licenses, dependencies and changes: `config/world-probe-sources.json`. Byte integrity is tested. Actual Android experiment results and scope: `docs/WORLD_PROBE.md`. Only debug native entrypoints are added; no product release is published by this experiment.
+
 ## 0.14.0 world presentation references
 
 `config/world-presentation-sources.json` records pinned SullyOS and float files inspected for expression portraits, skin sets and story parsing. These are design references only; no new third-party code or art is copied. SullyOS Source-Available License 1.0 is not an AGPL permission to redistribute its implementation. T-companion independently implements its own small interfaces and reuses its existing runtime modules and artwork. User-provided watermarked sprite examples are not bundled.

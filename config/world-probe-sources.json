@@ -1,0 +1,102 @@
+{
+  "reviewed_on": "2026-11-06",
+  "scope": "isolated headless integration experiment, no product release",
+  "files": [
+    {
+      "repository": "https://github.com/qegj567-cloud/SullyOS",
+      "commit": "8035795e443579ead0f28d1dfe9d5a87ff0b232e",
+      "path": "utils/worldHome/threads.ts",
+      "blob": "050be03b608d3f5997b872f515579ae66afd195d",
+      "local": "frontend/vendor/sullyos-world/utils/worldHome/threads.ts",
+      "changes": "none; original file retained; TypeScript compiled by esbuild outside vendor",
+      "license": "SullyOS Source-Available License 1.0; additional user-reported source-specific public secondary-modification permission recorded in THIRD_PARTY_NOTICES.md",
+      "sha256": "8f9c029df4487f71c6e23230a36fcc4307136622c03de5c9dec42c5ed250d5c5",
+      "author": "NMJ (SullyOS / 手抓糯米机)",
+      "dependencies": "Type-only WorldProfile/WorldThread/WorldChatMessage/WorldCharBeat; erased by esbuild. No runtime imports."
+    },
+    {
+      "repository": "https://github.com/qegj567-cloud/SullyOS",
+      "commit": "8035795e443579ead0f28d1dfe9d5a87ff0b232e",
+      "path": "LICENSE",
+      "blob": "f9c4d42a3af04c42cb011baaa963327faf88b7f3",
+      "local": "frontend/vendor/sullyos-world/LICENSE",
+      "changes": "none; original file retained; TypeScript compiled by esbuild outside vendor",
+      "license": "SullyOS Source-Available License 1.0; additional user-reported source-specific public secondary-modification permission recorded in THIRD_PARTY_NOTICES.md",
+      "sha256": "22d7d3dc310d2d44830e52b9d1b20e8da9765892f33a019180dcf87a551998ba",
+      "author": "NMJ (SullyOS / 手抓糯米机)",
+      "dependencies": "No runtime external imports."
+    },
+    {
+      "repository": "https://github.com/eurusik/alife-sdk",
+      "commit": "b2328099cd8756d4c775255cdebbdf7fd132665d",
+      "path": "LICENSE",
+      "blob": "4fe2dc13d9bbbf8610f30f402c317a7ab3283f14",
+      "local": "frontend/vendor/alife-core/LICENSE",
+      "changes": "none; original file retained; TypeScript compiled by esbuild outside vendor",
+      "license": "MIT",
+      "sha256": "69f55e362a820a99efed21ecadddd219dca72cd30f35c875516c62f04761c045",
+      "author": "Eugene Rusakov",
+      "dependencies": "No runtime external imports."
+    },
+    {
+      "repository": "https://github.com/eurusik/alife-sdk",
+      "commit": "b2328099cd8756d4c775255cdebbdf7fd132665d",
+      "path": "packages/alife-core/src/core/Clock.ts",
+      "blob": "b1feadb52b6ff6b400a4eac8616fb18861863d64",
+      "local": "frontend/vendor/alife-core/packages/alife-core/src/core/Clock.ts",
+      "changes": "none; original file retained; TypeScript compiled by esbuild outside vendor",
+      "license": "MIT",
+      "sha256": "490efcea9562922e6ab7530ea16a0d27db33c8eff10b7b7499f936550bfa77cf",
+      "author": "Eugene Rusakov",
+      "dependencies": "No runtime external imports."
+    },
+    {
+      "repository": "https://github.com/eurusik/alife-sdk",
+      "commit": "b2328099cd8756d4c775255cdebbdf7fd132665d",
+      "path": "packages/alife-core/src/ai/GOAPPlanner.ts",
+      "blob": "5e0a78b7c24997e5d021ae5c93c06435ab15093c",
+      "local": "frontend/vendor/alife-core/packages/alife-core/src/ai/GOAPPlanner.ts",
+      "changes": "none; original file retained; TypeScript compiled by esbuild outside vendor",
+      "license": "MIT",
+      "sha256": "5104ff0808b9493ac4663c1d7fcbefe2ad973ed10aba809ce1cb5fa31f01ccd2",
+      "author": "Eugene Rusakov",
+      "dependencies": "GOAPAction and WorldState retained; IEntity type-only."
+    },
+    {
+      "repository": "https://github.com/eurusik/alife-sdk",
+      "commit": "b2328099cd8756d4c775255cdebbdf7fd132665d",
+      "path": "packages/alife-core/src/ai/GOAPAction.ts",
+      "blob": "afec7ac25eb78808d4fed7d59773545366debbad",
+      "local": "frontend/vendor/alife-core/packages/alife-core/src/ai/GOAPAction.ts",
+      "changes": "none; original file retained; TypeScript compiled by esbuild outside vendor",
+      "license": "MIT",
+      "sha256": "32421820579f02e66bd53a2f9c8221b0547fc37b538b2ee4b171f895968d14e8",
+      "author": "Eugene Rusakov",
+      "dependencies": "WorldState and IEntity type-only; erased by esbuild."
+    },
+    {
+      "repository": "https://github.com/eurusik/alife-sdk",
+      "commit": "b2328099cd8756d4c775255cdebbdf7fd132665d",
+      "path": "packages/alife-core/src/ai/WorldState.ts",
+      "blob": "8d6c4dc117e68aae740db0afe33dbef02f74cead",
+      "local": "frontend/vendor/alife-core/packages/alife-core/src/ai/WorldState.ts",
+      "changes": "none; original file retained; TypeScript compiled by esbuild outside vendor",
+      "license": "MIT",
+      "sha256": "50c7bcba75f50aaf65db2617fc1d6ed04927b811137fb0d457fd537a2592697b",
+      "author": "Eugene Rusakov",
+      "dependencies": "No runtime external imports."
+    },
+    {
+      "repository": "https://github.com/eurusik/alife-sdk",
+      "commit": "b2328099cd8756d4c775255cdebbdf7fd132665d",
+      "path": "packages/alife-core/src/entity/IEntity.ts",
+      "blob": "4537c3d886fa33d48e334a86f04ef722e0d2f16b",
+      "local": "frontend/vendor/alife-core/packages/alife-core/src/entity/IEntity.ts",
+      "changes": "none; original file retained; TypeScript compiled by esbuild outside vendor",
+      "license": "MIT",
+      "sha256": "6edc1d2e10330325375b178378c480428f58a165af0953d95397cfaff2f9fa94",
+      "author": "Eugene Rusakov",
+      "dependencies": "No runtime external imports."
+    }
+  ]
+}

@@ -25,3 +25,5 @@ vendor/** -text -whitespace
 # Retain original GPL source/fragment bytes and upstream whitespace.
 frontend/vendor/lpc/** -text -whitespace
 frontend/vendor/fashion-sense/** -text -whitespace
+frontend/vendor/sullyos-world/** -text -whitespace
+frontend/vendor/alife-core/** -text -whitespace

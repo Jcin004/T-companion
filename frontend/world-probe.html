@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>世界通信实验</title>
+<style>body{margin:0;padding:24px;background:#f5f1e8;color:#243b36;font:17px/1.7 sans-serif}h1{font-size:25px;margin-bottom:4px}.note{color:#63736c;font-size:14px}article{background:white;border-radius:16px;padding:18px;margin:18px 0}p{margin:8px 0}#error{color:#a22}button{background:#285b4e;color:white;border:0;border-radius:12px;padding:12px 20px;font-size:16px}pre{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}</style>
+<h1>世界通信实验</h1><p class="note">SullyOS 原始线程模块 · Android 无界面执行</p>
+<p id="status">正在读取已保存结果…</p><div id="error" role="alert"></div><main id="messages"></main>
+<button id="reload">重新读取</button><p class="note">这里只读取本机结果，不生成消息、不调用模型。</p>
+<details><summary>查看验证数据</summary><pre id="details"></pre></details>
+<script>
+function read(){
+ const error=document.querySelector('#error');error.textContent='';
+ try{
+  if(!window.Probe)throw Error('此页面仅供 Android 隔离实验使用');
+  const result=JSON.parse(Probe.read());if(result.error)throw Error(result.error);
+  document.querySelector('#status').textContent='已保存 · 世界版本 '+result.snapshot.worldVersion+' · 存储版本 '+result.revision;
+  const container=document.querySelector('#messages');container.textContent='';
+  for(const thread of result.snapshot.threads){const card=document.createElement('article');const title=document.createElement('strong');title.textContent='林与雨的私信';card.append(title);for(const m of thread.messages){const p=document.createElement('p');p.textContent=m.fromName+'：'+m.text;card.append(p);}container.append(card);}
+  document.querySelector('#details').textContent=JSON.stringify(result,null,2);window.probeSnapshot=result;
+ }catch(e){document.querySelector('#status').textContent='读取失败';error.textContent=e.message;window.probeSnapshot=null;}
+}
+document.querySelector('#reload').onclick=read;read();
+</script></html>
