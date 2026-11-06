@@ -18,6 +18,7 @@ android/.gradle/
 android/local.properties
 android/**/build/
 android/app/src/main/assets/resident/
+android/app/src/debug/assets/world-probe/
 dist/
 artifacts/
 frontend/piskel-connected-fill.js

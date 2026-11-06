@@ -1,0 +1,1 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application><activity android:name=".WorldProbeActivity" android:exported="true" android:label="世界通信实验" /></application></manifest>
