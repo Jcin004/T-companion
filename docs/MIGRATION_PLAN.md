@@ -38,4 +38,10 @@ Android 沿用 QuickJS、WorkManager、SQLite。写入短租约重读/CAS，模�
 
 最终构建、源码匹配和原签名升级复核后，发布0.25.0-trial/code38；产品 PR 保持草稿。发布提交、附件与最终结果追加在本文。
 
+2026-11-07 已交付：[0.25.0-trial](https://github.com/Jcin004/T-companion-updates/releases/tag/android-v0.25.0)，code38，源码 f28d87773aa8e792cfe75fc9093133a41cb3501c。原签名 APK 80,502,114 字节，SHA-256 fd6d00b81c53077dea3053a76029a9cfeaf4e2c0267242f7e60fc408c18ea451。七项附件的服务器摘要与本地文件一致，匿名 APK HEAD200，main/t-update.json 与交付清单一致。
+
+本次完整源码压缩包在无Git目录 npm ci --offline、npm run build 成功；[源码 CI](https://github.com/Jcin004/T-companion/actions/runs/42317756204) 的测试、密钥扫描和Android构建全部通过。安装的原签名0.24默认原生检查发现本版本，available 的版本、源码与SHA-256一致；覆盖后的0.25默认检查报告最新。强制Worker、独立额度和旧WebView结果见上文；本批没有真实模型/真机验收。
+
+[草稿PR43](https://github.com/Jcin004/T-companion/pull/43) 保持未合并。后续仅记录交付的文档提交不会改变本安装包对应的源码提交。
+
 后续顺序遵循 PROJECT_CORE；本阶段未完成 float 插件/App、完整 SullyOS 家园演绎或常驻全自主。
