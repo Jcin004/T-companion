@@ -62,7 +62,7 @@ export function mountNeighborhoodUI({api,localReady,isLocal,navigate,goBack,worl
       const id=card.dataset.characterId;card.querySelector('.resident-status')?.remove();if(!world.state.residents.includes(id))continue;
       const status=node('div');status.className='resident-status';const p=world.state.positions[id],location=world.state.locations.find(r=>r.id===(p.location_id||'warm-room'));
       const activity=life.activities[id],schedule=life.schedules[id];status.append(node('p',location.name+' · '+(life.plan_errors[id]||({travel:'正在前往下一地点',blocked:'等待可用位置',activity:({read:'读书',rest:'休息',sleep:'睡眠',walk:'散步',water:'照看盆栽',wait:'停留'})[activity?.activity]})[activity?.phase]||(schedule?.state==='complete'?'上次计划已完成 · 待安排':schedule?.state==='blocked'?'活动受阻 · 待重新安排':schedule?.title)||'待安排')));
-      status.append(button('查看手机',()=>navigate('resident-phone',{owner:id})),button('生活安排',()=>navigate('resident-plan',{owner:id})));card.append(status);
+      status.append(button('查看手机',()=>navigate('resident-phone',{owner:id})),button('生活安排',()=>navigate('resident-plan',{owner:id})),button('人物形象',()=>worldUI.editLooks(id)));card.append(status);
     }
   }
   function desktop(){

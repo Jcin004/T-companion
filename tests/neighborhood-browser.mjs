@@ -39,5 +39,11 @@ try{
  await page.locator('#home-button').tap();await app('wardrobe');await page.locator('#outfit-wardrobe').waitFor();
  await page.locator('#outfit-wardrobe .wardrobe-close').tap();await page.locator('#home').waitFor();
  await app('world-history-dialog');await page.locator('#world-history-dialog').waitFor();
- assert.deepEqual(errors,[]);console.log('PASS: separate desktop/world/phone/wardrobe/records, long messages, large text, observer does not read');
+ assert.deepEqual(errors,[]);
+ const failedContext=await browser.newContext({viewport:{width:390,height:844}}),failed=await failedContext.newPage();
+ await failed.route('**/chat/completions',route=>route.fulfill({status:503,headers:{'access-control-allow-origin':'*'},body:'fixture model unavailable'}));
+ await failed.goto(process.env.T_TEST_URL||'http://127.0.0.1:8014');await failed.waitForFunction(()=>document.querySelector('#status')?.textContent==='记录保存在本机');
+ await failed.evaluate(async()=>{const {BrowserPersistence,emptyData}=await import('/assets/local-service.js');const store=new BrowserPersistence(),data=emptyData();await store.load();data.characters=['a','b'].map((id,i)=>({id,name:['林','雨'][i],identity:'',style:'',avatar:''}));data.settings.model='mock';data.settings.base_url='https://fixture.invalid/v1';await store.save(data);});
+ await failed.reload();await failed.waitForFunction(()=>document.querySelector('#status')?.textContent==='记录保存在本机');await failed.locator('.app-grid [data-app="world"]').click();await failed.getByRole('button',{name:'入驻并安排生活（使用模型）'}).click();await failed.locator('#world-play').waitFor();assert.equal(await failed.locator('#world-setup select').count(),0);await failed.locator('#home-button').click();await failed.locator('.app-grid [data-app="roster"]').click();await failed.waitForFunction(()=>document.querySelector('.resident-status')?.textContent.includes('请求结果不确定'));
+ await failedContext.close();console.log('PASS: independent pages, long/large text, read-only observer, atomic backup, failed onboarding still opens saved world');
 }finally{await browser.close();}

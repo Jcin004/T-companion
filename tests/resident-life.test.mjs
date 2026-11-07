@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {LocalService,emptyData,validateBackup} from '../frontend/local-service.js';
-import {ensureLife,beginLifeRun,nextLifeJob,reserveLifeRequest,lifePrompt,recordLifeResponse,applyLifeResponse,resumeLifeRun,lifeTime,advanceResidentRules,acceptResidentPlan,wakeResident} from '../frontend/resident-life-core.js';
+import {ensureLife,beginLifeRun,nextLifeJob,reserveLifeRequest,lifePrompt,recordLifeResponse,applyLifeResponse,resumeLifeRun,lifeTime,advanceResidentRules,acceptResidentPlan,wakeResident,deferLifeRun} from '../frontend/resident-life-core.js';
 import {worldSource} from '../frontend/world-core.js';
 import {phoneSnapshot,readCharacterPhone,sendCharacterMessage} from '../frontend/world-communication.js';
 const at='2026-11-07T01:00:00.000Z',time={iso:at,day:'2026-11-07',hour:9};
@@ -107,4 +107,9 @@ test('a full day without any user turn has rule activities and independently aut
  for(const owner of d.world.residents)acceptResidentPlan(d,owner,{title:'一天的安排',steps:[{location_id:'courtyard',activity:'walk',duration_minutes:360},{location_id:'common-room',activity:'rest',duration_minutes:360},{location_id:'warm-room',activity:'sleep',duration_minutes:360},{location_id:'courtyard',activity:'wait',duration_minutes:360}]},'day_'+owner,at);
  wakeResident(d,'a','encounter','day-start');beginLifeRun(d,'day-social',time);let job=nextLifeJob(d,'day-social',time);assert.equal(job.owner_id,'a');reply(d,job,{actor_id:'a',messages:[{to_id:'b',text:'我准备先去庭院散步。'}]});job=nextLifeJob(d,'day-social',time);assert.equal(job.owner_id,'b');reply(d,job,{actor_id:'b',messages:[{to_id:'a',text:'好，我也有自己的安排。'}]});
  d.world.life.settings.daily_requests=0;const before=d.world.events.length;advanceResidentRules(d,'2026-11-08T01:00:00.000Z');assert.ok(d.world.events.length>before+10);assert.equal(d.messages.length,0);assert.equal(d.turns.length,0);assert.equal(requests.length,0);assert.equal(d.world.communication.threads.find(t=>t.kind==='dm').messages.length,2);assert.doesNotThrow(()=>validateBackup(structuredClone(d)));
+});
+test('user chat is independent of autonomous quota and offline decisions stay queued without charging',async()=>{
+ const {s}=await fixture();seed(s.data);await s.api('/world-life/settings','POST',{daily_requests:0});const contact=await s.api('/contacts','POST',{character_id:'a'});await s.stream(contact.id,'现在方便说话吗？','separate-budget',()=>{});
+ const d=s.data;beginLifeRun(d,'offline-user',time);let job=nextLifeJob(d,'offline-user',time);assert.equal(job.request_origin,'user_chat');deferLifeRun(d,'offline-user',time,'network');assert.equal(d.world.life.daily.requests,0);assert.equal(d.world.life.wakeups.find(w=>w.key===job.wake_key).state,'pending');
+ beginLifeRun(d,'online-user',time);job=nextLifeJob(d,'online-user',time);reply(d,job,{actor_id:'a',messages:[{to_id:'user',text:'现在可以。'}]});assert.equal(d.world.life.daily.requests,0);assert.equal(d.world.life.runs.find(r=>r.id==='online-user').user_requests,1);assert.equal(d.world.life.runs.find(r=>r.id==='online-user').requests,0);assert.equal(nextLifeJob(d,'online-user',time),null);assert.equal(d.messages.length,2);
 });

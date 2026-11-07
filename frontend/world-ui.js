@@ -61,7 +61,7 @@ export function mountWorldUI({api,localReady,isLocal,toast,report,navigate,speak
       el('world-notice').textContent='从人物名册选择两到三位居民，进入小邻里。';const people=await api('/characters');
       if(people.length<2){el('world-setup').append(button('打开人设名册',()=>navigate('roster')));return;}
       const selects=Array.from({length:Math.min(3,people.length)},(_,i)=>{const s=node('select');s.id='world-resident-'+i;people.forEach(p=>s.append(new Option(p.name,p.id)));s.selectedIndex=i;const label=node('label','居民 '+(i+1));label.append(s);el('world-setup').append(label);return s;});
-      el('world-setup').append(button('入驻并安排生活（使用模型）',async()=>{await api('/world/setup','POST',{character_ids:selects.map(s=>s.value)});await api('/world-life/settings','POST',{enabled:true});await api('/world-life/run','POST',{request_id:uid()});await refresh();}));return;
+      el('world-setup').append(button('入驻并安排生活（使用模型）',async()=>{await api('/world/setup','POST',{character_ids:selects.map(s=>s.value)});await api('/world-life/settings','POST',{enabled:true});try{await api('/world-life/run','POST',{request_id:uid()});}finally{await refresh();}}));return;
     }
     if(!light){const actor=el('world-actor'),chosen=actor.value;actor.replaceChildren(...[['user','我'],...world.residents.map(r=>[r.id,r.name])].map(([id,name])=>new Option(name,id)));if(world.state.positions[chosen])actor.value=chosen;await lifeUI.refresh();await settings();}
     el('world-time').textContent=world.room.name+' · '+world.state.residents.length+' 位居民';

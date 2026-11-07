@@ -64,7 +64,7 @@ export function beginLifeRun(data,id,time,origin='foreground'){
 function queueJob(data,run,kind,owner,extra={}){
   const l=ensureLife(data),j={id:'life_'+(++l.sequence),run_id:run.id,kind,owner_id:owner,state:'prepared',world_revision:data.world.tick,owner_revision:l.owner_revisions?.[owner]||0,...copy(extra)};l.jobs.push(j);return j;
 }
-function closeRun(l,r,time,reason){r.state='complete';r.finished_at=time.iso;r.reason=reason;l.next_at=new Date(Date.parse(time.iso)+(l.catching_up?1000:l.settings.interval_minutes*60000)).toISOString();return null;}
+function closeRun(l,r,time,reason){r.state='complete';r.finished_at=time.iso;r.reason=reason;const inbox=reason!=='network'&&l.wakeups.some(w=>w.state==='pending'&&w.request_origin==='user_chat'&&l.activities[w.owner_id]?.activity!=='sleep');l.next_at=new Date(Date.parse(time.iso)+(l.catching_up||inbox?1000:l.settings.interval_minutes*60000)).toISOString();return null;}
 export function deferLifeRun(data,id,time,reason){const l=ensureLife(data),r=l.runs.find(r=>r.id===id);if(!r)throw Error('居民批次不存在');for(const j of l.jobs.filter(j=>j.run_id===id&&j.state==='prepared')){j.state='skipped';j.reason=reason;const wake=l.wakeups.find(w=>w.key===j.wake_key);if(wake)wake.state='pending';}return closeRun(l,r,time,reason);}
 export function nextLifeJob(data,id,time){
   const l=ensureLife(data),r=l.runs.find(r=>r.id===id);if(!r)throw Error('居民批次不存在');
@@ -74,6 +74,15 @@ export function nextLifeJob(data,id,time){
   if(!l.catching_up)advanceResidentRules(data,time.iso,time.iso);
   if(l.catching_up)return closeRun(l,r,time,'catching_up');
   if(l.daily.day!==time.day)l.daily={day:time.day,requests:0};
+  // User chat keeps its own request accounting even when autonomous quota is zero.
+  // One inbox wake per owner per batch bounds concurrent user arrivals.
+  for(const owner of data.world.residents){const inbox=data.messages.filter(m=>m.origin==='world_inbox'&&m.source_owner_id===owner&&!m.read_at&&!m.deleted_at);if(inbox.length)wakeResident(data,owner,'user_message','inbox_'+owner+'_'+inbox[inbox.length-1].id,{request_origin:'user_chat',inbox_ids:inbox.map(m=>m.id)});}
+  const inboxWake=l.wakeups.find(w=>w.state==='pending'&&w.request_origin==='user_chat'&&!(r.user_owners||[]).includes(w.owner_id)&&l.activities[w.owner_id]?.activity!=='sleep');
+  if(inboxWake){
+    const owner=inboxWake.owner_id;for(const m of data.messages)if(inboxWake.inbox_ids.includes(m.id)&&!m.deleted_at)m.read_at=time.iso;
+    readCharacterPhone(data,owner,time.iso);r.user_owners=[...(r.user_owners||[]),owner];inboxWake.state='processing';
+    return copy(queueJob(data,r,'decision',owner,{reason:'user_message',request_origin:'user_chat',inbox_ids:inboxWake.inbox_ids,wake_key:inboxWake.key}));
+  }
   if(r.requests>=r.limits.max_requests||l.daily.requests>=l.settings.daily_requests)return closeRun(l,r,time,'budget');
   if(r.queue.length){const q=r.queue.shift();return copy(queueJob(data,r,q.kind,q.owner_id,q));}
   for(const owner of data.world.residents)if(!l.schedules[owner]&&!l.plan_errors[owner])return copy(queueJob(data,r,'plan',owner));
@@ -111,8 +120,10 @@ export function reserveLifeRequest(data,id,time,prompt){
   if(!j||j.state!=='prepared'||r?.state!=='running')throw Error('任务不可再次发送');
   if(['plan','decision'].includes(j.kind)&&(j.world_revision!==data.world.tick||j.owner_revision!==(l.owner_revisions?.[j.owner_id]||0)))throw Error('请求前世界处境已变化，请重新安排');
   if(l.daily.day!==time.day)l.daily={day:time.day,requests:0};
-  if(l.daily.requests>=l.settings.daily_requests||r.requests>=r.limits.max_requests)throw Error('居民模型请求额度已用完');
-  j.state='requesting';j.requested_at=time.iso;j.prompt=copy(prompt);l.daily.requests++;r.requests++;
+  const userChat=j.request_origin==='user_chat';
+  if(!userChat&&(l.daily.requests>=l.settings.daily_requests||r.requests>=r.limits.max_requests))throw Error('居民模型请求额度已用完');
+  j.state='requesting';j.requested_at=time.iso;j.prompt=copy(prompt);
+  if(userChat)r.user_requests=(r.user_requests||0)+1;else{l.daily.requests++;r.requests++;}
 }
 export function recordLifeResponse(data,id,result,time){
   const j=ensureLife(data).jobs.find(j=>j.id===id);if(j?.state!=='requesting')throw Error('任务响应已过期');
