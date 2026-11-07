@@ -1,4 +1,4 @@
-import {readFile,writeFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import './build-life-rules.mjs';
 import {build} from 'esbuild';
 import {execFileSync} from 'node:child_process';
@@ -36,6 +36,7 @@ source=source.replace(/\s+onPick=\{onEditContent \? m => setEditing\([^\n]+\) : 
 source=source.replace(/\{onEditContent && <span[^\n]+<\/span>\}/g,'');
 source=source.replace(/text-\[(?:[0-9.]+)px\]/g,'text-[16px]');
 source=source.replace(/text-white\/\d+/g,'text-reader-muted').replace(/text-slate-800/g,'text-reader-ink');
+await mkdir('artifacts',{recursive:true});
 await writeFile('artifacts/resident-phone-adapted.tsx',source);
 await build({stdin:{contents:source,resolveDir:process.cwd()+'/scripts',loader:'tsx',sourcefile:'resident-phone-adapted.tsx'},bundle:true,format:'esm',platform:'browser',target:'es2019',outfile:'frontend/resident-phone-renderer.js',define:{'process.env.NODE_ENV':'"production"'},legalComments:'inline'});
 execFileSync(process.execPath,['node_modules/tailwindcss/lib/cli.js','-i','scripts/resident-phone-tailwind.css','-c','scripts/resident-phone-tailwind.config.cjs','-o','frontend/resident-phone-utilities.css','--minify'],{stdio:'inherit'});
