@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {acquire} from './resident-lock.js';
-import {ensureLife,validateLife,lifeTime,beginLifeRun,nextLifeJob,lifePrompt,reserveLifeRequest,recordLifeResponse,applyLifeResponse,failLifeJob,resumeLifeRun} from './resident-life-core.js';
+import {ensureLife,validateLife,lifeTime,beginLifeRun,nextLifeJob,lifePrompt,reserveLifeRequest,recordLifeResponse,applyLifeResponse,failLifeJob,resumeLifeRun,advanceResidentRules,acceptResidentPlan,wakeResident} from './resident-life-core.js';
 import {parseModelObject} from './model-json.js';
 export class ResidentLifeService {
   constructor(host){this.host=host;this.cancelled=false;}
@@ -42,10 +42,13 @@ export class ResidentLifeService {
   async api(path,method,body={}){
     const part=new URL(path,'https://local').pathname.split('/')[2];
     if(method==='GET')return JSON.parse(JSON.stringify(ensureLife(this.host.data)));
+    if(part==='tick')return this.host.transact(d=>{ensureLife(d);if(body.target_at)throw Error('世界按现实时间推进，不接受界面改写时间');return advanceResidentRules(d,new Date().toISOString(),new Date().toISOString());});
+    if(part==='plan')return this.host.transact(d=>{ensureLife(d);const result=acceptResidentPlan(d,body.owner_id,body.plan,body.request_id,new Date().toISOString());validateLife(d);return result;});
+    if(part==='retry-plan')return this.host.transact(d=>{const l=ensureLife(d);if(!d.world.residents.includes(body.owner_id))throw Error('人物尚未入驻');delete l.plan_errors[body.owner_id];if(l.schedules[body.owner_id])wakeResident(d,body.owner_id,'replan','retry_'+body.request_id);return {ok:true};});
     if(part==='run')return this.run(body.request_id||('batch_'+Date.now().toString(36)));
     if(part==='resume')return this.run(body.run_id,true,body.skip_uncertain===true);
     if(part==='cancel'){this.cancelled=true;this.host.cancel();return this.host.transact(d=>{const l=ensureLife(d);l.settings.enabled=false;for(const r of l.runs)if(r.state==='running')r.state='paused';});}
-    if(part==='settings')return this.host.transact(d=>{const l=ensureLife(d);l.settings={...l.settings,...body};validateLife(d);return l.settings;});
+    if(part==='settings')return this.host.transact(d=>{const l=ensureLife(d);if(!l.settings.enabled&&body.enabled){const now=Date.now(),shift=Math.max(0,now-Date.parse(l.simulated_at));for(const p of Object.values(l.schedules))p.next_at=new Date(Date.parse(p.next_at)+shift).toISOString();for(const a of Object.values(l.activities)){a.ends_at=new Date(Date.parse(a.ends_at)+shift).toISOString();if(a.started_at)a.started_at=new Date(Date.parse(a.started_at)+shift).toISOString();}l.simulated_at=new Date(now).toISOString();}l.settings={...l.settings,...body};validateLife(d);return l.settings;});
     throw Error('不支持的居民生活操作');
   }
 }

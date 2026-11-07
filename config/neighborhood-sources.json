@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-11-07",
+  "existing_sources": "config/world-probe-sources.json (SullyOS threads; A-Life Clock, GOAPPlanner, WorldState, GOAPAction, IEntity and licenses); existing Alicization Town pathfinding adaptation remains in place",
+  "files": [
+    {
+      "repository": "https://github.com/eurusik/alife-sdk",
+      "commit": "b2328099cd8756d4c775255cdebbdf7fd132665d",
+      "path": "packages/alife-simulation/src/npc/Schedule.ts",
+      "blob": "76dcc74cee70212deb1f526cd26ca59b5ea7a8e3",
+      "author": "Eugene Rusakov",
+      "license": "MIT; frontend/vendor/alife-core/LICENSE",
+      "local": "frontend/vendor/alife-core/Schedule.ts",
+      "sha256": "02a51e331d52a1f24030e8fba95106e93f796b041b659e0e975e4b934e2bd429",
+      "retained": "entire original file, unchanged",
+      "dependencies": "Type-only Vec2; erased by esbuild",
+      "adapter": "resident-plans selects each accepted waypoint; activity due times, occupancy and finite completion remain in T's world command boundary. Upstream looping schedule does not silently repeat a completed finite plan."
+    },
+    {
+      "repository": "https://github.com/qegj567-cloud/SullyOS",
+      "commit": "8035795e443579ead0f28d1dfe9d5a87ff0b232e",
+      "path": "apps/WorldHomeApp.tsx",
+      "blob": "a900d39b96a375864bc608b2918b92c8c1d3a04b",
+      "author": "NMJ (手抓糯米机) and SullyOS contributors",
+      "license": "SullyOS Source-Available 1.0; frontend/vendor/sullyos-world/LICENSE; additional source-specific public second-modification grant recorded in THIRD_PARTY_NOTICES.md",
+      "local": "frontend/vendor/sullyos-world/thread-bubbles.inc.tsx",
+      "sha256": "fa5c66dcc775cbdedec21d63139a2ccb0929b9b115a6bc9a6873e2ac8160eefe",
+      "retained": "original lines 188-233 inclusive: ThreadBubbles; unchanged excerpt",
+      "dependencies": "React; TokenImg adapter; type-only world/character types",
+      "adapter": "build-resident-phone wraps the real component; increases text to 16px minimum, disables editing, replaces TokenImg with the existing T avatar URL. Vendor excerpt remains unchanged."
+    },
+    {
+      "repository": "https://github.com/qegj567-cloud/SullyOS",
+      "commit": "8035795e443579ead0f28d1dfe9d5a87ff0b232e",
+      "path": "apps/WorldHomeApp.tsx",
+      "blob": "a900d39b96a375864bc608b2918b92c8c1d3a04b",
+      "author": "NMJ (手抓糯米机) and SullyOS contributors",
+      "license": "SullyOS Source-Available 1.0; retained license and source-specific grant as above",
+      "local": "frontend/vendor/sullyos-world/phone-state.inc.tsx",
+      "sha256": "92bb87d7e36b7ca5dfb95c9d865c130de4800964c549b1edec2e7e25fd1c9c61",
+      "retained": "original lines 249-254 inclusive: PhoneModal thread/contact selection; unchanged excerpt",
+      "dependencies": "React useState; original dmThreadsOf/groupThreadOf; T projected snapshot",
+      "adapter": "external build wrapper removes unused latestBeat/episodes line. No upstream global context or episode database is imported."
+    },
+    {
+      "repository": "https://github.com/qegj567-cloud/SullyOS",
+      "commit": "8035795e443579ead0f28d1dfe9d5a87ff0b232e",
+      "path": "apps/WorldHomeApp.tsx",
+      "blob": "a900d39b96a375864bc608b2918b92c8c1d3a04b",
+      "author": "NMJ (手抓糯米机) and SullyOS contributors",
+      "license": "SullyOS Source-Available 1.0; retained license and source-specific grant as above",
+      "local": "frontend/vendor/sullyos-world/phone-messages.inc.tsx",
+      "sha256": "ebdfcfe0075862646025d91c1462588f64ffcc948f8d05b44a131fcc371ab772",
+      "retained": "original lines 428-504 inclusive: PhoneModal DM/contact/group JSX; unchanged excerpt",
+      "dependencies": "React, CaretRight from @phosphor-icons/react, ThreadBubbles, T read-only projections",
+      "adapter": "single React root per page; full-screen reader instead of nested phone chrome; original folding and contact navigation retained. Editing onPick and editing hint removed externally; tabs/header/navigation are T shell adapters. Tailwind utilities scoped to .resident-phone-reader; no global preflight."
+    }
+  ],
+  "runtime_dependencies": [
+    {"package":"react","version":"18.2.0","author":"Meta Platforms and contributors","license":"MIT","license_file":"frontend/licenses/react-MIT.txt"},
+    {"package":"react-dom","version":"18.2.0","author":"Meta Platforms and contributors","license":"MIT","license_file":"frontend/licenses/react-dom-MIT.txt"},
+    {"package":"scheduler","version":"0.23.2","author":"Meta Platforms and contributors","license":"MIT","license_file":"frontend/licenses/scheduler-MIT.txt"},
+    {"package":"@phosphor-icons/react","version":"2.1.10","author":"Phosphor Icons contributors","license":"MIT","license_file":"frontend/licenses/phosphor-icons-MIT.txt"}
+  ],
+  "build_dependencies": [{"package":"tailwindcss","version":"3.4.17","author":"Tailwind Labs and contributors","license":"MIT","license_file":"frontend/licenses/tailwindcss-MIT.txt"}],
+  "not_imported": "SullyOS global Context, DB, model/episode loop, private presets, NPC identities; float remains the next independently scoped migration, not part of this batch"
+}

@@ -34,11 +34,15 @@ final class TResidentEngine implements AutoCloseable {
         return new JSONObject().put("iso",iso.format(date)).put("day",day.format(date)).put("hour",c.get(Calendar.HOUR_OF_DAY));
     }
     private JSONObject reduce(String op,JSONObject args,boolean persist) throws Exception {
-        args.put("time",time());
-        String code="JSON.stringify(ResidentRules.command("+data.toString()+","+JSONObject.quote(op)+","+args.toString()+"))";
-        JSONObject output=new JSONObject((String)js.evaluate(code));
-        if(persist){JSONObject next=output.getJSONObject("data");syncMemory(next);revision=store.save(next.toString(),revision,lease);data=next;}
-        return output;
+        if(persist&&!store.acquire(lease))throw new IllegalStateException("前台正在保存，请稍后推进");
+        try {
+            if(persist){JSONObject durable=store.read();revision=durable.getLong("revision");data=new JSONObject(durable.getString("data"));}
+            args.put("time",time());
+            String code="JSON.stringify(ResidentRules.command("+data.toString()+","+JSONObject.quote(op)+","+args.toString()+"))";
+            JSONObject output=new JSONObject((String)js.evaluate(code));
+            if(persist){JSONObject next=output.getJSONObject("data");if(!data.getJSONObject("memory").toString().equals(next.getJSONObject("memory").toString()))syncMemory(next);revision=store.save(next.toString(),revision,lease);data=next;}
+            return output;
+        } finally {if(persist)store.release(lease);}
     }
     private void syncMemory(JSONObject next) throws Exception {
         TMemoryEngine.execute(context,new JSONObject().put("action","sync").put("records",next.getJSONObject("memory").getJSONArray("events")).toString());
@@ -54,7 +58,6 @@ final class TResidentEngine implements AutoCloseable {
         if(!running.compareAndSet(false,true))throw new IllegalStateException("居民批次正在执行");
         cancelled=false;
         try {
-            if(!store.acquire(lease))throw new IllegalStateException("前台正在保存，请稍后推进");
             JSONObject snapshot=store.read();revision=snapshot.getLong("revision");data=new JSONObject(snapshot.getString("data"));
             JSONArray turns=data.getJSONArray("turns");for(int i=0;i<turns.length();i++)if(turns.getJSONObject(i).optString("state").equals("generating"))throw new IllegalStateException("前台对话正在生成");
             reduce("attempt",new JSONObject().put("origin",origin).put("status","started"),true);
@@ -68,6 +71,9 @@ final class TResidentEngine implements AutoCloseable {
                 boolean validated=false;
                 try {
                     if(state.equals("prepared")){
+                        android.net.ConnectivityManager network=(android.net.ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                        android.net.NetworkInfo info=network.getActiveNetworkInfo();
+                        if(testModel==null&&(info==null||!info.isConnected())){reduce("defer",new JSONObject().put("id",id).put("reason","network"),true);break;}
                         JSONArray prompt=reduce("prompt",new JSONObject().put("job",job).put("memories",recall(job.getString("owner_id"))),false).getJSONArray("result");
                         JSONObject profile=profile(job.getString("kind"));
                         reduce("reserve",new JSONObject().put("id",jobId).put("prompt",prompt),true);

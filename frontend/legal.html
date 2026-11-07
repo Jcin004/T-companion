@@ -1,5 +1,13 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>T- · 许可与来源</title><style>body{font:15px/1.7 system-ui;max-width:900px;margin:30px auto;padding:20px}pre{white-space:pre-wrap;overflow-wrap:anywhere}a{color:#337c70}</style><a href="javascript:history.back()">← 返回</a><h1>T- · 许可与来源</h1><p>应用代码采用 AGPL-3.0-only。对应源码随试用包提供，第三方模块保留其许可。</p><p><a href="licenses/Serein-MIT.txt">Serein MIT 完整许可</a> · <a href="vendor/jsonrepair/LICENSE.md">jsonrepair ISC 完整许可</a> · <a href="licenses/SullyOS-Source-Available-1.0.txt">SullyOS 原始许可</a></p><pre># Third-party code and reference audit
 
+## 2026-11-06 isolated headless world experiment
+
+SullyOS `utils/worldHome/threads.ts` at `8035795e443579ead0f28d1dfe9d5a87ff0b232e`, copyright NMJ, is retained verbatim under `frontend/vendor/sullyos-world/` with its original Source-Available License 1.0. This adaptation uses the additional source-specific public secondary-modification permission reported by the user on 2026-11-01 (see the 3A entry below); the original license is not relabeled. Type-only imports are erased at build time. The original module handles DM creation/append/deduplication/read projection; adapter receipts and native persistence are outside vendor. No upstream characters, prompts, artwork, private accounts or hosted services are imported.
+
+A-Life SDK `eurusik/alife-sdk` at `b2328099cd8756d4c775255cdebbdf7fd132665d`, copyright 2026 Eugene Rusakov, MIT: original Clock, GOAPPlanner, GOAPAction, WorldState and IEntity files are retained under `frontend/vendor/alife-core/` with LICENSE. The hourly catch-up slicing and JSON state adapter are external; the original multi-day callback behavior is documented rather than silently patched. No engine or Node dependency is added.
+
+Per-file blobs, hashes, authors, licenses, dependencies and changes: `config/world-probe-sources.json`. Byte integrity is tested. Actual Android experiment results and scope: `docs/WORLD_PROBE.md`. Only debug native entrypoints are added; no product release is published by this experiment.
+
 ## 0.14.0 world presentation references
 
 `config/world-presentation-sources.json` records pinned SullyOS and float files inspected for expression portraits, skin sets and story parsing. These are design references only; no new third-party code or art is copied. SullyOS Source-Available License 1.0 is not an AGPL permission to redistribute its implementation. T-companion independently implements its own small interfaces and reuses its existing runtime modules and artwork. User-provided watermarked sprite examples are not bundled.
@@ -209,6 +217,13 @@ Copyright 2017 Julian Descottes and Piskel contributors; Apache-2.0. Fixed commi
 - Universal LPC Spritesheet Character Generator contributors, GPL-3.0, commit `86160e7507d6841259cff624a51a63c1d4847ee3`, `sources/canvas/draw-frames.ts`: verbatim `drawFrameToFrame` excerpt retained at `frontend/vendor/lpc/frame-copy.inc.ts`. Build-time TypeScript compilation into an external ES module; T- rectangular atlas adapter is separate. Original-source Git blob, SHA-256, excerpt boundaries and dependencies: `frontend/vendor/lpc/PROVENANCE.json`. Full GPL text retained. No spritesheets or LPC art imported.
 - Floogen / FashionSense contributors, GPL-3.0, commit `39e9e9e13c9f9a78416172e73a229cf8703ddb59`, `FashionSense/Framework/Managers/LayerManager.cs`: verbatim source retained in `frontend/vendor/fashion-sense/`. `outfit-layer-order.js` ports relative remove/insert/append ordering to JavaScript, excluding SMAPI, XNA, game state and animation-specific conditions; T- exposes per-direction default/behind-body/front choices. Full license and source hashes retained there. No Stardew art imported.
 - Piskel's existing Apache-2.0 connected-fill excerpt remains pinned and unchanged. Current Piskel frame-list / frame model at `32252c3a1305608911622bc40a67bb636b18fae1` was reviewed for frame thumbnails and explicit duplication; these UI adaptations use the existing T- PaintSession undo/save interface, with no new Piskel source import. Original source audit and dependencies: `config/wardrobe-studio-sources.json`.
+
+## Neighborhood life and communication (0.25.0)
+
+- Actual SullyOS threads.ts remains pinned at 8035795e443579ead0f28d1dfe9d5a87ff0b232e. ThreadBubbles and PhoneModal excerpts from apps/WorldHomeApp.tsx are retained unchanged under frontend/vendor/sullyos-world. External build adapter provides read-only full-screen rendering, larger text, T avatars and scoped styling, excluding global Context, DB, episode/model loop and editing. Source-Available 1.0 and the previously recorded source-specific public secondary-modification grant continue to apply; the source is not relabeled AGPL or MIT.
+- A-Life SDK Schedule.ts, Eugene Rusakov, MIT, b2328099cd8756d4c775255cdebbdf7fd132665d, retained unchanged; existing Clock/GOAP imports and Alicization Town pathfinding adaptation remain. T adapters own due times, finite completion and world command validation. Full file/excerpt hashes, blobs, dependencies and changes: config/neighborhood-sources.json and config/world-probe-sources.json.
+- React/react-dom 18.2.0, scheduler 0.23.2 (Meta Platforms and contributors), @phosphor-icons/react 2.1.10 (Phosphor Icons contributors), MIT. Tailwind CSS 3.4.17 (Tailwind Labs and contributors), MIT build dependency. Full licenses retained at frontend/licenses/{react,react-dom,scheduler,phosphor-icons,tailwindcss}-MIT.txt; exact dependencies locked in package-lock.json. React has a single mounting boundary for imported phone rendering; no second UI phone implementation.
+- No new third-party artwork imported. Additional scene layouts use the existing T canvas palette/drawing primitives. float code is not imported in this batch.
 
 
                     GNU AFFERO GENERAL PUBLIC LICENSE
@@ -2831,6 +2846,121 @@ frontend/licenses/esbuild-MIT.txt
 MIT License
 
 Copyright (c) 2020 Evan Wallace
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+frontend/licenses/react-MIT.txt
+MIT License
+
+Copyright (c) Facebook, Inc. and its affiliates.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+frontend/licenses/react-dom-MIT.txt
+MIT License
+
+Copyright (c) Facebook, Inc. and its affiliates.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+frontend/licenses/scheduler-MIT.txt
+MIT License
+
+Copyright (c) Facebook, Inc. and its affiliates.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+frontend/licenses/phosphor-icons-MIT.txt
+MIT License
+
+Copyright (c) 2020 Phosphor Icons
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+frontend/licenses/tailwindcss-MIT.txt
+MIT License
+
+Copyright (c) Tailwind Labs, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

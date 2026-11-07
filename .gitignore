@@ -24,3 +24,6 @@ artifacts/
 frontend/piskel-connected-fill.js
 
 /frontend/lpc-frame-copy.js
+/frontend/life-rules-vendor.js
+/frontend/resident-phone-renderer.js
+/frontend/resident-phone-utilities.css

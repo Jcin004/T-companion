@@ -1,81 +1,115 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {LocalService,emptyData,validateBackup} from '../frontend/local-service.js';
-import {ensureLife,beginLifeRun,nextLifeJob,reserveLifeRequest,lifePrompt,recordLifeResponse,applyLifeResponse,resumeLifeRun} from '../frontend/resident-life-core.js';
-import {readFile} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
-const t={iso:'2026-10-22T04:00:00Z',day:'2026-10-22',hour:12};
+import {ensureLife,beginLifeRun,nextLifeJob,reserveLifeRequest,lifePrompt,recordLifeResponse,applyLifeResponse,resumeLifeRun,lifeTime,advanceResidentRules,acceptResidentPlan,wakeResident,deferLifeRun} from '../frontend/resident-life-core.js';
+import {worldSource} from '../frontend/world-core.js';
+import {phoneSnapshot,readCharacterPhone,sendCharacterMessage} from '../frontend/world-communication.js';
+const at='2026-11-07T01:00:00.000Z',time={iso:at,day:'2026-11-07',hour:9};
+const plan=(location='warm-room',activity='rest',duration=30)=>({title:'读书与休息',steps:[{location_id:location,activity,duration_minutes:duration}]});
 async function fixture(){
  let disk=emptyData(),fail=false;const requests=[];
  const store={load:async()=>structuredClone(disk),save:async d=>{if(fail)throw Error('disk full');disk=structuredClone(d);},hasKey:async()=>false};
  const s=await new LocalService(store,async(settings,key,m,delta)=>{
   requests.push(m);const p=JSON.parse(m[1].content),kind=m[0].content.match(/任务：(\w+)/)?.[1];
-  if(kind==='memory')delta(JSON.stringify({memories:p.observed_events.map(e=>({title:'经历',content:e.content,kind:'experience',evidence:[{source_type:'world_event',event_id:e.id,quote:e.content}]}))}));
-  else if(kind==='share')delta(JSON.stringify({share:true,event_id:p.observed_events[0].id,quote:p.observed_events[0].content,comment:'想和你聊聊。'}));
-  else delta(JSON.stringify({actor_id:p.actor_id,type:'wait',plan:'照顾盆栽'}));
+  delta(JSON.stringify(kind==='plan'?{actor_id:p.actor_id,plan:plan()}:kind==='decision'?{actor_id:p.actor_id,messages:[],situation:'继续眼前的事。'}:kind==='memory'?{memories:[]}:{share:false}));
  }).init();
- await s.transact(d=>{d.characters=[{id:'a',name:'甲',identity:'甲的身份',style:'',avatar:''},{id:'b',name:'乙',identity:'乙的身份',style:'',avatar:''}];});
+ await s.transact(d=>{d.characters=['a','b','c'].map((id,i)=>({id,name:['林','雨','岚'][i],identity:id+'的私有身份',style:'',avatar:''}));});
  await s.api('/world/setup','POST',{character_ids:['a','b']});await s.api('/settings','PATCH',{model:'mock'});
- await s.api('/world-life/settings','POST',{enabled:true,quiet_start:0,quiet_end:0,max_requests:6,share_minutes:15});
+ await s.api('/world-life/settings','POST',{enabled:true,quiet_start:0,quiet_end:0,auto_memory:false,share:false});
+ await s.transact(d=>{ensureLife(d).simulated_at=at;});
  return {s,requests,fail:v=>{fail=v;},restart:()=>new LocalService(store,s.transport).init()};
 }
-test('residents create events, auto memories and unread assistant shares without any user message',async()=>{
- const {s,requests,restart}=await fixture();await s.api('/world-life/run','POST',{request_id:'batch-one'});
- assert.equal(s.data.messages.filter(m=>m.role==='user').length,0);assert.equal(s.data.turns.length,0);
- assert.equal(s.data.world.events.filter(e=>e.source.type==='resident_action').length,2);
- assert.ok(s.data.memory.events.length>=2);assert.ok(s.data.messages.every(m=>m.origin==='world_share'));
- const contacts=await s.api('/contacts');assert.equal(contacts.length,2);assert.ok(contacts.every(c=>c.unread_shares===1));
- const count=requests.length;await s.api('/world-life/run','POST',{request_id:'batch-one'});assert.equal(requests.length,count);
- const loaded=await restart();assert.equal(loaded.data.messages.length,2);assert.deepEqual(validateBackup(await loaded.api('/backup')).world,s.data.world);
- await loaded.api('/contacts/'+contacts[0].id+'/read','POST',{message_id:loaded.data.messages.at(-1).id});assert.equal((await loaded.api('/contacts')).find(c=>c.id===contacts[0].id).unread_shares,0);
- const context=await loaded.api('/contacts/'+contacts[0].id+'/context-preview','POST',{message:'你刚才停留了片刻？'});assert.ok(context.messages.some(m=>m.role==='assistant'));assert.match(context.messages[0].content,/world_event/);
+function reply(d,job,value){const prompt=lifePrompt(d,job);reserveLifeRequest(d,job.id,time,prompt);recordLifeResponse(d,job.id,value,time);return applyLifeResponse(d,job.id,time);}
+function seed(d){for(const owner of d.world.residents)acceptResidentPlan(d,owner,plan(),owner,at);}
+test('v1 world and old two residents survive; third is explicit and three locations are independent',async()=>{
+ const {s}=await fixture(),before=structuredClone(s.data.world.positions);await s.api('/world/setup','POST',{character_ids:['a','b','c']});assert.equal(s.data.world.residents.length,3);assert.deepEqual(s.data.world.positions.a,before.a);
+ const b=structuredClone(s.data.world.positions.b);await s.api('/world/commands','POST',{request_id:'travel-a',actor_id:'a',type:'travel',location_id:'courtyard'});
+ assert.equal(s.data.world.positions.a.location_id,'courtyard');assert.deepEqual(s.data.world.positions.b,b);
+ const original=structuredClone(s.data.world);await s.api('/world?location=common-room');assert.deepEqual(s.data.world,original);
+ const backup=await s.api('/backup');assert.deepEqual(validateBackup(backup).world,backup.world);
+ const legacy=structuredClone(backup);legacy.world.version=1;delete legacy.world.locations;assert.equal(validateBackup(legacy).world.version,2);
 });
-test('each NPC has its own prompt; completed directed conversation creates knowledge, not omniscience',async()=>{
- const {s}=await fixture();await s.api('/world/commands','POST',{request_id:'move-b',type:'move',actor_id:'b',target:{x:5,y:6}});
- const d=s.data;beginLifeRun(d,'social',t);let j=nextLifeJob(d,'social',t);reserveLifeRequest(d,j.id,t,lifePrompt(d,j));recordLifeResponse(d,j.id,{actor_id:'a',type:'say',to_id:'b',text:'一起看书吧。',event_ids:[]},t);applyLifeResponse(d,j.id,t);
- j=nextLifeJob(d,'social',t);assert.equal(j.owner_id,'b');assert.equal(j.kind,'reply');const prompt=lifePrompt(d,j);
- assert.match(prompt[1].content,/乙的身份/);assert.doesNotMatch(prompt[1].content,/甲的身份/);assert.match(prompt[1].content,/一起看书/);
- reserveLifeRequest(d,j.id,t,prompt);recordLifeResponse(d,j.id,{actor_id:'b',type:'say',to_id:'a',text:'好，我们去书架。'},t);applyLifeResponse(d,j.id,t);
- const events=d.world.events.filter(e=>e.source.type==='resident_dialogue');assert.equal(events.length,2);assert.deepEqual(events.map(e=>e.source.speaker_id),['a','b']);assert.deepEqual(events.map(e=>e.source.turn),[1,2]);assert.equal(events[1].source.reply_to,events[0].id);
+test('accepted A-Life schedules advance with zero model calls, deterministic chunks and restart',async()=>{
+ const {s,requests}=await fixture();await s.api('/world/setup','POST',{character_ids:['a','b','c']});const d=structuredClone(s.data);
+ for(const owner of d.world.residents)acceptResidentPlan(d,owner,{title:'日常',steps:[{location_id:'courtyard',activity:'walk',duration_minutes:30},{location_id:'common-room',activity:'rest',duration_minutes:60}]},owner,at);
+ const one=structuredClone(d),many=structuredClone(d),target='2026-11-07T04:00:00.000Z';advanceResidentRules(one,target,target);
+ for(const stamp of ['2026-11-07T02:00:00.000Z','2026-11-07T03:00:00.000Z',target])advanceResidentRules(many,stamp,target);
+ assert.deepEqual(one.world.positions,many.world.positions);assert.deepEqual(one.world.life.schedules,many.world.life.schedules);assert.deepEqual(one.world.events,many.world.events);assert.equal(requests.length,0);
+ const before=structuredClone(one.world);advanceResidentRules(one,target,target);assert.deepEqual(one.world,before);
+ assert.ok(one.world.events.some(e=>e.source.command?.type==='travel'));assert.ok(one.world.events.some(e=>e.content.includes('完成了')));
 });
-test('unobserved experiences stay private; sharing can be declined and quotes are checked',async()=>{
- const {s}=await fixture();await s.api('/world/commands','POST',{request_id:'walk-a',type:'move',actor_id:'a',target:{x:2,y:8}});
- const e=await s.api('/world/commands','POST',{request_id:'plant',type:'interact',actor_id:'a',target_id:'plant'});
- const d=s.data;beginLifeRun(d,'privacy',t);const j=nextLifeJob(d,'privacy',t);assert.doesNotMatch(lifePrompt(d,{...j,owner_id:'b'})[1].content,/给盆栽浇了水/);
- const life=ensureLife(d);j.kind='share';j.event_ids=[e.id];Object.assign(life.jobs.find(x=>x.id===j.id),j);
- reserveLifeRequest(d,j.id,t,lifePrompt(d,j));recordLifeResponse(d,j.id,{share:false},t);applyLifeResponse(d,j.id,t);assert.equal(d.messages.length,0);
+test('quiet time and exhausted model budget do not stop rule time; long gaps keep a resumable cursor',async()=>{
+ const {s}=await fixture(),d=s.data;seed(d);const l=ensureLife(d);l.settings.daily_requests=0;l.settings.quiet_start=0;l.settings.quiet_end=23;
+ beginLifeRun(d,'rules-only',{...time,iso:'2026-11-10T01:00:00.000Z',day:'2026-11-10'});
+ assert.equal(l.catching_up,true);assert.equal(l.simulated_at,'2026-11-08T01:00:00.000Z');assert.equal(nextLifeJob(d,'rules-only',time),null);assert.equal(l.daily.requests,0);
+ advanceResidentRules(d,'2026-11-10T01:00:00.000Z');assert.equal(l.simulated_at,'2026-11-09T01:00:00.000Z');
+ advanceResidentRules(d,'2026-11-10T01:00:00.000Z');assert.equal(l.catching_up,false);
 });
-test('uncertain requests never automatically repeat or refund; responded results recover without model',async()=>{
- const {s}=await fixture(),d=s.data;beginLifeRun(d,'recover',t);const j=nextLifeJob(d,'recover',t);reserveLifeRequest(d,j.id,t,lifePrompt(d,j));
- assert.throws(()=>reserveLifeRequest(d,j.id,t,[]),/再次发送/);assert.throws(()=>resumeLifeRun(d,'recover',t),/计费/);assert.equal(ensureLife(d).daily.requests,1);
- resumeLifeRun(d,'recover',t,true);assert.equal(ensureLife(d).jobs[0].state,'skipped');
- const k=nextLifeJob(d,'recover',t);reserveLifeRequest(d,k.id,t,lifePrompt(d,k));recordLifeResponse(d,k.id,{actor_id:k.owner_id,type:'wait'},t);applyLifeResponse(d,k.id,t);const count=d.world.events.length;applyLifeResponse(d,k.id,t);assert.equal(d.world.events.length,count);
+test('original SullyOS DM is canonical; observer does not mark read or grant third-party knowledge',async()=>{
+ const {s}=await fixture(),d=s.data;seed(d);wakeResident(d,'a','encounter','test-encounter');beginLifeRun(d,'social',time);const j=nextLifeJob(d,'social',time);
+ reply(d,j,{actor_id:'a',messages:[{to_id:'b',text:'书架旁有一本紫色封面的书。'}]});
+ const event=d.world.events.find(e=>e.source.type==='world_message');assert.ok(event);assert.doesNotMatch(event.content,/紫色/);assert.match(worldSource(d,event.id,'a').content,/紫色/);
+ const before=structuredClone(d);assert.match(phoneSnapshot(d,'b').threads[0].messages[0].text,/紫色/);assert.deepEqual(d,before);
+ assert.throws(()=>worldSource(d,event.id,'b'),/知情/);assert.throws(()=>worldSource(d,event.id,'c'),/知情/);
+ readCharacterPhone(d,'b',at);assert.match(worldSource(d,event.id,'b').content,/紫色/);assert.throws(()=>worldSource(d,event.id,'c'),/知情/);
+ const k=nextLifeJob(d,'social',time);assert.equal(k.owner_id,'b');assert.match(lifePrompt(d,k)[1].content,/紫色/);assert.doesNotMatch(lifePrompt(d,k)[1].content,/a的私有身份/);
+ assert.equal(d.messages.length,0);assert.equal(d.turns.length,0);
 });
-test('invalid actions and failed storage cannot become world facts; quiet and daily budgets block requests',async()=>{
- const f=await fixture(),d=f.s.data;beginLifeRun(d,'bad',t);const j=nextLifeJob(d,'bad',t);reserveLifeRequest(d,j.id,t,lifePrompt(d,j));recordLifeResponse(d,j.id,{actor_id:'b',type:'wait'},t);assert.throws(()=>applyLifeResponse(d,j.id,t),/行动者/);assert.equal(d.world.events.length,0);
- f.fail(true);await assert.rejects(f.s.api('/world-life/settings','POST',{share:false}),/disk full/);f.fail(false);assert.equal(ensureLife(f.s.data).settings.share,true);
- const l=ensureLife(d);l.runs[0].state='failed';l.settings.quiet_start=23;l.settings.quiet_end=8;assert.throws(()=>beginLifeRun(d,'quiet',{...t,hour:1}),/安静/);
- l.settings.daily_requests=0;beginLifeRun(d,'quota',t);const k=nextLifeJob(d,'quota',t);assert.throws(()=>reserveLifeRequest(d,k.id,t,[]),/额度/);
+test('user message may be unread and receive no reply; backup and memory exclude unread content',async()=>{
+ const {s,requests}=await fixture();seed(s.data);const contact=await s.api('/contacts','POST',{character_id:'a'});
+ await s.stream(contact.id,'我想问一本红色的书。','user-inbox',()=>{});assert.equal(requests.length,0);assert.equal(s.data.messages.length,1);assert.equal(s.data.messages[0].read_at,undefined);assert.equal(s.data.turns[0].assistant_id,null);
+ assert.deepEqual(validateBackup(await s.api('/backup')).messages,s.data.messages);
+ await assert.rejects(s.api('/world-phone/a','POST',{text:'伪造代发'}),/只允许观察/);
+ const d=s.data;beginLifeRun(d,'read-user',time);const j=nextLifeJob(d,'read-user',time);assert.equal(j.owner_id,'a');assert.ok(d.messages[0].read_at);
+ reply(d,j,{actor_id:'a',messages:[],situation:'正在休息，稍后再说。'});assert.equal(d.messages.length,1);assert.equal(d.world.life.situations.a.text,'正在休息，稍后再说。');
+ wakeResident(d,'a','test','later-user-reply');const later=nextLifeJob(d,'read-user',time);reply(d,later,{actor_id:'a',messages:[{to_id:'user',text:'我现在看到了，待会儿一起找找。'}]});assert.equal(d.turns.length,1);assert.equal(d.messages.length,2);assert.doesNotThrow(()=>validateBackup(structuredClone(d)));assert.equal(phoneSnapshot(d,'a').threads.find(t=>t.id==='online_a').messages.length,2);
 });
-test('completed model candidate survives failed apply commit and resumes without another model request',async()=>{
- const {s,requests}=await fixture();await s.api('/world-life/settings','POST',{max_actions:1,max_requests:1,auto_memory:false,share:false});
- const save=s.storage.save.bind(s.storage);let once=true;
- s.storage.save=async data=>{if(once&&data.world.life?.jobs.some(j=>j.state==='applied')){once=false;throw Error('disk full at apply');}return save(data);};
- await assert.rejects(s.api('/world-life/run','POST',{request_id:'apply-failure'}),/disk full/);assert.equal(s.data.world.events.length,0);assert.equal(s.data.world.life.jobs[0].state,'responded');
- const count=requests.length;s.storage.save=save;await s.api('/world-life/resume','POST',{run_id:'apply-failure',skip_uncertain:false});assert.equal(requests.length,count);assert.equal(s.data.world.events.length,1);
+test('uncertain requests never repeat or refund; full candidates survive failed save and resume',async()=>{
+ const {s}=await fixture(),d=s.data;beginLifeRun(d,'recover',time);const j=nextLifeJob(d,'recover',time);reserveLifeRequest(d,j.id,time,lifePrompt(d,j));
+ assert.throws(()=>reserveLifeRequest(d,j.id,time,[]),/再次发送/);assert.throws(()=>resumeLifeRun(d,'recover',time),/计费/);assert.equal(ensureLife(d).daily.requests,1);resumeLifeRun(d,'recover',time,true);assert.equal(d.world.life.jobs[0].state,'skipped');
+ const f=await fixture();await f.s.api('/world-life/settings','POST',{max_requests:1});const save=f.s.storage.save.bind(f.s.storage);let once=true;
+ f.s.storage.save=async data=>{if(once&&data.world.life.jobs.some(j=>j.state==='applied')){once=false;throw Error('disk full at apply');}return save(data);};
+ await assert.rejects(f.s.api('/world-life/run','POST',{request_id:'apply-failure'}),/disk full/);assert.equal(f.s.data.world.life.jobs[0].state,'responded');const count=f.requests.length;
+ f.s.storage.save=save;await f.s.api('/world-life/resume','POST',{run_id:'apply-failure'});assert.equal(f.requests.length,count);assert.ok(f.s.data.world.life.schedules.a);
 });
-test('cross-instance native transactions reload durable state and reject stale snapshots with CAS',async()=>{
- const data=emptyData();let revision=0,document=data,lease='';
- const plugin={load:async()=>({data:JSON.stringify(document),revision}),save:async a=>{if(a.revision!==revision)throw Error('stale');if(lease&&lease!==a.owner)throw Error('busy');document=JSON.parse(a.data);return {revision:++revision};},beginWrite:async({owner})=>{if(lease&&lease!==owner)throw Error('busy');lease=owner;},endWrite:async({owner})=>{if(owner===lease)lease='';},hasKey:async()=>({value:false})};
- const {NativePersistence}=await import('../frontend/local-service.js');
- const one=await new LocalService(new NativePersistence(plugin),async()=>{}).init(),two=await new LocalService(new NativePersistence(plugin),async()=>{}).init();
- await one.api('/characters','POST',{name:'甲',identity:'',style:'',avatar:''});await two.api('/characters','POST',{name:'乙',identity:'',style:'',avatar:''});assert.equal(document.characters.length,2);
- const stale=new NativePersistence(plugin);await stale.load();await one.api('/settings','PATCH',{history_limit:42});await assert.rejects(stale.save(document),/stale/);assert.equal(document.settings.history_limit,42);
+test('model wait does not own transaction; changed world rejects stale candidate without action',async()=>{
+ const {s}=await fixture(),d=s.data;beginLifeRun(d,'stale',time);const j=nextLifeJob(d,'stale',time);reserveLifeRequest(d,j.id,time,lifePrompt(d,j));
+ await s.api('/world/commands','POST',{request_id:'user-step',type:'advance'});const current=s.data,job=current.world.life.jobs[0];recordLifeResponse(current,job.id,{actor_id:'a',plan:plan()},time);applyLifeResponse(current,job.id,time);
+ assert.equal(job.state,'stale');assert.equal(current.world.life.schedules.a,undefined);
 });
-test('user scene participation enters only its recipient next decision; vendor reuse stays pinned',async()=>{
- const {s}=await fixture();const scene=await s.api('/world/dialogue','POST',{character_id:'a'});
- s.transport=async(settings,key,m,delta)=>delta('我会考虑先去书架。');await s.stream(scene.id,'请先照看盆栽。','user-influence',()=>{});
- const job={owner_id:'a',kind:'action'};assert.match(lifePrompt(s.data,job)[1].content,/请先照看盆栽/);assert.doesNotMatch(lifePrompt(s.data,{...job,owner_id:'b'})[1].content,/请先照看盆栽/);
- const root=new URL('../frontend/vendor/alicization-town-life/',import.meta.url),p=JSON.parse(await readFile(new URL('provenance.json',root),'utf8'));
- for(const [name,ref] of Object.entries(p.files))assert.equal(createHash('sha256').update(await readFile(new URL(name,root))).digest('hex'),ref.sha256);
+test('exclusive furniture occupancy blocks rather than overwrites; observing has no side effects',async()=>{
+ const {s}=await fixture(),d=s.data;acceptResidentPlan(d,'a',plan('warm-room','read',60),'read-a',at);acceptResidentPlan(d,'b',plan('warm-room','read',60),'read-b',at);
+ advanceResidentRules(d,at,at);assert.equal(d.world.life.resources['warm-room:desk'],'a');assert.equal(d.world.life.schedules.b.state,'blocked');assert.equal(d.world.life.activities.b.phase,'blocked');
+ const before=structuredClone(d.world);phoneSnapshot(d,'a');assert.deepEqual(d.world,before);
+});
+test('canonical SullyOS history survives cap, retries, same-name routing and deletion restore',async()=>{
+ const {s}=await fixture();await s.api('/world/setup','POST',{character_ids:['a','b','c']});const d=s.data;for(const c of d.characters)c.name='同名';
+ for(let i=0;i<125;i++)sendCharacterMessage(d,{request_id:'archive_'+i,actor_id:'a',to_id:'c',text:'消息 '+i,at});
+ const phone=phoneSnapshot(d,'c'),thread=phone.threads.find(t=>t.kind==='dm');assert.deepEqual(thread.memberIds,['a','c']);assert.equal(thread.messages.length,125);
+ const last=sendCharacterMessage(d,{request_id:'archive_124',actor_id:'a',to_id:'c',text:'消息 124',at});assert.equal(last.message_id,thread.messages[124].id);assert.equal(phoneSnapshot(d,'b').threads.flatMap(t=>t.messages).length,0);
+ assert.doesNotThrow(()=>validateBackup(structuredClone(d)));
+ const bad=structuredClone(d);bad.world.communication.read.b={[thread.messages[0].id]:at};assert.throws(()=>validateBackup(bad),/已读来源/);
+});
+test('manual plan receipts are stable and candidate preparation rejects a changed world before charging',async()=>{
+ const {s}=await fixture(),d=s.data;const first=acceptResidentPlan(d,'a',plan(),'manual-stable',at);acceptResidentPlan(d,'a',plan('courtyard'),'replacement',at);
+ assert.deepEqual(acceptResidentPlan(d,'a',plan(),'manual-stable',at),first);assert.equal(d.world.life.schedules.a.id,'replacement');
+ beginLifeRun(d,'prepare-stale',time);const j=nextLifeJob(d,'prepare-stale',time);d.world.tick++;
+ assert.throws(()=>reserveLifeRequest(d,j.id,time,lifePrompt(d,j)),/请求前/);assert.equal(d.world.life.daily.requests,0);
+});
+test('nearby speech has independent listeners; interruption releases furniture and waits for a new decision',async()=>{
+ const {s}=await fixture(),d=s.data;seed(d);d.world.positions.b={x:5,y:6};wakeResident(d,'a','encounter','speak');beginLifeRun(d,'speech',time);const j=nextLifeJob(d,'speech',time);
+ reply(d,j,{actor_id:'a',messages:[],say:{to_id:'b',text:'这本书很有意思。'}});const e=d.world.events.find(e=>e.source.type==='resident_dialogue');assert.match(worldSource(d,e.id,'b').content,/有意思/);assert.throws(()=>worldSource(d,e.id,'c'),/知情/);
+ const {s:other}=await fixture(),x=other.data;acceptResidentPlan(x,'a',plan('warm-room','read',30),'interrupted-read',at);advanceResidentRules(x,at,at);x.world.positions.a={x:5,y:9,location_id:'courtyard'};
+ advanceResidentRules(x,'2026-11-07T02:00:00.000Z');assert.equal(x.world.life.schedules.a.state,'blocked');assert.equal(x.world.life.resources['warm-room:desk'],undefined);assert.ok(x.world.life.wakeups.some(w=>w.reason==='interrupted'));
+});
+test('a full day without any user turn has rule activities and independently authored private messages',async()=>{
+ const {s,requests}=await fixture();await s.api('/world/setup','POST',{character_ids:['a','b','c']});const d=s.data;
+ for(const owner of d.world.residents)acceptResidentPlan(d,owner,{title:'一天的安排',steps:[{location_id:'courtyard',activity:'walk',duration_minutes:360},{location_id:'common-room',activity:'rest',duration_minutes:360},{location_id:'warm-room',activity:'sleep',duration_minutes:360},{location_id:'courtyard',activity:'wait',duration_minutes:360}]},'day_'+owner,at);
+ wakeResident(d,'a','encounter','day-start');beginLifeRun(d,'day-social',time);let job=nextLifeJob(d,'day-social',time);assert.equal(job.owner_id,'a');reply(d,job,{actor_id:'a',messages:[{to_id:'b',text:'我准备先去庭院散步。'}]});job=nextLifeJob(d,'day-social',time);assert.equal(job.owner_id,'b');reply(d,job,{actor_id:'b',messages:[{to_id:'a',text:'好，我也有自己的安排。'}]});
+ d.world.life.settings.daily_requests=0;const before=d.world.events.length;advanceResidentRules(d,'2026-11-08T01:00:00.000Z');assert.ok(d.world.events.length>before+10);assert.equal(d.messages.length,0);assert.equal(d.turns.length,0);assert.equal(requests.length,0);assert.equal(d.world.communication.threads.find(t=>t.kind==='dm').messages.length,2);assert.doesNotThrow(()=>validateBackup(structuredClone(d)));
+});
+test('user chat is independent of autonomous quota and offline decisions stay queued without charging',async()=>{
+ const {s}=await fixture();seed(s.data);await s.api('/world-life/settings','POST',{daily_requests:0});const contact=await s.api('/contacts','POST',{character_id:'a'});await s.stream(contact.id,'现在方便说话吗？','separate-budget',()=>{});
+ const d=s.data;beginLifeRun(d,'offline-user',time);let job=nextLifeJob(d,'offline-user',time);assert.equal(job.request_origin,'user_chat');deferLifeRun(d,'offline-user',time,'network');assert.equal(d.world.life.daily.requests,0);assert.equal(d.world.life.wakeups.find(w=>w.key===job.wake_key).state,'pending');
+ beginLifeRun(d,'online-user',time);job=nextLifeJob(d,'online-user',time);reply(d,job,{actor_id:'a',messages:[{to_id:'user',text:'现在可以。'}]});assert.equal(d.world.life.daily.requests,0);assert.equal(d.world.life.runs.find(r=>r.id==='online-user').user_requests,1);assert.equal(d.world.life.runs.find(r=>r.id==='online-user').requests,0);assert.equal(nextLifeJob(d,'online-user',time),null);assert.equal(d.messages.length,2);
 });

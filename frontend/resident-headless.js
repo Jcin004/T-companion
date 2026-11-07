@@ -8,9 +8,11 @@ export function command(data,operation,args={}){
   switch(operation){
     case 'attempt':result=rules.ensureLife(data).last_attempt={at:time.iso,origin:args.origin,status:args.status};break;
     case 'initialize':result=rules.ensureLife(data);break;
+    case 'tick':result=rules.advanceResidentRules(data,time.iso,time.iso);break;
     case 'parse':result=parseModelObject(args.text).value;break;
     case 'begin':result=rules.beginLifeRun(data,args.id,time,args.origin);break;
     case 'next':result=rules.nextLifeJob(data,args.id,time);break;
+    case 'defer':result=rules.deferLifeRun(data,args.id,time,args.reason);break;
     case 'prompt':result=rules.lifePrompt(data,args.job,args.memories||[]);break;
     case 'reserve':result=rules.reserveLifeRequest(data,args.id,time,args.prompt);break;
     case 'response':result=rules.recordLifeResponse(data,args.id,args.value,time);break;

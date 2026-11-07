@@ -12,6 +12,7 @@ import {EmbeddedMemory} from './embedded-memory.js';
 import {WorldModule} from './world-service.js';
 import {validateProactiveMessages} from './proactive-messages.js';
 import {ResidentLifeService} from './resident-life-service.js';
+import {phoneSnapshot} from './world-communication.js';
 import {validateLife} from './resident-life-core.js';
 import {validateWorld,sceneSnapshot,completeWorldDialogue} from './world-core.js';
 import {CharacterLooksModule,validateLooks} from './character-looks.js';
@@ -36,7 +37,8 @@ export function validateBackup(raw){
   for(const s of d.sessions)if(typeof s.id!=='string'||!cs.has(s.character_id)||!Number.isFinite(Date.parse(s.created_at.replace(' ','T'))))throw Error('备份会话引用错误');
   const messages=new Map(d.messages.map(m=>[m.id,m]));
   for(const m of d.messages)if(!Number.isSafeInteger(m.id)||m.id<1||!ss.has(m.session_id)||!['user','assistant'].includes(m.role)||typeof m.content!=='string'||m.content.length>100000||!Number.isFinite(Date.parse(m.created_at.replace(' ','T'))))throw Error('备份消息格式错误');
-  const used=new Set();for(const t of d.turns){const u=messages.get(t.user_id),a=messages.get(t.assistant_id);if(!ss.has(t.session_id)||!u||u.session_id!==t.session_id||u.role!=='user'||used.has(t.user_id)||!['complete','failed','cancelled','interrupted'].includes(t.state)||(t.state==='complete'&&(!a||a.role!=='assistant'||a.session_id!==t.session_id||a.id<=u.id)))throw Error('备份请求引用错误');used.add(t.user_id);}
+  for(const m of d.messages)if(m.origin==='world_inbox'&&(m.role!=='user'||!d.world?.residents.includes(m.source_owner_id)||d.sessions.find(s=>s.id===m.session_id)?.character_id!==m.source_owner_id||(m.read_at&&!Number.isFinite(Date.parse(m.read_at)))))throw Error('居民收件来源无效');
+  const used=new Set();for(const t of d.turns){const u=messages.get(t.user_id),a=messages.get(t.assistant_id),queued=u?.origin==='world_inbox'&&t.assistant_id===null;if(!ss.has(t.session_id)||!u||u.session_id!==t.session_id||u.role!=='user'||used.has(t.user_id)||!['complete','failed','cancelled','interrupted'].includes(t.state)||(t.state==='complete'&&!queued&&(!a||a.role!=='assistant'||a.session_id!==t.session_id||a.id<=u.id)))throw Error('备份请求引用错误');used.add(t.user_id);}
   new Intl.DateTimeFormat('en',{timeZone:d.settings?.timezone||'Asia/Shanghai'});
   d.version=2;d.settings={...defaults,...d.settings};delete d.settings.api_key;delete d.settings.has_api_key;d.drafts=d.drafts||{};
   ensureProfiles(d);
@@ -52,7 +54,8 @@ export function validateBackup(raw){
 export class BrowserPersistence {
   async open(){this.db=await new Promise((resolve,reject)=>{const r=indexedDB.open('t-companion-local',1);r.onupgradeneeded=()=>r.result.createObjectStore('documents');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(Error('无法打开本机数据库'));});}
   async load(){await this.open();return new Promise((resolve,reject)=>{const r=this.db.transaction('documents').objectStore('documents').get('state');r.onsuccess=()=>resolve(r.result||emptyData());r.onerror=()=>reject(Error('读取数据库失败'));});}
-  async save(data){return new Promise((resolve,reject)=>{const tx=this.db.transaction('documents','readwrite');tx.objectStore('documents').put(clone(data),'state');tx.oncomplete=resolve;tx.onerror=()=>reject(Error('保存失败，请检查设备剩余空间'));});}
+  async save(data){return new Promise((resolve,reject)=>{const tx=this.db.transaction('documents','readwrite'),store=tx.objectStore('documents');const old=store.get('state');old.onsuccess=()=>{const w=old.result?.world;if(w&&(w.version===1||w.life?.version===1)&&data.world?.version===2){const backup=store.get('pre-neighborhood');backup.onsuccess=()=>{if(!backup.result)store.put(old.result,'pre-neighborhood');};}store.put(clone(data),'state');};tx.oncomplete=resolve;tx.onerror=()=>reject(Error('保存失败，请检查设备剩余空间'));});}
+  async preUpgrade(){return new Promise((resolve,reject)=>{const r=this.db.transaction('documents').objectStore('documents').get('pre-neighborhood');r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(Error('读取升级前备份失败'));});}
   keyName(id){return 't.local-model-key'+(id&&id!=='legacy'?'.'+id:'');}
   async setKey(value,id){if(!value)localStorage.removeItem(this.keyName(id));else localStorage.setItem(this.keyName(id),value);}
   async hasKey(id){return !!localStorage.getItem(this.keyName(id));}
@@ -61,6 +64,7 @@ export class BrowserPersistence {
 export class NativePersistence {
   constructor(plugin){this.plugin=plugin;this.owner='ui_'+uid();this.images=new Map();this.imageIds=new Map();this.knownImages=new Set();this.assetReferences=false;}
   async begin(){this.releasedWrite=false;this.pendingSnapshot=await this.plugin.beginWrite?.({owner:this.owner,assetReferences:true});}
+  async preUpgrade(){const value=await this.plugin.preUpgrade();return value.data?JSON.parse(value.data):null;}
   async end(){this.pendingSnapshot=null;if(!this.releasedWrite)await this.plugin.endWrite?.({owner:this.owner});this.releasedWrite=false;}
   async load(){
     const pending=this.pendingSnapshot;this.pendingSnapshot=null;
@@ -146,6 +150,10 @@ export class LocalService {
     const worldWrite=method==='POST'&&/^\/world\/(commands|setup|dialogue)(?:\?|$)/.test(path);
     if(this.storage.plugin?.beginWrite&&!this.active&&!worldWrite){await this.queue.catch(()=>{});const current=await this.storage.load();ensureProfiles(current);validateWorld(current);validateMemory(current);this.data=current;}
     const url=new URL(path,'https://local'),pathname=url.pathname,route=pathname.split('/').filter(Boolean)[0];
+    if(route==='world-phone'){
+      if(method!=='GET')throw Error('人物手机只允许观察，不能代发消息');
+      return phoneSnapshot(this.data,decodeURIComponent(pathname.split('/')[2]||''));
+    }
     if(route==='world-life'){
       if(this.storage.plugin?.lifeRun&&['run','resume','cancel','settings'].includes(pathname.split('/')[2])){
         if(pathname.endsWith('/run')||pathname.endsWith('/resume'))return this.storage.plugin.lifeRun({id:body?.request_id||body?.run_id||'batch_'+Date.now().toString(36),resume:pathname.endsWith('/resume'),skip:body?.skip_uncertain===true});
@@ -234,6 +242,7 @@ export class LocalService {
       if(parts[2]==='calendar'){const result={},format=new Intl.DateTimeFormat('en-CA',{timeZone:d.settings.timezone,year:'numeric',month:'2-digit',day:'2-digit'});for(const m of ms){const timestamp=/Z$|[+-]\d\d:\d\d$/.test(m.created_at)?m.created_at:m.created_at.replace(' ','T')+'Z';const p=format.formatToParts(new Date(timestamp)),get=n=>p.find(p=>p.type===n).value,day=get('year')+'-'+get('month')+'-'+get('day');if(day.startsWith(q.get('month'))&&!result[day])result[day]=m.id;}return result;}
     }
     if(parts[0]==='backup'){
+        if(parts[1]==='pre-upgrade'){const previous=await this.storage.preUpgrade?.();if(!previous)throw Error('本机没有本次升级前备份');return previous;}
       if(this.active)throw Error('请先停止生成再备份或恢复');
       if(parts[1]==='restore'){if(this.active)throw Error('请等待当前模型操作结束再恢复');const next=validateBackup(body);for(const p of next.api_profiles){const old=d.api_profiles.find(x=>x.id===p.id);if(!old||new URL(old.base_url).origin!==new URL(p.base_url).origin)await this.storage.setKey(null,p.id);}for(const key of Object.keys(d))delete d[key];Object.assign(d,next);return {ok:true};}
       return clone(d);
@@ -271,6 +280,19 @@ export class LocalService {
     try{return await task;}finally{clearTimeout(timer);if(this.auxTask===task)this.auxTask=null;if(this.active===ctrl)this.active=null;}
   }
   async stream(sid,text,rid,onEvent){
+    const residentSession=this.data.sessions.find(s=>s.id===sid);
+    if(residentSession&&(residentSession.mode===undefined||residentSession.mode==='online')&&this.data.world?.life?.settings.enabled&&this.data.world.residents.includes(residentSession.character_id)){
+      await this.transact(d=>{
+        const old=d.turns.find(t=>t.request_id===rid);
+        if(old){if(old.session_id!==sid||d.messages.find(m=>m.id===old.user_id)?.content!==text)throw Error('请求标识与原消息不匹配');return;}
+        if(typeof text!=='string'||!text.trim()||text.length>20000)throw Error('消息文字无效');
+        const id=d.messages.reduce((n,m)=>Math.max(n,m.id),0)+1;
+        d.messages.push({id,session_id:sid,role:'user',content:text,created_at:now(),origin:'world_inbox',source_owner_id:residentSession.character_id});
+        d.turns.push({request_id:rid,session_id:sid,user_id:id,assistant_id:null,state:'complete'});
+        if(d.world.life)d.world.life.next_at=now();
+      });
+      onEvent('accepted',{queued:true});onEvent('complete',{queued:true});return;
+    }
     if(this.auxTask){this.cancel();await this.auxTask.catch(()=>{});}
     if(this.active)throw Error('已有回复正在生成');
     if(this.memoryModule.saving)throw Error('记忆正在保存，请稍后发送');
@@ -343,4 +365,4 @@ export class LocalService {
     }
   }
 }
-export async function createLocalService(plugin,diagnostics,memoryPlugin=globalThis.Capacitor?.Plugins?.TMemory){const persistence=plugin?new NativePersistence(plugin):new BrowserPersistence();const transport=plugin?((s,k,m,delta,signal)=>nativeModel(plugin,s,m,delta,signal)):browserModel;return new LocalService(persistence,transport,diagnostics,plugin?nativeMemoryRequest(plugin):null,plugin?new EmbeddedMemory(memoryPlugin):null).init();}
+export async function createLocalService(plugin,diagnostics,memoryPlugin=globalThis.Capacitor?.Plugins?.TMemory){const persistence=plugin?new NativePersistence(plugin):new BrowserPersistence();const transport=plugin?((s,k,m,delta,signal)=>nativeModel(plugin,s,m,delta,signal)):browserModel;const service=await new LocalService(persistence,transport,diagnostics,plugin?nativeMemoryRequest(plugin):null,plugin?new EmbeddedMemory(memoryPlugin):null).init();await plugin?.lifeSchedule?.();return service;}

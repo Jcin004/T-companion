@@ -1,4 +1,5 @@
 // Bundle our shared domain rules for a non-WebView QuickJS host. Never bundle UI or keys.
+import './build-life-rules.mjs';
 import {build} from 'esbuild';
 import {mkdir} from 'node:fs/promises';
 await mkdir('android/app/src/main/assets/resident',{recursive:true});

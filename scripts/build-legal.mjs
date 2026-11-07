@@ -3,6 +3,7 @@ const escape=s=>s.replace(/[ \t]+$/gm,'').replace(/&/g,'&amp;').replace(/</g,'&l
 const notices=await readFile('THIRD_PARTY_NOTICES.md','utf8'),license=await readFile('LICENSE','utf8');
 const bundled=['frontend/vendor/lpc/LICENSE','frontend/vendor/fashion-sense/LICENSE','frontend/vendor/piskel/LICENSE','frontend/licenses/SullyOS-Source-Available-1.0.txt','vendor/python/ombre/LICENSE','vendor/jieba-distribution/LICENSE','vendor/rapidfuzz-distribution/rapidfuzz-3.14.1.dist-info/licenses/LICENSE','frontend/licenses/QuickJS-Java-Apache-2.0.txt','frontend/licenses/QuickJS-MIT.txt','frontend/licenses/esbuild-MIT.txt'];
 const runtime=JSON.parse(await readFile('vendor/runtime-licenses/PROVENANCE.json','utf8'));
+for(const name of ['react','react-dom','scheduler','phosphor-icons','tailwindcss'])bundled.push('frontend/licenses/'+name+'-MIT.txt');
 for(const path of Object.keys(runtime.files).sort())bundled.push('vendor/runtime-licenses/'+path);
 let runtimeNotices='\n\nAndroid embedded runtime licenses\n';
 for(const path of bundled)runtimeNotices+='\n'+path+'\n'+await readFile(path,'utf8');

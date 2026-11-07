@@ -25,6 +25,18 @@ export function floorPoint(x,y){return {x:Math.floor(x*12),y:Math.round((y-.4)/.
 export const visualPlaces={books:{x:.08,y:.06,w:.26,h:.30},desk:{x:.35,y:.20,w:.24,h:.17},lamp:{x:.60,y:.20,w:.10,h:.17},bed:{x:.73,y:.20,w:.23,h:.34},plant:{x:.02,y:.63,w:.17,h:.23},window:{x:.56,y:.01,w:.30,h:.17}};
 export function drawRoom(c,width,height,state){
   c.imageSmoothingEnabled=false;c.drawImage(ready.get(art.room),0,0,width,height);
+  if(state.view_location==='courtyard'){
+    // Reuse the existing pixel drawing primitive and palette for a new layout.
+    c.fillStyle='#b9d5e2';c.fillRect(0,0,width,height*.38);c.fillStyle='#7d9c72';c.fillRect(0,height*.38,width,height*.62);
+    c.fillStyle='#d1c2a0';c.fillRect(width*.34,height*.38,width*.32,height*.62);c.fillStyle='#4e7459';
+    for(const x of [.06,.85]){c.fillRect(width*x,height*.3,width*.08,height*.5);c.fillStyle='#648765';c.fillRect(width*(x-.04),height*.18,width*.16,height*.25);c.fillStyle='#4e7459';}
+    c.fillStyle='#719264';for(let y=7;y<24;y++)for(let x=0;x<20;x++)if((x*7+y*11)%9===0&&(x<6||x>13))c.fillRect(width*x/20,height*y/24,width*.015,height*.008);
+    c.fillStyle='#b2a285';for(let y=10;y<24;y+=2)c.fillRect(width*.35,height*y/24,width*.30,height*.006);
+    const image=ready.get(art.room),plant=visualPlaces.plant;c.drawImage(image,image.width*plant.x,image.height*plant.y,image.width*plant.w,image.height*plant.h,width*plant.x,height*plant.y,width*plant.w,height*plant.h);
+  }else if(state.view_location==='common-room'){
+    c.fillStyle='#bed0db55';c.fillRect(0,0,width,height);c.fillStyle='#baa888';c.fillRect(width*.73,height*.2,width*.24,height*.34);
+    c.fillStyle='#e9dfcc';c.fillRect(width*.75,height*.24,width*.2,height*.26);
+  }
   if(state.curtain){c.fillStyle='#985861';c.fillRect(width*.57,height*.02,width*.26,height*.16);c.fillStyle='#b87780';for(let x=.58;x<.83;x+=.025)c.fillRect(width*x,height*.02,width*.012,height*.16);}
   if(!state.lamp){c.fillStyle='#302b4659';c.fillRect(0,0,width,height);c.fillStyle='#8b785e';c.beginPath();c.ellipse(width*.624,height*.218,width*.015,height*.015,0,0,Math.PI*2);c.fill();}
 }

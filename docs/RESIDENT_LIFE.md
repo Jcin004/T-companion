@@ -1,5 +1,7 @@
 # 居民自主经历、分享与 Android 间歇后台
 
+本文保留0.12阶段历史。当前0.25已用有限计划、规则推进和重要事件唤醒替代逐日常行动请求模型；当前边界与验收见 [PROJECT_CORE](PROJECT_CORE.md)、[唯一迁入计划](MIGRATION_PLAN.md)。
+
 本阶段从干净的 `feat/minimal-pixel-world@ec7a2af` 创建 `feat/resident-life-sharing`，保留 0.11.0 的地图、人物绑定、场景会话、事件来源与内置 OB。新版为 0.12.0-trial，包名和签名沿用原试用包。
 
 ## 数据所有者和执行路径

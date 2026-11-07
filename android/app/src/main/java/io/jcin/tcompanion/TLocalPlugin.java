@@ -42,6 +42,7 @@ public class TLocalPlugin extends Plugin {
     @PluginMethod public void saveDiagnostics(PluginCall call){
         try{String value=call.getString("data","");if(value.length()>1100000)throw new IOException();new JSONObject(value);ContentValues row=new ContentValues();row.put("id",1);row.put("data",value);if(diagnosticDatabase().insertWithOnConflict("diagnostics",null,row,SQLiteDatabase.CONFLICT_REPLACE)==-1)throw new IOException();call.resolve();}catch(Exception e){call.reject("保存运行日志失败");}
     }
+    @PluginMethod public void preUpgrade(PluginCall call){try{call.resolve(new JSObject(database.preUpgrade().toString()));}catch(Exception e){call.reject("读取升级前备份失败");}}
     @PluginMethod public void load(PluginCall call){
         try{call.resolve(new JSObject(database.read(call.getBoolean("assetReferences",false)).toString()));}catch(Exception e){call.reject("读取本机 SQLite 失败");}
     }
